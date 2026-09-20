@@ -19,7 +19,6 @@ type Payload =
   | 'graphql-include-path-src-5.md-overlapping-label'
   | 'graphql-include-path-src-5.md-squash-merging'
   | 'graphql-comparison-merge-commit'
-  | 'graphql-comparison-dependabot-bumps'
   | 'graphql-comparison-no-prs'
   | 'graphql-comparison-empty'
   | 'graphql-comparison-overlapping-label'
@@ -118,12 +117,27 @@ export const mockGraphqlQuery = (
                   __typename: 'Commit',
                   history: {
                     ...history,
-                    nodes: history.nodes
-                      .filter(Boolean)
-                      .map((commit: { id?: string; oid?: string }) => ({
+                    nodes: history.nodes.filter(Boolean).map(
+                      (commit: {
+                        id?: string
+                        oid?: string
+                        associatedPullRequests?: {
+                          nodes?: unknown[] | null
+                        } | null
+                      }) => ({
                         ...commit,
                         oid: commitOid(commit),
-                      })),
+                        associatedPullRequests: commit.associatedPullRequests
+                          ? {
+                              ...commit.associatedPullRequests,
+                              totalCount:
+                                commit.associatedPullRequests.nodes?.filter(
+                                  Boolean,
+                                ).length ?? 0,
+                            }
+                          : commit.associatedPullRequests,
+                      }),
+                    ),
                   },
                 },
               },

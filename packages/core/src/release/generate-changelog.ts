@@ -1,14 +1,16 @@
 import { type Logger, noopLogger } from '../ports.ts'
-import type { Commit, ParsedConfig, PullRequest } from '../types.ts'
-import { categorizePullRequests } from './categorize-pull-requests.ts'
-import { type ChangeGroup, groupChanges } from './group-changes.ts'
+import type { Change, Commit, ParsedConfig, PullRequest } from '../types.ts'
+import { categorizeChanges } from './categorize-changes.ts'
+import { changeToString } from './change-to-string.ts'
+import { groupChanges } from './group-changes.ts'
 import { pullRequestToString } from './pull-request-to-string.ts'
 import { renderTemplate } from './render-template/index.ts'
 
 export const generateChangeLog = (params: {
   commits?: Commit[]
   logger?: Logger
-  pullRequests: PullRequest[]
+  pullRequests?: PullRequest[]
+  changes?: Change[]
   serverUrl: string
   config: Pick<
     ParsedConfig,
@@ -16,6 +18,8 @@ export const generateChangeLog = (params: {
     | 'no-changes-template'
     | 'categories'
     | 'change-template'
+    | 'pr-template'
+    | 'commit-template'
     | 'change-author-template'
     | 'change-authors-separator'
     | 'change-authors-final-separator'
@@ -27,45 +31,99 @@ export const generateChangeLog = (params: {
     commits = [],
     logger = noopLogger,
     pullRequests,
+    changes,
     serverUrl,
     config,
   } = params
-  const [uncategorizedPullRequests, categorizedPullRequests] =
-    categorizePullRequests({ pullRequests, config })
-  const totalPullRequestsInChangelog =
-    uncategorizedPullRequests.length +
-    categorizedPullRequests.reduce(
-      (sum, category) => sum + category.pullRequests.length,
-      0,
-    )
 
-  if (totalPullRequestsInChangelog === 0) return config['no-changes-template']
+  const allChanges: Change[] =
+    changes ??
+    (pullRequests ?? []).map((pullRequest) => ({
+      type: 'pull-request' as const,
+      pullRequest,
+    }))
+
+  const [uncategorizedChanges, categorizedChanges] = categorizeChanges({
+    changes: allChanges,
+    config,
+  })
+
+  const totalChangesInChangelog =
+    uncategorizedChanges.length +
+    categorizedChanges.reduce((sum, cat) => sum + cat.changes.length, 0)
+
+  if (totalChangesInChangelog === 0) return config['no-changes-template']
   const changeLog: string[] = []
-  // Grouping is applied per bucket so that a pull request matching several
-  // categories is grouped with the other changes of each category separately.
-  const toGroupedChanges = (
-    categoryPullRequests: PullRequest[],
-  ): ChangeGroup[] =>
-    groupChanges({
-      pullRequests: categoryPullRequests,
-      rules: config['group-changes'],
-      logger,
-    })
 
-  if (uncategorizedPullRequests.length > 0) {
-    changeLog.push(
-      pullRequestToString({
-        changes: toGroupedChanges(uncategorizedPullRequests),
+  const hasGroupRules = (config['group-changes'] ?? []).length > 0
+
+  const renderChangesBucket = (
+    bucketChanges: Change[],
+    categoryTitle?: string,
+  ): { content: string; entryCount: number } => {
+    if (bucketChanges.length === 0) return { content: '', entryCount: 0 }
+    if (hasGroupRules) {
+      const prs = bucketChanges
+        .filter(
+          (c): c is { type: 'pull-request'; pullRequest: PullRequest } =>
+            c.type === 'pull-request',
+        )
+        .map((c) => c.pullRequest)
+      const directCommits = bucketChanges.filter((c) => c.type === 'commit')
+      const parts: string[] = []
+      let entryCount = directCommits.length
+      if (prs.length > 0) {
+        const grouped = groupChanges({
+          pullRequests: prs,
+          rules: config['group-changes'],
+          logger,
+        })
+        entryCount += grouped.length
+        parts.push(
+          pullRequestToString({
+            category: categoryTitle,
+            changes: grouped,
+            commits,
+            serverUrl,
+            config,
+          }),
+        )
+      }
+      if (directCommits.length > 0) {
+        parts.push(
+          changeToString({
+            categoryTitle,
+            changes: directCommits,
+            commits,
+            serverUrl,
+            config,
+          }),
+        )
+      }
+      return { content: parts.join('\n'), entryCount }
+    }
+
+    return {
+      content: changeToString({
+        categoryTitle,
+        changes: bucketChanges,
         commits,
         serverUrl,
         config,
       }),
-      '\n\n',
-    )
+      entryCount: bucketChanges.length,
+    }
   }
 
-  const nonEmptyCategories = categorizedPullRequests.filter(
-    (category) => category.pullRequests.length > 0,
+  if (uncategorizedChanges.length > 0) {
+    const rendered = renderChangesBucket(uncategorizedChanges)
+    if (rendered.content) {
+      changeLog.push(rendered.content, '\n\n')
+    }
+  }
+
+  const nonEmptyCategories = categorizedChanges.filter(
+    (category) => category.changes.length > 0,
   )
   for (const [index, category] of nonEmptyCategories.entries()) {
     const categoryTitle = renderTemplate({
@@ -73,29 +131,25 @@ export const generateChangeLog = (params: {
       object: { $TITLE: category.title },
     })
     if (categoryTitle) changeLog.push(categoryTitle, '\n\n')
-    const changes = toGroupedChanges(category.pullRequests)
-    const pullRequestString = pullRequestToString({
-      category: category.title,
-      changes,
-      commits,
-      serverUrl,
-      config,
-    })
+    const { content: renderedString, entryCount } = renderChangesBucket(
+      category.changes,
+      category.title,
+    )
     const shouldCollapse =
       category['collapse-after'] !== -1 &&
-      changes.length > category['collapse-after']
+      entryCount > category['collapse-after']
     if (shouldCollapse) {
       changeLog.push(
         '<details>',
         '\n',
-        `<summary>${changes.length} change${changes.length > 1 ? 's' : ''}</summary>`,
+        `<summary>${entryCount} change${entryCount > 1 ? 's' : ''}</summary>`,
         '\n\n',
-        pullRequestString,
+        renderedString,
         '\n',
         '</details>',
       )
     } else {
-      changeLog.push(pullRequestString)
+      changeLog.push(renderedString)
     }
     if (index + 1 !== nonEmptyCategories.length) changeLog.push('\n\n')
   }

@@ -250,11 +250,23 @@ export const groupChangeSchema = object({
 
 export const exclusiveConfigSchema = object({
   /**
+   * Include commits that are not associated with a pull request as changes.
+   */
+  'include-commits': boolean().optional().default(false),
+  /**
    * The template to use for each merged change.
    */
   'change-template': string()
     .optional()
-    .default('* $TITLE (#$NUMBER) $AUTHORS'),
+    .default('* $CHANGE_TITLE ($CHANGE_REFERENCE) $CHANGE_AUTHORS'),
+  /**
+   * An optional pull-request-specific template. Falls back to change-template.
+   */
+  'pr-template': string().optional(),
+  /**
+   * An optional commit-specific template. Falls back to change-template.
+   */
+  'commit-template': string().optional(),
   /**
    * The template to use for each author in `$AUTHORS`.
    */
@@ -328,7 +340,9 @@ export const exclusiveConfigSchema = object({
    */
   'new-contributor-template': string()
     .optional()
-    .default('* $AUTHOR_MENTION made their first contribution in #$NUMBER'),
+    .default(
+      '* $AUTHOR_MENTION made their first contribution in $CHANGE_REFERENCE',
+    ),
   /**
    * The template to use for `$NEW_CONTRIBUTORS` when there are no new contributors to list.
    */
@@ -340,9 +354,11 @@ export const exclusiveConfigSchema = object({
    */
   'no-contributors-template': string().optional().default('No contributors'),
   /**
-   * Sort changelog by merged_at or title.
+   * Sort changelog by change date or title.
    */
-  'sort-by': zenum(['merged_at', 'title']).optional().default('merged_at'),
+  'sort-by': zenum(['merged_at', 'date', 'title'])
+    .optional()
+    .default('merged_at'),
   /**
    * Sort changelog in ascending or descending order.
    */

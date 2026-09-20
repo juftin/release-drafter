@@ -593,6 +593,7 @@ describe('release-drafter packed CLI and package consumer', {
           },
         },
         config: {
+          'include-commits': false,
           'change-template': '* $TITLE',
           'change-author-template': '$AUTHOR_MENTION',
           'change-authors-separator': ', ',
@@ -611,6 +612,7 @@ describe('release-drafter packed CLI and package consumer', {
           'history-limit': 15,
           replacers: [],
           categories: [],
+          autolabeler: [],
           'category-template': '## $TITLE',
           template: '$CHANGES',
           latest: true,

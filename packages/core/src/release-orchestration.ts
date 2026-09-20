@@ -200,38 +200,41 @@ export const draftRelease = async (params: {
   })
   const comparisonBase =
     input.from ?? (lastRelease ? `refs/tags/${lastRelease.tagName}` : undefined)
-  const { commits, newContributorLogins, pullRequests } = comparisonBase
-    ? await adapter.findChanges({
-        repository,
-        comparison: {
-          baseRef: comparisonBase,
-          headRef: config.commitish,
-        },
-        pullRequestFields: {
-          body: config['change-template'].includes('$BODY'),
-          url: config['change-template'].includes('$URL'),
-          baseRefName: config['change-template'].includes('$BASE_REF_NAME'),
-          headRefName: config['change-template'].includes('$HEAD_REF_NAME'),
-        },
-        pullRequestLimit: config['pull-request-limit'],
-        historyLimit: config['history-limit'],
-        includeChangedFiles: needsPullRequestChangedFiles(config.categories),
-        includeNewContributors: [
-          config.header,
-          config.template,
-          config.footer,
-        ].some((template) => template?.includes('$NEW_CONTRIBUTORS')),
-      })
-    : (() => {
-        logger.warning(
-          'A previous (published) release is required to find changes',
-        )
-        return {
-          commits: [],
-          newContributorLogins: new Set<string>(),
-          pullRequests: [],
-        }
-      })()
+  const { commits, newContributorLogins, newCommitContributors, pullRequests } =
+    comparisonBase
+      ? await adapter.findChanges({
+          repository,
+          comparison: {
+            baseRef: comparisonBase,
+            headRef: config.commitish,
+          },
+          pullRequestFields: {
+            body: config['change-template'].includes('$BODY'),
+            url: config['change-template'].includes('$URL'),
+            baseRefName: config['change-template'].includes('$BASE_REF_NAME'),
+            headRefName: config['change-template'].includes('$HEAD_REF_NAME'),
+          },
+          pullRequestLimit: config['pull-request-limit'],
+          historyLimit: config['history-limit'],
+          includeChangedFiles: needsPullRequestChangedFiles(config.categories),
+          includeNewContributors: [
+            config.header,
+            config.template,
+            config.footer,
+          ].some((template) => template?.includes('$NEW_CONTRIBUTORS')),
+          includeCommits: config['include-commits'],
+        })
+      : (() => {
+          logger.warning(
+            'A previous (published) release is required to find changes',
+          )
+          return {
+            commits: [],
+            newContributorLogins: new Set<string>(),
+            newCommitContributors: [],
+            pullRequests: [],
+          }
+        })()
   if (pullRequests.length > 0) {
     logger.info(
       `Found ${pullRequests.length} merged pull requests targeting ${repository.owner}/${repository.name}: ${pullRequests.map(({ number }) => `#${number}`).join(', ')}`,
@@ -245,6 +248,7 @@ export const draftRelease = async (params: {
     lastRelease,
     logger,
     newContributorLogins,
+    newCommitContributors,
     pullRequests,
     repository,
   })
