@@ -33,35 +33,46 @@ export const pullRequestToString = (params: {
             : pullRequest.author.login
       }
       const authorTemplate = params.config['change-author-template']
+      const authors = generateAuthorsSentence({
+        commits: params.commits,
+        pullRequests: change.pullRequests,
+        serverUrl: params.serverUrl,
+        noAuthorsTemplate: renderTemplate({
+          template: authorTemplate,
+          object: {
+            $AUTHOR: 'ghost',
+            $AUTHOR_MENTION: '@ghost',
+          },
+        }),
+        authorTemplate,
+        authorsSeparator: params.config['change-authors-separator'],
+        authorsFinalSeparator: params.config['change-authors-final-separator'],
+      })
+      const title = escapeTitle({
+        title: change.title,
+        escapes: params.config['change-title-escapes'],
+      })
 
       return renderTemplate({
         template: params.config['change-template'],
         object: {
+          $CHANGE_TYPE: 'pull-request',
+          $CHANGE_CATEGORY: params.category ?? '',
+          $CHANGE_TITLE: title,
+          $CHANGE_REFERENCE: `#${pullRequest.number}`,
+          $CHANGE_AUTHORS: authors,
+          $CHANGE_AUTHOR: pullAuthor,
+          $CHANGE_AUTHOR_URL: pullRequest.author?.url ?? '',
+          $CHANGE_BODY: pullRequest.body ?? '',
+          $CHANGE_URL: pullRequest.url ?? '',
+          $CHANGE_DATE: pullRequest.mergedAt ?? '',
           $CATEGORY: params.category ?? '',
-          $TITLE: escapeTitle({
-            title: change.title,
-            escapes: params.config['change-title-escapes'],
-          }),
+          $TITLE: title,
           $NUMBER: pullRequest.number.toString(),
           $NUMBERS: change.pullRequests
             .map(({ number }) => `#${number}`)
             .join(numbersSeparator),
-          $AUTHORS: generateAuthorsSentence({
-            commits: params.commits,
-            pullRequests: change.pullRequests,
-            serverUrl: params.serverUrl,
-            noAuthorsTemplate: renderTemplate({
-              template: authorTemplate,
-              object: {
-                $AUTHOR: 'ghost',
-                $AUTHOR_MENTION: '@ghost',
-              },
-            }),
-            authorTemplate,
-            authorsSeparator: params.config['change-authors-separator'],
-            authorsFinalSeparator:
-              params.config['change-authors-final-separator'],
-          }),
+          $AUTHORS: authors,
           $AUTHOR: pullAuthor,
           $AUTHOR_URL: pullRequest.author?.url ?? '',
           $BODY: pullRequest.body,

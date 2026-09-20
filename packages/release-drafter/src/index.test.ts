@@ -4,8 +4,7 @@ const { coreDraftRelease } = vi.hoisted(() => ({
   coreDraftRelease: vi.fn(),
 }))
 
-vi.mock('@release-drafter/core', async (importOriginal) => ({
-  ...(await importOriginal<typeof import('@release-drafter/core')>()),
+vi.mock('@release-drafter/core', () => ({
   draftRelease: coreDraftRelease,
   noopLogger: {
     debug() {},
@@ -39,7 +38,8 @@ const repository = {
 }
 
 const config = {
-  'change-template': '* $TITLE',
+  'include-commits': false,
+  'change-template': '* $CHANGE_TITLE',
   'change-author-template': '$AUTHOR_MENTION',
   'change-authors-separator': ', ',
   'no-changes-template': '* No changes',
@@ -48,7 +48,7 @@ const config = {
   'new-contributor-template': '* $AUTHOR_MENTION',
   'no-new-contributor-template': '* No new contributors',
   'no-contributors-template': 'No contributors',
-  'sort-by': 'merged_at',
+  'sort-by': 'date',
   'sort-direction': 'descending',
   'filter-by-commitish': false,
   'pull-request-limit': 5,
@@ -93,9 +93,9 @@ const options: DraftReleaseOptions = {
 }
 
 const result: DraftReleaseResult = {
-  labels: ['api/user'],
   plan: { action: 'dry-run', releasePayload: payload },
   releasePayload: payload,
+  labels: [],
 }
 
 describe('draftRelease', () => {

@@ -1,9 +1,12 @@
 export * from './category-matching.ts'
+export * from './change.ts'
 export * from './config/index.ts'
 export * from './ports.ts'
 export * from './pull-request-validation.ts'
 export { buildReleasePayload } from './release/build-release-payload.ts'
+export { categorizeChanges } from './release/categorize-changes.ts'
 export { categorizePullRequests } from './release/categorize-pull-requests.ts'
+export { changeToString } from './release/change-to-string.ts'
 export { generateChangeLog } from './release/generate-changelog.ts'
 export {
   generateAuthorsSentence,
@@ -20,6 +23,8 @@ export {
   type Template,
 } from './release/render-template/index.ts'
 export { resolveVersionKeyIncrement } from './release/resolve-version-increment.ts'
+export { selectChanges } from './release/select-changes.ts'
+export { sortChanges } from './release/sort-changes.ts'
 export { sortPullRequests } from './release/sort-pull-requests.ts'
 export { VersionDescriptor } from './release/version-descriptor.ts'
 export * from './release-orchestration.ts'

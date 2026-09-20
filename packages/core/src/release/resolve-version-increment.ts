@@ -3,8 +3,9 @@ import {
   evaluateCategories,
   getVersionResolverCategories,
 } from '../category-matching.ts'
+import { changeForCategory } from '../change.ts'
 import type { Logger } from '../ports.ts'
-import type { ParsedConfig, PullRequest } from '../types.ts'
+import type { Change, ParsedConfig, PullRequest } from '../types.ts'
 
 type ReleaseType = Exclude<IncrementType, 'release'>
 
@@ -20,19 +21,29 @@ const highestIncrement = (
   )
 
 export const resolveVersionKeyIncrement = (params: {
-  pullRequests: PullRequest[]
+  changes?: Change[]
+  pullRequests?: PullRequest[]
   config: Pick<
     ParsedConfig,
     'categories' | 'prerelease' | 'prerelease-identifier'
   >
   logger: Logger
 }): ReleaseType => {
-  const { pullRequests, config, logger } = params
+  const { config, logger } = params
+  const changes =
+    params.changes ??
+    (params.pullRequests ?? []).map((pullRequest) => ({
+      type: 'pull-request' as const,
+      pullRequest,
+    }))
   const changelogIncrements: Array<keyof typeof priority> = []
   const explicitResolverIncrements: Array<keyof typeof priority> = []
 
-  for (const pullRequest of pullRequests) {
-    const evaluation = evaluateCategories(pullRequest, config.categories)
+  for (const change of changes) {
+    const evaluation = evaluateCategories(
+      changeForCategory(change),
+      config.categories,
+    )
     if (!evaluation.included) continue
     for (const category of evaluation.changelogCategories) {
       if (category['semver-increment'] in priority) {
