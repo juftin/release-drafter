@@ -161,12 +161,6 @@ const autolabelerInputs = defineActionInputs<AutolabelerActionInput>()({
     required: false,
     default: 'true',
   },
-  'pr-comment': {
-    description:
-      'Posts or updates an explainability comment on the pull request. Default: false.\n',
-    required: false,
-    default: 'false',
-  },
 })
 
 const autolabelerOutputs = {

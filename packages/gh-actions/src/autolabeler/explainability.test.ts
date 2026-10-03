@@ -1,11 +1,9 @@
 import * as core from '@actions/core'
-import type { GitHubAdapter } from '@release-drafter/github-adapter'
-import { describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   buildExplainabilitySummary,
-  COMMENT_MARKER,
   getGitmojiSpec,
-  postOrUpdatePRComment,
+  isGitHubEnvironment,
   writeStepSummary,
 } from './explainability.ts'
 
@@ -197,8 +195,47 @@ describe('explainability', () => {
     })
   })
 
+  describe('isGitHubEnvironment', () => {
+    const originalEnv = { ...process.env }
+
+    afterEach(() => {
+      process.env = { ...originalEnv }
+    })
+
+    it('returns true when GITHUB_ACTIONS is true', () => {
+      delete process.env.GITHUB_STEP_SUMMARY
+      delete process.env.GITHUB_REPOSITORY
+      process.env.GITHUB_ACTIONS = 'true'
+      expect(isGitHubEnvironment()).toBe(true)
+    })
+
+    it('returns true when GITHUB_STEP_SUMMARY is set', () => {
+      delete process.env.GITHUB_ACTIONS
+      delete process.env.GITHUB_REPOSITORY
+      process.env.GITHUB_STEP_SUMMARY = '/tmp/summary'
+      expect(isGitHubEnvironment()).toBe(true)
+    })
+
+    it('returns false when no GitHub environment variables are set', () => {
+      delete process.env.GITHUB_ACTIONS
+      delete process.env.GITHUB_STEP_SUMMARY
+      delete process.env.GITHUB_REPOSITORY
+      expect(isGitHubEnvironment()).toBe(false)
+    })
+  })
+
   describe('writeStepSummary', () => {
-    it('writes markdown to core.summary', async () => {
+    const originalEnv = { ...process.env }
+
+    beforeEach(() => {
+      process.env.GITHUB_ACTIONS = 'true'
+    })
+
+    afterEach(() => {
+      process.env = { ...originalEnv }
+    })
+
+    it('writes markdown to core.summary when GitHub is detected', async () => {
       const addRawMock = vi.fn().mockReturnThis()
       const writeMock = vi.fn().mockResolvedValue(undefined)
       vi.spyOn(core.summary, 'addRaw').mockImplementation(addRawMock)
@@ -208,85 +245,17 @@ describe('explainability', () => {
       expect(addRawMock).toHaveBeenCalledWith('## Test Summary')
       expect(writeMock).toHaveBeenCalled()
     })
-  })
 
-  describe('postOrUpdatePRComment', () => {
-    it('creates a new comment if none exists', async () => {
-      const createCommentMock = vi.fn().mockResolvedValue({ data: { id: 101 } })
-      const updateCommentMock = vi.fn().mockResolvedValue({})
-      const listCommentsMock = vi.fn().mockResolvedValue({
-        data: [{ id: 1, body: 'User comment' }],
-      })
+    it('skips writing when GitHub is not detected', async () => {
+      delete process.env.GITHUB_ACTIONS
+      delete process.env.GITHUB_STEP_SUMMARY
+      delete process.env.GITHUB_REPOSITORY
 
-      const adapter = {
-        octokit: {
-          rest: {
-            issues: {
-              listComments: listCommentsMock,
-              createComment: createCommentMock,
-              updateComment: updateCommentMock,
-            },
-          },
-        },
-      } as unknown as GitHubAdapter
+      const addRawMock = vi.fn().mockReturnThis()
+      vi.spyOn(core.summary, 'addRaw').mockImplementation(addRawMock)
 
-      await postOrUpdatePRComment({
-        adapter,
-        repo: { owner: 'test-owner', repo: 'test-repo' },
-        issueNumber: 42,
-        markdown: '## Summary Body',
-      })
-
-      expect(listCommentsMock).toHaveBeenCalledWith({
-        owner: 'test-owner',
-        repo: 'test-repo',
-        issue_number: 42,
-      })
-      expect(createCommentMock).toHaveBeenCalledWith({
-        owner: 'test-owner',
-        repo: 'test-repo',
-        issue_number: 42,
-        body: `${COMMENT_MARKER}\n## Summary Body`,
-      })
-      expect(updateCommentMock).not.toHaveBeenCalled()
-    })
-
-    it('updates existing comment if comment with marker exists', async () => {
-      const createCommentMock = vi.fn().mockResolvedValue({})
-      const updateCommentMock = vi.fn().mockResolvedValue({})
-      const listCommentsMock = vi.fn().mockResolvedValue({
-        data: [
-          { id: 1, body: 'User comment' },
-          { id: 202, body: `${COMMENT_MARKER}\nOld summary` },
-        ],
-      })
-
-      const adapter = {
-        octokit: {
-          rest: {
-            issues: {
-              listComments: listCommentsMock,
-              createComment: createCommentMock,
-              updateComment: updateCommentMock,
-            },
-          },
-        },
-      } as unknown as GitHubAdapter
-
-      await postOrUpdatePRComment({
-        adapter,
-        repo: { owner: 'test-owner', repo: 'test-repo' },
-        issueNumber: 42,
-        markdown: '## Updated Body',
-      })
-
-      expect(updateCommentMock).toHaveBeenCalledWith({
-        owner: 'test-owner',
-        repo: 'test-repo',
-        comment_id: 202,
-        body: `${COMMENT_MARKER}\n## Updated Body`,
-      })
-      expect(createCommentMock).not.toHaveBeenCalled()
+      await writeStepSummary('## Test Summary')
+      expect(addRawMock).not.toHaveBeenCalled()
     })
   })
 })

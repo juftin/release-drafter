@@ -5,6 +5,5 @@ import { sharedInputSchema } from '../common/shared-input.schema.ts'
 export const actionInputSchema = object({
   'config-name': string().optional().default('release-drafter.yml'),
   summary: stringbool().or(boolean()).optional().default(true),
-  'pr-comment': stringbool().or(boolean()).optional().default(false),
 }).and(sharedInputSchema)
 export type ActionInput = z.infer<typeof actionInputSchema>
