@@ -62,7 +62,7 @@ export const buildExplainabilitySummary = (
 
   if (matches.length === 0) {
     return [
-      '## 🏷️ Autolabeler & Semver Summary',
+      '## 🏷️ Release Drafter Summary',
       '',
       `No autolabeler rules matched Pull Request **#${pullRequest.number}** (\`${pullRequest.branch}\`).`,
       '',
@@ -103,9 +103,24 @@ export const buildExplainabilitySummary = (
     }
   }
   if (fileMatches.size > 0) {
-    matchCallouts.push(
-      `- **Matched File(s):** ${[...fileMatches].map((f) => `\`${f}\``).join(', ')}`,
-    )
+    const files = [...fileMatches]
+    const maxFiles = 3
+    if (files.length === 1) {
+      matchCallouts.push(`- **Matched File:** \`${files[0]}\``)
+    } else if (files.length <= maxFiles) {
+      matchCallouts.push(
+        `- **Matched Files (${files.length}):** ${files.map((f) => `\`${f}\``).join(', ')}`,
+      )
+    } else {
+      const shown = files
+        .slice(0, maxFiles)
+        .map((f) => `\`${f}\``)
+        .join(', ')
+      const remaining = files.length - maxFiles
+      matchCallouts.push(
+        `- **Matched Files (${files.length}):** ${shown} *(and ${remaining} more)*`,
+      )
+    }
   }
   if (bodyMatches.size > 0) {
     for (const val of bodyMatches) {
@@ -150,29 +165,28 @@ export const buildExplainabilitySummary = (
     )
   }
 
-  const sections: string[] = []
+  const releaseSectionList: string[] = []
   if (categories && categories.length > 0) {
+    const matchedSections: string[] = []
     for (const cat of categories) {
       if (cat.labels.some((l) => matchedLabels.has(l))) {
-        sections.push(`  - ${cat.title}`)
+        matchedSections.push(`  - ${cat.title}`)
       }
+    }
+    if (matchedSections.length > 0) {
+      releaseSectionList.push('- **Release Sections:**', ...matchedSections)
     }
   }
 
   const appliedCount = appliedLabels ? appliedLabels.length : rows.length
   const lines = [
-    '## 🏷️ Autolabeler & Semver Summary',
+    '## 🏷️ Release Drafter Summary',
     '',
-    `Applied **${appliedCount}** label(s) to Pull Request **#${pullRequest.number}** (\`${pullRequest.branch}\`):`,
+    `Applied **${appliedCount}** label(s) to PR **#${pullRequest.number}** (\`${pullRequest.branch}\`) with **\`${highestBump}\`** version increment.`,
+    '',
     ...matchCallouts,
-    '',
-    '### 🚀 Release Impact',
-    `- **Calculated Version Increment:** \`${highestBump}\``,
+    ...releaseSectionList,
   ]
-
-  if (sections.length > 0) {
-    lines.push('- **Target Changelog Section(s):**', ...sections)
-  }
 
   lines.push(
     '',
