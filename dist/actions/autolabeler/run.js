@@ -252,14 +252,11 @@ var buildExplainabilitySummary = (params) => {
 	if (branchMatches.size > 0) for (const val of branchMatches) matchCallouts.push(`- **Matched Branch:** \`${val}\``);
 	if (fileMatches.size > 0) {
 		const files = [...fileMatches];
-		const maxFiles = 3;
-		if (files.length === 1) matchCallouts.push(`- **Matched File:** \`${files[0]}\``);
-		else if (files.length <= maxFiles) matchCallouts.push(`- **Matched Files (${files.length}):** ${files.map((f) => `\`${f}\``).join(", ")}`);
-		else {
-			const shown = files.slice(0, maxFiles).map((f) => `\`${f}\``).join(", ");
-			const remaining = files.length - maxFiles;
-			matchCallouts.push(`- **Matched Files (${files.length}):** ${shown} *(and ${remaining} more)*`);
-		}
+		const maxFiles = 5;
+		matchCallouts.push("- **Matched Files:**");
+		const shown = files.slice(0, maxFiles);
+		for (const f of shown) matchCallouts.push(`  - \`${f}\``);
+		if (files.length > maxFiles) matchCallouts.push(`  - *(and ${files.length - maxFiles} more)*`);
 	}
 	if (bodyMatches.size > 0) for (const val of bodyMatches) matchCallouts.push(`- **Matched Body:** \`${val}\``);
 	const rows = [];

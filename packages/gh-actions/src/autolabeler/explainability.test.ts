@@ -75,9 +75,8 @@ describe('explainability', () => {
 
       // Matches callouts
       expect(summary).toContain('- **Matched Title:** `✨ Add OAuth login`')
-      expect(summary).toContain(
-        '- **Matched File:** `.github/workflows/ci.yml`',
-      )
+      expect(summary).toContain('- **Matched Files:**')
+      expect(summary).toContain('  - `.github/workflows/ci.yml`')
 
       // Header & PR info
       expect(summary).toContain('## 🏷️ Release Drafter Summary')
@@ -116,7 +115,7 @@ describe('explainability', () => {
       expect(summary).toContain('  - 👷 CI/CD')
     })
 
-    it('caps matched files to first 3 with overflow count when more than 3 files match', () => {
+    it('caps matched files to first 5 with overflow count when more than 5 files match', () => {
       const summary = buildExplainabilitySummary({
         pullRequest: {
           number: 5,
@@ -129,11 +128,15 @@ describe('explainability', () => {
           { label: 'docs', matcher: 'files', matchedValue: 'docs/c.md' },
           { label: 'docs', matcher: 'files', matchedValue: 'docs/d.md' },
           { label: 'docs', matcher: 'files', matchedValue: 'docs/e.md' },
+          { label: 'docs', matcher: 'files', matchedValue: 'docs/f.md' },
+          { label: 'docs', matcher: 'files', matchedValue: 'docs/g.md' },
         ],
       })
-      expect(summary).toContain(
-        '- **Matched Files (5):** `docs/a.md`, `docs/b.md`, `docs/c.md` *(and 2 more)*',
-      )
+      expect(summary).toContain('- **Matched Files:**')
+      expect(summary).toContain('  - `docs/a.md`')
+      expect(summary).toContain('  - `docs/e.md`')
+      expect(summary).toContain('  - *(and 2 more)*')
+      expect(summary).not.toContain('  - `docs/f.md`')
     })
 
     it('handles empty matches gracefully', () => {
