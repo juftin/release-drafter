@@ -277,10 +277,6 @@ autolabeler:
 
   # Semver: Patch
   - label: 'patch'
-    files:
-      - '.github/**'
-      - '**/*.md'
-      - 'docs/**'
     title:
       - '/^(:bug:|🐛)/'
       - '/^(:ambulance:|🚑️?)/'

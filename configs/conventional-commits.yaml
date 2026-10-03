@@ -115,10 +115,6 @@ autolabeler:
       - '/^feature(\/|-)/i'
 
   - label: 'patch'
-    files:
-      - '.github/**'
-      - '**/*.md'
-      - 'docs/**'
     title:
       - '/^(fix|bugfix|hotfix)(\([^\)]+\))?:/i'
       - '/^sec(urity)?(\([^\)]+\))?:/i'
