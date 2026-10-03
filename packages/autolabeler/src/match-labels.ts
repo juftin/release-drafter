@@ -11,6 +11,8 @@ export type PullRequestFacts = {
 export type AutolabelMatch = {
   label: string
   matcher: 'files' | 'branch' | 'title' | 'body' | 'fallback'
+  pattern?: string
+  matchedValue?: string
 }
 
 export type MatchLabelsResult = {
@@ -30,21 +32,22 @@ const test = (matcher: RegExp, value: string) => {
   return matcher.test(value)
 }
 
-const matchesFiles = (
+const findMatchingFile = (
   patterns: readonly string[],
   files: readonly string[],
 ) => {
-  if (patterns.length === 0) return false
+  if (patterns.length === 0) return undefined
   const matches = createPathMatcher(patterns)
-  return files.some(matches)
+  return files.find(matches)
 }
 
 /** Evaluates rules in configuration order, stopping on request or adding a fallback. */
 export const matchLabels = (params: {
   config: ParsedConfig
   pullRequest: PullRequestFacts
+  explainable?: boolean
 }): MatchLabelsResult => {
-  const { config, pullRequest } = params
+  const { config, pullRequest, explainable = false } = params
   const labels = new Set<string>()
   const matches: AutolabelMatch[] = []
 
@@ -52,20 +55,53 @@ export const matchLabels = (params: {
     if (rule.fallback) continue
     const body = pullRequest.body
     let matcher: AutolabelMatch['matcher'] | undefined
-    if (matchesFiles(rule.files, pullRequest.files)) {
+    let pattern: string | undefined
+    let matchedValue: string | undefined
+
+    const matchedFile = findMatchingFile(rule.files, pullRequest.files)
+    if (matchedFile !== undefined) {
       matcher = 'files'
-    } else if (rule.branch.some((regex) => test(regex, pullRequest.branch))) {
-      matcher = 'branch'
-    } else if (rule.title.some((regex) => test(regex, pullRequest.title))) {
-      matcher = 'title'
-    } else if (body != null && rule.body.some((regex) => test(regex, body))) {
-      matcher = 'body'
+      pattern = rule.files.join(', ')
+      matchedValue = matchedFile
+    } else {
+      for (const regex of rule.branch) {
+        if (test(regex, pullRequest.branch)) {
+          matcher = 'branch'
+          pattern = regex.toString()
+          matchedValue = pullRequest.branch
+          break
+        }
+      }
+      if (!matcher) {
+        for (const regex of rule.title) {
+          if (test(regex, pullRequest.title)) {
+            matcher = 'title'
+            pattern = regex.toString()
+            matchedValue = pullRequest.title
+            break
+          }
+        }
+      }
+      if (!matcher && body != null) {
+        for (const regex of rule.body) {
+          if (test(regex, body)) {
+            matcher = 'body'
+            pattern = regex.toString()
+            matchedValue = body.length > 80 ? `${body.slice(0, 77)}...` : body
+            break
+          }
+        }
+      }
     }
 
     if (matcher) {
       for (const label of rule.labels) {
         labels.add(label)
-        matches.push({ label, matcher })
+        matches.push(
+          explainable
+            ? { label, matcher, pattern, matchedValue }
+            : { label, matcher },
+        )
       }
       if (rule['stop-on-match']) break
     }
@@ -75,7 +111,16 @@ export const matchLabels = (params: {
   if (labels.size === 0 && fallback) {
     for (const label of fallback.labels) {
       labels.add(label)
-      matches.push({ label, matcher: 'fallback' })
+      matches.push(
+        explainable
+          ? {
+              label,
+              matcher: 'fallback',
+              pattern: 'fallback',
+              matchedValue: 'fallback',
+            }
+          : { label, matcher: 'fallback' },
+      )
     }
   }
 

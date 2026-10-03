@@ -1,0 +1,231 @@
+import process from 'node:process'
+import * as core from '@actions/core'
+import type { AutolabelMatch } from '@release-drafter/autolabeler'
+
+export const isGitHubEnvironment = (): boolean => {
+  return Boolean(
+    process.env.GITHUB_ACTIONS === 'true' ||
+      process.env.GITHUB_STEP_SUMMARY ||
+      process.env.GITHUB_REPOSITORY,
+  )
+}
+
+export type IntentionProvider = (label: string) =>
+  | {
+      description: string
+      url?: string
+      semver?: 'major' | 'minor' | 'patch'
+    }
+  | undefined
+
+let globalIntentionProvider: IntentionProvider | undefined
+
+export const registerIntentionProvider = (
+  provider: IntentionProvider | undefined,
+) => {
+  globalIntentionProvider = provider
+}
+
+const resolveSemverBump = (
+  label: string,
+  intention?: { semver?: 'major' | 'minor' | 'patch' },
+): 'major' | 'minor' | 'patch' => {
+  if (intention?.semver) return intention.semver
+  if (label === 'major' || label === 'breaking' || label === 'breaking-change')
+    return 'major'
+  if (label === 'minor' || label === 'feat' || label === 'feature')
+    return 'minor'
+  return 'patch'
+}
+
+const PRIORITY = { patch: 1, minor: 2, major: 3 } as const
+
+export type ExplainabilityParams = {
+  pullRequest: {
+    number: number
+    title: string
+    branch: string
+  }
+  matches: readonly AutolabelMatch[]
+  appliedLabels?: readonly string[]
+  supersededLabels?: readonly string[]
+  categories?: Array<{ title: string; labels: string[] }>
+  intentionProvider?: IntentionProvider
+}
+
+/**
+ * Builds a markdown explainability summary of the autolabeler decisions.
+ */
+export const buildExplainabilitySummary = (
+  params: ExplainabilityParams,
+): string => {
+  const {
+    pullRequest,
+    matches,
+    appliedLabels,
+    supersededLabels,
+    categories,
+    intentionProvider = globalIntentionProvider,
+  } = params
+
+  if (matches.length === 0) {
+    return [
+      '## 🏷️ Release Drafter Summary',
+      '',
+      `No autolabeler rules matched Pull Request **#${pullRequest.number}** (\`${pullRequest.branch}\`).`,
+      '',
+    ].join('\n')
+  }
+
+  let highestBump: 'patch' | 'minor' | 'major' = 'patch'
+  const matchedLabels = new Set(matches.map((m) => m.label))
+
+  const titleMatches = new Set<string>()
+  const branchMatches = new Set<string>()
+  const fileMatches = new Set<string>()
+  const bodyMatches = new Set<string>()
+
+  for (const match of matches) {
+    const intention = intentionProvider?.(match.label)
+    const semver = resolveSemverBump(match.label, intention)
+    if (PRIORITY[semver] > PRIORITY[highestBump]) {
+      highestBump = semver
+    }
+    if (match.matchedValue) {
+      if (match.matcher === 'title') titleMatches.add(match.matchedValue)
+      if (match.matcher === 'branch') branchMatches.add(match.matchedValue)
+      if (match.matcher === 'files') fileMatches.add(match.matchedValue)
+      if (match.matcher === 'body') bodyMatches.add(match.matchedValue)
+    }
+  }
+
+  const matchCallouts: string[] = []
+  if (titleMatches.size > 0) {
+    for (const val of titleMatches) {
+      matchCallouts.push(`- **Matched Title:** \`${val}\``)
+    }
+  }
+  if (branchMatches.size > 0) {
+    for (const val of branchMatches) {
+      matchCallouts.push(`- **Matched Branch:** \`${val}\``)
+    }
+  }
+  if (fileMatches.size > 0) {
+    const files = [...fileMatches]
+    const maxFiles = 5
+    matchCallouts.push('- **Matched Files:**')
+    const shown = files.slice(0, maxFiles)
+    for (const f of shown) {
+      matchCallouts.push(`  - \`${f}\``)
+    }
+    if (files.length > maxFiles) {
+      matchCallouts.push(`  - *(and ${files.length - maxFiles} more)*`)
+    }
+  }
+  if (bodyMatches.size > 0) {
+    for (const val of bodyMatches) {
+      matchCallouts.push(`- **Matched Body:** \`${val}\``)
+    }
+  }
+
+  const hasIntentions = matches.some((m) => intentionProvider?.(m.label))
+
+  const rows: string[] = []
+  for (const match of matches) {
+    if (supersededLabels?.includes(match.label)) {
+      continue
+    }
+
+    const intention = intentionProvider?.(match.label)
+    const semver = resolveSemverBump(match.label, intention)
+
+    const intentionCell = intention
+      ? intention.url
+        ? `[${intention.description}](${intention.url})`
+        : intention.description
+      : '-'
+
+    const trigger =
+      match.matcher === 'files'
+        ? 'Files'
+        : match.matcher === 'branch'
+          ? 'Branch'
+          : match.matcher === 'title'
+            ? 'Title'
+            : match.matcher === 'body'
+              ? 'Body'
+              : 'Fallback'
+
+    const patternEscaped = match.pattern
+      ? `\`${match.pattern.replace(/\|/g, '\\|')}\``
+      : '-'
+
+    const details =
+      match.matcher === 'files'
+        ? `Files matched pattern ${patternEscaped}`
+        : `${trigger} matched ${patternEscaped}`
+
+    if (hasIntentions) {
+      rows.push(
+        `| \`${match.label}\` | ${intentionCell} | \`${semver}\` | ${trigger} | ${details} |`,
+      )
+    } else {
+      rows.push(
+        `| \`${match.label}\` | \`${semver}\` | ${trigger} | ${details} |`,
+      )
+    }
+  }
+
+  const releaseSectionList: string[] = []
+  if (categories && categories.length > 0) {
+    const matchedSections: string[] = []
+    for (const cat of categories) {
+      if (cat.labels.some((l) => matchedLabels.has(l))) {
+        matchedSections.push(`  - ${cat.title}`)
+      }
+    }
+    if (matchedSections.length > 0) {
+      releaseSectionList.push('- **Release Sections:**', ...matchedSections)
+    }
+  }
+
+  const appliedCount = appliedLabels ? appliedLabels.length : rows.length
+  const lines = [
+    '## 🏷️ Release Drafter Summary',
+    '',
+    `Applied **${appliedCount}** label(s) to PR **#${pullRequest.number}** (\`${pullRequest.branch}\`) with **\`${highestBump}\`** version increment.`,
+    '',
+    ...matchCallouts,
+    ...releaseSectionList,
+  ]
+
+  lines.push(
+    '',
+    '<details>',
+    '<summary>🏷️ Label Decision Details</summary>',
+    '',
+    hasIntentions
+      ? '| Label | Gitmoji Intention | Semver Impact | Trigger | Matched Rule |\n| :--- | :--- | :--- | :--- | :--- |'
+      : '| Label | Semver Impact | Trigger | Matched Rule |\n| :--- | :--- | :--- | :--- |',
+    ...rows,
+    '',
+    '</details>',
+    '',
+  )
+
+  return lines.join('\n')
+}
+
+/** Writes the explainability summary table to the GitHub Actions Job Step Summary when GitHub is detected. */
+export const writeStepSummary = async (markdown: string): Promise<void> => {
+  if (!isGitHubEnvironment()) {
+    return
+  }
+  try {
+    await core.summary.addRaw(markdown).write()
+  } catch (error) {
+    core.warning(
+      `Failed to write GitHub Actions Step Summary: ${error instanceof Error ? error.message : String(error)}`,
+    )
+  }
+}

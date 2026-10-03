@@ -159,6 +159,12 @@ const autolabelerInputs = defineActionInputs<AutolabelerActionInput>()({
     required: false,
     default: '',
   },
+  summary: {
+    description:
+      'Writes an explainability summary table to the GitHub Actions Step Summary. Default: true.\n',
+    required: false,
+    default: 'true',
+  },
 })
 
 const autolabelerOutputs = {

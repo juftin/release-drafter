@@ -1,4 +1,4 @@
-import { C as context, E as setFailed, S as Minimatch, T as info, a as readActionInputs, c as getGitHubAdapter, d as escapeStringRegexp, h as boolean, i as defineActionInputNames, m as array, n as sharedInputSchema, o as writeActionOutputs, t as composeConfigGet, v as object, w as core_exports, y as string } from "../../chunks/config.js";
+import { C as context, D as warning, E as setFailed, O as summary, S as Minimatch, T as info, a as readActionInputs, b as stringbool, c as getGitHubAdapter, d as escapeStringRegexp, h as boolean, i as defineActionInputNames, m as array, n as sharedInputSchema, o as writeActionOutputs, t as composeConfigGet, v as object, w as core_exports, y as string } from "../../chunks/config.js";
 import process from "node:process";
 //#region packages/autolabeler/src/config/config.schema.ts
 var labelSchema = string().min(1).describe("Backward-compatible single label. Prefer labels for new rules.");
@@ -148,28 +148,60 @@ var test = (matcher, value) => {
 	matcher.lastIndex = 0;
 	return matcher.test(value);
 };
-var matchesFiles = (patterns, files) => {
-	if (patterns.length === 0) return false;
+var findMatchingFile = (patterns, files) => {
+	if (patterns.length === 0) return void 0;
 	const matches = createPathMatcher(patterns);
-	return files.some(matches);
+	return files.find(matches);
 };
 /** Evaluates rules in configuration order, stopping on request or adding a fallback. */
 var matchLabels = (params) => {
-	const { config, pullRequest } = params;
+	const { config, pullRequest, explainable = false } = params;
 	const labels = /* @__PURE__ */ new Set();
 	const matches = [];
 	for (const rule of config.autolabeler) {
 		if (rule.fallback) continue;
 		const body = pullRequest.body;
 		let matcher;
-		if (matchesFiles(rule.files, pullRequest.files)) matcher = "files";
-		else if (rule.branch.some((regex) => test(regex, pullRequest.branch))) matcher = "branch";
-		else if (rule.title.some((regex) => test(regex, pullRequest.title))) matcher = "title";
-		else if (body != null && rule.body.some((regex) => test(regex, body))) matcher = "body";
+		let pattern;
+		let matchedValue;
+		const matchedFile = findMatchingFile(rule.files, pullRequest.files);
+		if (matchedFile !== void 0) {
+			matcher = "files";
+			pattern = rule.files.join(", ");
+			matchedValue = matchedFile;
+		} else {
+			for (const regex of rule.branch) if (test(regex, pullRequest.branch)) {
+				matcher = "branch";
+				pattern = regex.toString();
+				matchedValue = pullRequest.branch;
+				break;
+			}
+			if (!matcher) {
+				for (const regex of rule.title) if (test(regex, pullRequest.title)) {
+					matcher = "title";
+					pattern = regex.toString();
+					matchedValue = pullRequest.title;
+					break;
+				}
+			}
+			if (!matcher && body != null) {
+				for (const regex of rule.body) if (test(regex, body)) {
+					matcher = "body";
+					pattern = regex.toString();
+					matchedValue = body.length > 80 ? `${body.slice(0, 77)}...` : body;
+					break;
+				}
+			}
+		}
 		if (matcher) {
 			for (const label of rule.labels) {
 				labels.add(label);
-				matches.push({
+				matches.push(explainable ? {
+					label,
+					matcher,
+					pattern,
+					matchedValue
+				} : {
 					label,
 					matcher
 				});
@@ -180,7 +212,12 @@ var matchLabels = (params) => {
 	const fallback = config.autolabeler.find((rule) => rule.fallback);
 	if (labels.size === 0 && fallback) for (const label of fallback.labels) {
 		labels.add(label);
-		matches.push({
+		matches.push(explainable ? {
+			label,
+			matcher: "fallback",
+			pattern: "fallback",
+			matchedValue: "fallback"
+		} : {
 			label,
 			matcher: "fallback"
 		});
@@ -198,12 +235,112 @@ var matchLabels = (params) => {
 var actionInputNames = defineActionInputNames()([
 	"token",
 	"config-name",
-	"dry-run"
+	"dry-run",
+	"summary"
 ]);
 var actionOutputNames = ["number", "labels"];
 //#endregion
+//#region packages/gh-actions/src/autolabeler/explainability.ts
+var isGitHubEnvironment = () => {
+	return Boolean(process.env.GITHUB_ACTIONS === "true" || process.env.GITHUB_STEP_SUMMARY || process.env.GITHUB_REPOSITORY);
+};
+var globalIntentionProvider;
+var resolveSemverBump = (label, intention) => {
+	if (intention?.semver) return intention.semver;
+	if (label === "major" || label === "breaking" || label === "breaking-change") return "major";
+	if (label === "minor" || label === "feat" || label === "feature") return "minor";
+	return "patch";
+};
+var PRIORITY = {
+	patch: 1,
+	minor: 2,
+	major: 3
+};
+/**
+* Builds a markdown explainability summary of the autolabeler decisions.
+*/
+var buildExplainabilitySummary = (params) => {
+	const { pullRequest, matches, appliedLabels, supersededLabels, categories, intentionProvider = globalIntentionProvider } = params;
+	if (matches.length === 0) return [
+		"## \u{1F3F7}\uFE0F Release Drafter Summary",
+		"",
+		`No autolabeler rules matched Pull Request **#${pullRequest.number}** (\`${pullRequest.branch}\`).`,
+		""
+	].join("\n");
+	let highestBump = "patch";
+	const matchedLabels = new Set(matches.map((m) => m.label));
+	const titleMatches = /* @__PURE__ */ new Set();
+	const branchMatches = /* @__PURE__ */ new Set();
+	const fileMatches = /* @__PURE__ */ new Set();
+	const bodyMatches = /* @__PURE__ */ new Set();
+	for (const match of matches) {
+		const intention = intentionProvider?.(match.label);
+		const semver = resolveSemverBump(match.label, intention);
+		if (PRIORITY[semver] > PRIORITY[highestBump]) highestBump = semver;
+		if (match.matchedValue) {
+			if (match.matcher === "title") titleMatches.add(match.matchedValue);
+			if (match.matcher === "branch") branchMatches.add(match.matchedValue);
+			if (match.matcher === "files") fileMatches.add(match.matchedValue);
+			if (match.matcher === "body") bodyMatches.add(match.matchedValue);
+		}
+	}
+	const matchCallouts = [];
+	if (titleMatches.size > 0) for (const val of titleMatches) matchCallouts.push(`- **Matched Title:** \`${val}\``);
+	if (branchMatches.size > 0) for (const val of branchMatches) matchCallouts.push(`- **Matched Branch:** \`${val}\``);
+	if (fileMatches.size > 0) {
+		const files = [...fileMatches];
+		const maxFiles = 5;
+		matchCallouts.push("- **Matched Files:**");
+		const shown = files.slice(0, maxFiles);
+		for (const f of shown) matchCallouts.push(`  - \`${f}\``);
+		if (files.length > maxFiles) matchCallouts.push(`  - *(and ${files.length - maxFiles} more)*`);
+	}
+	if (bodyMatches.size > 0) for (const val of bodyMatches) matchCallouts.push(`- **Matched Body:** \`${val}\``);
+	const hasIntentions = matches.some((m) => intentionProvider?.(m.label));
+	const rows = [];
+	for (const match of matches) {
+		if (supersededLabels?.includes(match.label)) continue;
+		const intention = intentionProvider?.(match.label);
+		const semver = resolveSemverBump(match.label, intention);
+		const intentionCell = intention ? intention.url ? `[${intention.description}](${intention.url})` : intention.description : "-";
+		const trigger = match.matcher === "files" ? "Files" : match.matcher === "branch" ? "Branch" : match.matcher === "title" ? "Title" : match.matcher === "body" ? "Body" : "Fallback";
+		const patternEscaped = match.pattern ? `\`${match.pattern.replace(/\|/g, "\\|")}\`` : "-";
+		const details = match.matcher === "files" ? `Files matched pattern ${patternEscaped}` : `${trigger} matched ${patternEscaped}`;
+		if (hasIntentions) rows.push(`| \`${match.label}\` | ${intentionCell} | \`${semver}\` | ${trigger} | ${details} |`);
+		else rows.push(`| \`${match.label}\` | \`${semver}\` | ${trigger} | ${details} |`);
+	}
+	const releaseSectionList = [];
+	if (categories && categories.length > 0) {
+		const matchedSections = [];
+		for (const cat of categories) if (cat.labels.some((l) => matchedLabels.has(l))) matchedSections.push(`  - ${cat.title}`);
+		if (matchedSections.length > 0) releaseSectionList.push("- **Release Sections:**", ...matchedSections);
+	}
+	const lines = [
+		"## \u{1F3F7}\uFE0F Release Drafter Summary",
+		"",
+		`Applied **${appliedLabels ? appliedLabels.length : rows.length}** label(s) to PR **#${pullRequest.number}** (\`${pullRequest.branch}\`) with **\`${highestBump}\`** version increment.`,
+		"",
+		...matchCallouts,
+		...releaseSectionList
+	];
+	lines.push("", "<details>", "<summary>\u{1F3F7}\uFE0F Label Decision Details</summary>", "", hasIntentions ? "| Label | Gitmoji Intention | Semver Impact | Trigger | Matched Rule |\n| :--- | :--- | :--- | :--- | :--- |" : "| Label | Semver Impact | Trigger | Matched Rule |\n| :--- | :--- | :--- | :--- |", ...rows, "", "</details>", "");
+	return lines.join("\n");
+};
+/** Writes the explainability summary table to the GitHub Actions Job Step Summary when GitHub is detected. */
+var writeStepSummary = async (markdown) => {
+	if (!isGitHubEnvironment()) return;
+	try {
+		await summary.addRaw(markdown).write();
+	} catch (error) {
+		warning(`Failed to write GitHub Actions Step Summary: ${error instanceof Error ? error.message : String(error)}`);
+	}
+};
+//#endregion
 //#region packages/gh-actions/src/autolabeler/action-input.schema.ts
-var actionInputSchema = object({ "config-name": string().optional().default("release-drafter.yml") }).and(sharedInputSchema);
+var actionInputSchema = object({
+	"config-name": string().optional().default("release-drafter.yml"),
+	summary: stringbool().or(boolean()).optional().default(true)
+}).and(sharedInputSchema);
 //#endregion
 //#region packages/gh-actions/src/autolabeler/get-action-inputs.ts
 var getActionInput = () => actionInputSchema.parse(readActionInputs(actionInputNames));
@@ -247,7 +384,8 @@ async function run() {
 				branch: payload.pull_request.head.ref,
 				title: payload.pull_request.title,
 				body: payload.pull_request.body
-			}
+			},
+			explainable: true
 		});
 		for (const match of result.matches) info(`Found label for ${match.matcher}: '${match.label}'`);
 		const labelsToRemove = [];
@@ -281,6 +419,18 @@ async function run() {
 			});
 			info(`Removed label '${name}' from PR #${payload.number}`);
 		}
+		const summaryMarkdown = buildExplainabilitySummary({
+			pullRequest: {
+				number: payload.number,
+				title: payload.pull_request.title,
+				branch: payload.pull_request.head.ref
+			},
+			matches: result.matches,
+			appliedLabels: result.labels,
+			supersededLabels: result.supersededLabels,
+			categories: config.categories
+		});
+		if (input.summary) await writeStepSummary(summaryMarkdown);
 		writeActionOutputs(actionOutputNames, {
 			number: payload.number.toString(),
 			labels: result.labels.length > 0 ? result.labels.join(",") : void 0

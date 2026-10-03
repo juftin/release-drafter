@@ -6,6 +6,10 @@ import { matchLabels } from '@release-drafter/autolabeler'
 import { writeActionOutputs } from '../common/action-contract.ts'
 import { getGitHubAdapter } from '../common/github.ts'
 import { actionOutputNames } from './action-metadata.ts'
+import {
+  buildExplainabilitySummary,
+  writeStepSummary,
+} from './explainability.ts'
 import { getActionInput } from './get-action-inputs.ts'
 import { getConfig } from './get-config.ts'
 
@@ -49,6 +53,7 @@ export async function run(): Promise<void> {
         title: payload.pull_request.title,
         body: payload.pull_request.body,
       },
+      explainable: true,
     })
 
     for (const match of result.matches)
@@ -112,6 +117,22 @@ export async function run(): Promise<void> {
         core.info(`Removed label '${name}' from PR #${payload.number}`)
       }
     }
+
+    const summaryMarkdown = buildExplainabilitySummary({
+      pullRequest: {
+        number: payload.number,
+        title: payload.pull_request.title,
+        branch: payload.pull_request.head.ref,
+      },
+      matches: result.matches,
+      appliedLabels: result.labels,
+      supersededLabels: result.supersededLabels,
+    })
+
+    if (input.summary) {
+      await writeStepSummary(summaryMarkdown)
+    }
+
     writeActionOutputs(actionOutputNames, {
       number: payload.number.toString(),
       labels: result.labels.length > 0 ? result.labels.join(',') : undefined,
