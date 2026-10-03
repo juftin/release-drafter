@@ -34,7 +34,6 @@ categories:
       - 'bug'
       - 'bugfix'
       - 'security'
-      - 'patch'
   - title: '⚡ Performance Improvements'
     labels:
       - 'perf'
@@ -97,6 +96,58 @@ version-resolver:
   default: patch
 
 autolabeler:
+  # Semver Labels
+  - label: 'major'
+    title:
+      - '/^[a-z]+(\([^\)]+\))?!:/i'
+      - '/^BREAKING( CHANGE)?(:|(\([^\)]+\))?:)/i'
+      - '/BREAKING CHANGE/i'
+    branch:
+      - '/.*breaking.*/i'
+    body:
+      - '/BREAKING[ -]CHANGE:/i'
+
+  - label: 'minor'
+    title:
+      - '/^feat(ure)?(\([^\)]+\))?:/i'
+    branch:
+      - '/^feat(\/|-)/i'
+      - '/^feature(\/|-)/i'
+
+  - label: 'patch'
+    files:
+      - '.github/**'
+      - '**/*.md'
+      - 'docs/**'
+    title:
+      - '/^(fix|bugfix|hotfix)(\([^\)]+\))?:/i'
+      - '/^sec(urity)?(\([^\)]+\))?:/i'
+      - '/^perf(ormance)?(\([^\)]+\))?:/i'
+      - '/^docs?(\([^\)]+\))?:/i'
+      - '/^refactor(\([^\)]+\))?:/i'
+      - '/^(deps?|dependencies)(\([^\)]+\))?:/i'
+      - '/^chore\(deps(-[a-z0-9]+)?\):/i'
+      - '/^(ci|build)(\([^\)]+\))?:/i'
+      - '/^chore(\([^\)]+\))?:/i'
+      - '/^tests?(\([^\)]+\))?:/i'
+      - '/^revert(\([^\)]+\))?:/i'
+    branch:
+      - '/^fix(\/|-)/i'
+      - '/^bugfix(\/|-)/i'
+      - '/^hotfix(\/|-)/i'
+      - '/^sec(urity)?(\/|-)/i'
+      - '/^perf(\/|-)/i'
+      - '/^docs?(\/|-)/i'
+      - '/^refactor(\/|-)/i'
+      - '/^dependabot\//i'
+      - '/^renovate\//i'
+      - '/^deps?(\/|-)/i'
+      - '/^ci(\/|-)/i'
+      - '/^build(\/|-)/i'
+      - '/^chore(\/|-)/i'
+      - '/^tests?(\/|-)/i'
+      - '/^revert(\/|-)/i'
+
   # Breaking Changes
   - label: 'breaking'
     title:

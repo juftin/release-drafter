@@ -170,6 +170,11 @@ def make_emoji_regex(emoji: str, code: str) -> str:
 
 def get_category_labels(cat, gitmojis, mode="gitmoji"):
     labels = []
+    if cat["semver"] == "major" and "major" not in labels:
+        labels.append("major")
+    elif cat["semver"] == "minor" and "minor" not in labels:
+        labels.append("minor")
+
     # Unicode emojis are included for all modes
     for name in cat["names"]:
         g = gitmojis[name]
@@ -207,6 +212,87 @@ CONV_RULES = [
 ]
 
 
+def generate_semver_autolabelers(gitmojis):
+    lines = []
+    # Major
+    lines.append("  # Semver: Major")
+    lines.append("  - label: 'major'")
+    lines.append("    title:")
+    lines.append("      - '/^(:boom:|💥)/'")
+    lines.append("      - '/^([a-z]+(\\([^\\)]+\\))?!:|.*BREAKING CHANGE:?)/i'")
+    lines.append("      - '/BREAKING[ -]CHANGE/i'")
+    lines.append("    branch:")
+    lines.append("      - '/.*breaking.*/i'")
+    lines.append("    body:")
+    lines.append("      - '/BREAKING[ -]CHANGE:/i'")
+    lines.append("")
+
+    # Minor
+    lines.append("  # Semver: Minor")
+    lines.append("  - label: 'minor'")
+    lines.append("    title:")
+    for cat in CATEGORIES:
+        if cat["semver"] == "minor":
+            for name in cat["names"]:
+                g = gitmojis[name]
+                lines.append(f"      - '{make_emoji_regex(g['emoji'], g['code'])}'")
+    lines.append("      - '/^feat(ure)?(\\([^\\)]+\\))?:/i'")
+    lines.append("    branch:")
+    lines.append("      - '/^feat(\\//|-)/i'")
+    lines.append("      - '/^feature(\\//|-)/i'")
+    lines.append("")
+
+    # Patch
+    lines.append("  # Semver: Patch")
+    lines.append("  - label: 'patch'")
+    lines.append("    files:")
+    lines.append("      - '.github/**'")
+    lines.append("      - '**/*.md'")
+    lines.append("      - 'docs/**'")
+    lines.append("    title:")
+    for cat in CATEGORIES:
+        if cat["semver"] == "patch":
+            for name in cat["names"]:
+                g = gitmojis[name]
+                lines.append(f"      - '{make_emoji_regex(g['emoji'], g['code'])}'")
+    for r in [
+        "/^(fix|bugfix|hotfix)(\\([^\\)]+\\))?:/i",
+        "/^sec(urity)?(\\([^\\)]+\\))?:/i",
+        "/^perf(ormance)?(\\([^\\)]+\\))?:/i",
+        "/^docs?(\\([^\\)]+\\))?:/i",
+        "/^refactor(\\([^\\)]+\\))?:/i",
+        "/^(deps?|dependencies)(\\([^\\)]+\\))?:/i",
+        "/^chore\\(deps(-[a-z0-9]+)?\\):/i",
+        "/^(ci|build)(\\([^\\)]+\\))?:/i",
+        "/^chore(\\([^\\)]+\\))?:/i",
+        "/^tests?(\\([^\\)]+\\))?:/i",
+        "/^revert(\\([^\\)]+\\))?:/i",
+    ]:
+        lines.append(f"      - '{r}'")
+    lines.append("    branch:")
+    for bp in [
+        "/^fix(\\//|-)/i",
+        "/^bugfix(\\//|-)/i",
+        "/^hotfix(\\//|-)/i",
+        "/^sec(urity)?(\\//|-)/i",
+        "/^perf(\\//|-)/i",
+        "/^docs?(\\//|-)/i",
+        "/^refactor(\\//|-)/i",
+        "/^dependabot\\//i",
+        "/^renovate\\//i",
+        "/^deps?(\\//|-)/i",
+        "/^ci(\\//|-)/i",
+        "/^build(\\//|-)/i",
+        "/^chore(\\//|-)/i",
+        "/^tests?(\\//|-)/i",
+        "/^revert(\\//|-)/i",
+    ]:
+        lines.append(f"      - '{bp}'")
+    lines.append("")
+
+    return lines
+
+
 def generate_gitmoji_yaml(gitmojis):
     lines = [
         "# yaml-language-server: $schema=https://raw.githubusercontent.com/release-drafter/release-drafter/master/schema.json",
@@ -241,18 +327,24 @@ def generate_gitmoji_yaml(gitmojis):
     lines.append("version-resolver:")
 
     # Major
-    major_labels = []
-    minor_labels = []
-    patch_labels = []
+    major_labels = ["major"]
+    minor_labels = ["minor"]
+    patch_labels = ["patch"]
 
     for cat in CATEGORIES:
         labels = get_category_labels(cat, gitmojis, mode="gitmoji")
         if cat["semver"] == "major":
-            major_labels.extend(labels)
+            for l in labels:
+                if l not in major_labels:
+                    major_labels.append(l)
         elif cat["semver"] == "minor":
-            minor_labels.extend(labels)
+            for l in labels:
+                if l not in minor_labels:
+                    minor_labels.append(l)
         else:
-            patch_labels.extend(labels)
+            for l in labels:
+                if l not in patch_labels:
+                    patch_labels.append(l)
 
     lines.append("  major:")
     lines.append("    labels:")
@@ -272,6 +364,9 @@ def generate_gitmoji_yaml(gitmojis):
     lines.append("  default: patch")
     lines.append("")
     lines.append("autolabeler:")
+
+    # Add Semver autolabelers
+    lines.extend(generate_semver_autolabelers(gitmojis))
 
     # Pure Gitmoji autolabelers (all labels are emojis)
     boom = gitmojis["boom"]
@@ -350,18 +445,24 @@ def generate_hybrid_yaml(gitmojis):
     lines.append("")
     lines.append("version-resolver:")
 
-    major_labels = []
-    minor_labels = []
-    patch_labels = []
+    major_labels = ["major"]
+    minor_labels = ["minor"]
+    patch_labels = ["patch"]
 
     for cat in CATEGORIES:
         labels = get_category_labels(cat, gitmojis, mode="hybrid")
         if cat["semver"] == "major":
-            major_labels.extend(labels)
+            for l in labels:
+                if l not in major_labels:
+                    major_labels.append(l)
         elif cat["semver"] == "minor":
-            minor_labels.extend(labels)
+            for l in labels:
+                if l not in minor_labels:
+                    minor_labels.append(l)
         else:
-            patch_labels.extend(labels)
+            for l in labels:
+                if l not in patch_labels:
+                    patch_labels.append(l)
 
     lines.append("  major:")
     lines.append("    labels:")
@@ -381,6 +482,9 @@ def generate_hybrid_yaml(gitmojis):
     lines.append("  default: patch")
     lines.append("")
     lines.append("autolabeler:")
+
+    # Add Semver autolabelers
+    lines.extend(generate_semver_autolabelers(gitmojis))
 
     # Breaking Changes (Conventional + Gitmoji)
     lines.append("  - label: 'breaking'")
