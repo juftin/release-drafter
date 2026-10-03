@@ -158,7 +158,7 @@ var categorizeChanges = (params) => {
 	}));
 	const uncategorizedChanges = [];
 	for (const change of changes) {
-		const evaluation = evaluateCategories(changeForCategory(change), config.categories);
+		const evaluation = evaluateCategories(changeForCategory(change, config.autolabeler), config.categories);
 		if (!evaluation.included) continue;
 		if (evaluation.changelogCategories.length === 0) {
 			uncategorizedChanges.push(change);
@@ -531,7 +531,7 @@ var renderAuthorMention = (contributor, serverUrl) => {
 };
 var generateContributorsSentence = (params) => {
 	const { commits, changes, config, serverUrl } = params;
-	const includedChanges = filterChangesByPreCategories(changes, config.categories);
+	const includedChanges = filterChangesByPreCategories(changes, config.categories, config.autolabeler);
 	return generateAuthorsSentence({
 		commits,
 		pullRequests: includedChanges.flatMap((change) => change.type === "pull-request" ? [change.pullRequest] : []),
@@ -979,7 +979,7 @@ var resolveVersionKeyIncrement = (params) => {
 	const changelogIncrements = [];
 	const explicitResolverIncrements = [];
 	for (const change of changes) {
-		const evaluation = evaluateCategories(changeForCategory(change), config.categories);
+		const evaluation = evaluateCategories(changeForCategory(change, config.autolabeler), config.categories);
 		if (!evaluation.included) continue;
 		for (const category of evaluation.changelogCategories) if (category["semver-increment"] in priority) changelogIncrements.push(category["semver-increment"]);
 		if (!evaluation.usedVersionFallback) {
@@ -1362,14 +1362,14 @@ var draftRelease = async (params) => {
 			headRef: config.commitish
 		},
 		pullRequestFields: {
-			body: pullRequestTemplate.includes("$CHANGE_BODY") || pullRequestTemplate.includes("$PR_BODY"),
+			body: pullRequestTemplate.includes("$CHANGE_BODY") || pullRequestTemplate.includes("$PR_BODY") || Boolean(config.autolabeler?.some((r) => r.body.length > 0)),
 			url: pullRequestTemplate.includes("$CHANGE_URL") || pullRequestTemplate.includes("$PR_URL") || config["new-contributor-template"].includes("$CHANGE_URL"),
 			baseRefName: pullRequestTemplate.includes("$PR_BASE_REF_NAME"),
-			headRefName: pullRequestTemplate.includes("$PR_HEAD_REF_NAME")
+			headRefName: pullRequestTemplate.includes("$PR_HEAD_REF_NAME") || Boolean(config.autolabeler?.some((r) => r.branch.length > 0))
 		},
 		pullRequestLimit: config["pull-request-limit"],
 		historyLimit: config["history-limit"],
-		includeChangedFiles: needsPullRequestChangedFiles(config.categories),
+		includeChangedFiles: needsPullRequestChangedFiles(config.categories) || Boolean(config.autolabeler?.some((r) => r.files.length > 0)),
 		includeNewContributors: [
 			config.header,
 			config.template,

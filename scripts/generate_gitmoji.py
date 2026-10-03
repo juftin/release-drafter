@@ -234,10 +234,36 @@ def generate_gitmoji_yaml(gitmojis):
     lines.append("  - label: 'boom'")
     lines.append("    title:")
     lines.append(f"      - '{make_emoji_regex(gitmojis['boom']['emoji'], gitmojis['boom']['code'])}'")
-    lines.append("      - '/BREAKING CHANGE/i'")
+    lines.append("      - '/^([a-z]+(\\([^\\)]+\\))?!:|.*BREAKING CHANGE:?)/i'")
+    lines.append("      - '/BREAKING[ -]CHANGE/i'")
     lines.append("    branch:")
     lines.append("      - '/.*breaking.*/i'")
     lines.append("")
+
+    # Conventional commit types mappings
+    conv_rules = [
+        ("feat", ["/^((:sparkles:|✨|:tada:|🎉|:rocket:|🚀)\\s*)?feat(ure)?(\\([^\\)]+\\))?:/i"], ["/^feat(\\//|-)/i", "/^feature(\\//|-)/i"]),
+        ("fix", ["/^((:bug:|🐛|:ambulance:|🚑️|🚑|:adhesive_bandage:|🩹)\\s*)?(fix|bugfix|hotfix)(\\([^\\)]+\\))?:/i"], ["/^fix(\\//|-)/i", "/^bugfix(\\//|-)/i", "/^hotfix(\\//|-)/i"]),
+        ("security", ["/^((:lock:|🔒)\\s*)?sec(urity)?(\\([^\\)]+\\))?:/i"], ["/^sec(urity)?(\\//|-)/i"]),
+        ("perf", ["/^((:zap:|⚡️|⚡)\\s*)?perf(ormance)?(\\([^\\)]+\\))?:/i"], ["/^perf(\\//|-)/i"]),
+        ("docs", ["/^((:memo:|📝|:books:|📚|:bulb:|💡)\\s*)?docs?(\\([^\\)]+\\))?:/i"], ["/^docs?(\\//|-)/i"]),
+        ("refactor", ["/^((:recycle:|♻️|♻|:art:|🎨|:fire:|🔥)\\s*)?refactor(\\([^\\)]+\\))?:/i"], ["/^refactor(\\//|-)/i"]),
+        ("dependencies", ["/^((:arrow_up:|⬆️|⬆|:arrow_down:|⬇️|⬇|:package:|📦️|📦|:pushpin:|📌)\\s*)?(deps?|dependencies)(\\([^\\)]+\\))?:/i", "/^chore\\(deps(-[a-z0-9]+)?\\):/i"], ["/^dependabot\\//i", "/^renovate\\//i", "/^deps?(\\//|-)/i"]),
+        ("ci", ["/^((:construction_worker:|👷|:green_heart:|💚)\\s*)?(ci|build)(\\([^\\)]+\\))?:/i"], ["/^ci(\\//|-)/i", "/^build(\\//|-)/i"]),
+        ("chore", ["/^((:wrench:|🔧|:hammer:|🔨|:truck:|🚚|:wastebasket:|🗑️|🗑)\\s*)?chore(\\([^\\)]+\\))?:/i"], ["/^chore(\\//|-)/i"]),
+        ("test", ["/^((:white_check_mark:|✅|:test_tube:|🧪)\\s*)?tests?(\\([^\\)]+\\))?:/i"], ["/^tests?(\\//|-)/i"]),
+        ("revert", ["/^((:rewind:|⏪️|⏪)\\s*)?revert(\\([^\\)]+\\))?:/i"], ["/^revert(\\//|-)/i"]),
+    ]
+
+    for label, title_patterns, branch_patterns in conv_rules:
+        lines.append(f"  - label: '{label}'")
+        lines.append("    title:")
+        for tp in title_patterns:
+            lines.append(f"      - '{tp}'")
+        lines.append("    branch:")
+        for bp in branch_patterns:
+            lines.append(f"      - '{bp}'")
+        lines.append("")
 
     for cat in CATEGORIES:
         for name in cat["names"]:

@@ -218,10 +218,12 @@ export const filterPullRequestsByPreCategories = <Pr extends PullRequestLike>(
 export const filterChangesByPreCategories = (
   changes: Change[],
   categories: ParsedConfig['categories'],
+  autolabeler?: ParsedConfig['autolabeler'],
 ) =>
   changes.filter(
     (change) =>
-      evaluateCategories(changeForCategory(change), categories).included,
+      evaluateCategories(changeForCategory(change, autolabeler), categories)
+        .included,
   )
 
 export const needsPullRequestChangedFiles = (

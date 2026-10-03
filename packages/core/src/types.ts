@@ -198,6 +198,14 @@ export type ParsedReplacer = Omit<Config['replacers'][number], 'search'> & {
   search: RegExp
 }
 
+export type ParsedAutolabelerRule = {
+  label: string
+  files: string[]
+  branch: RegExp[]
+  title: RegExp[]
+  body: RegExp[]
+}
+
 export type ParsedConfig = Omit<
   Config,
   | 'exclude-labels'
@@ -210,12 +218,14 @@ export type ParsedConfig = Omit<
   | 'prerelease'
   | 'replacers'
   | 'categories'
+  | 'autolabeler'
 > & {
   commitish: string
   latest: boolean
   prerelease: boolean
   replacers: ParsedReplacer[]
   categories: ParsedCategory[]
+  autolabeler: ParsedAutolabelerRule[]
 }
 
 export type ReleaseInput = {

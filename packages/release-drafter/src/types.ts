@@ -257,6 +257,14 @@ export interface ParsedReplacer {
   replace: string
 }
 
+export interface ParsedAutolabelerRule {
+  label: string
+  files: string[]
+  branch: RegExp[]
+  title: RegExp[]
+  body: RegExp[]
+}
+
 /**
  * Fully parsed Release Drafter configuration for the orchestration core. The
  * caller or runtime must load and normalize the configuration.
@@ -286,6 +294,7 @@ export interface DraftReleaseConfig {
   'history-limit': number
   replacers: ParsedReplacer[]
   categories: ParsedCategory[]
+  autolabeler: ParsedAutolabelerRule[]
   'category-template': string
   template: string
   latest: boolean

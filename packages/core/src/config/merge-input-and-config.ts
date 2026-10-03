@@ -68,6 +68,23 @@ export const mergeInputAndConfig = (params: {
     })
     .filter((replacer) => !!replacer)
   const categories = parseCategories(config, deprecatedCategoryConfig, logger)
+  const autolabeler = (config.autolabeler ?? [])
+    .map((rule) => {
+      try {
+        return {
+          ...rule,
+          branch: rule.branch.map(stringToRegex),
+          title: rule.title.map(stringToRegex),
+          body: rule.body.map(stringToRegex),
+        }
+      } catch {
+        logger.warning(
+          `Bad autolabeler regex: '${rule.branch}', '${rule.title}' or '${rule.body}'`,
+        )
+        return false
+      }
+    })
+    .filter((rule): rule is ParsedConfig['autolabeler'][number] => Boolean(rule))
   const parsedConfig = {
     ...config,
     commitish,
@@ -75,6 +92,7 @@ export const mergeInputAndConfig = (params: {
     prerelease,
     replacers,
     categories,
+    autolabeler,
   }
 
   validateParsedConfig(parsedConfig)

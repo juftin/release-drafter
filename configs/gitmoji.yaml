@@ -237,9 +237,83 @@ autolabeler:
   - label: 'boom'
     title:
       - '/^(:boom:|💥)/'
-      - '/BREAKING CHANGE/i'
+      - '/^([a-z]+(\([^\)]+\))?!:|.*BREAKING CHANGE:?)/i'
+      - '/BREAKING[ -]CHANGE/i'
     branch:
       - '/.*breaking.*/i'
+
+  - label: 'feat'
+    title:
+      - '/^((:sparkles:|✨|:tada:|🎉|:rocket:|🚀)\s*)?feat(ure)?(\([^\)]+\))?:/i'
+    branch:
+      - '/^feat(\//|-)/i'
+      - '/^feature(\//|-)/i'
+
+  - label: 'fix'
+    title:
+      - '/^((:bug:|🐛|:ambulance:|🚑️|🚑|:adhesive_bandage:|🩹)\s*)?(fix|bugfix|hotfix)(\([^\)]+\))?:/i'
+    branch:
+      - '/^fix(\//|-)/i'
+      - '/^bugfix(\//|-)/i'
+      - '/^hotfix(\//|-)/i'
+
+  - label: 'security'
+    title:
+      - '/^((:lock:|🔒)\s*)?sec(urity)?(\([^\)]+\))?:/i'
+    branch:
+      - '/^sec(urity)?(\//|-)/i'
+
+  - label: 'perf'
+    title:
+      - '/^((:zap:|⚡️|⚡)\s*)?perf(ormance)?(\([^\)]+\))?:/i'
+    branch:
+      - '/^perf(\//|-)/i'
+
+  - label: 'docs'
+    title:
+      - '/^((:memo:|📝|:books:|📚|:bulb:|💡)\s*)?docs?(\([^\)]+\))?:/i'
+    branch:
+      - '/^docs?(\//|-)/i'
+
+  - label: 'refactor'
+    title:
+      - '/^((:recycle:|♻️|♻|:art:|🎨|:fire:|🔥)\s*)?refactor(\([^\)]+\))?:/i'
+    branch:
+      - '/^refactor(\//|-)/i'
+
+  - label: 'dependencies'
+    title:
+      - '/^((:arrow_up:|⬆️|⬆|:arrow_down:|⬇️|⬇|:package:|📦️|📦|:pushpin:|📌)\s*)?(deps?|dependencies)(\([^\)]+\))?:/i'
+      - '/^chore\(deps(-[a-z0-9]+)?\):/i'
+    branch:
+      - '/^dependabot\//i'
+      - '/^renovate\//i'
+      - '/^deps?(\//|-)/i'
+
+  - label: 'ci'
+    title:
+      - '/^((:construction_worker:|👷|:green_heart:|💚)\s*)?(ci|build)(\([^\)]+\))?:/i'
+    branch:
+      - '/^ci(\//|-)/i'
+      - '/^build(\//|-)/i'
+
+  - label: 'chore'
+    title:
+      - '/^((:wrench:|🔧|:hammer:|🔨|:truck:|🚚|:wastebasket:|🗑️|🗑)\s*)?chore(\([^\)]+\))?:/i'
+    branch:
+      - '/^chore(\//|-)/i'
+
+  - label: 'test'
+    title:
+      - '/^((:white_check_mark:|✅|:test_tube:|🧪)\s*)?tests?(\([^\)]+\))?:/i'
+    branch:
+      - '/^tests?(\//|-)/i'
+
+  - label: 'revert'
+    title:
+      - '/^((:rewind:|⏪️|⏪)\s*)?revert(\([^\)]+\))?:/i'
+    branch:
+      - '/^revert(\//|-)/i'
 
   - label: 'sparkles'
     title:

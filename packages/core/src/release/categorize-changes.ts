@@ -8,7 +8,9 @@ import type { Change, ParsedConfig } from '../types.ts'
 
 export const categorizeChanges = (params: {
   changes: Change[]
-  config: Pick<ParsedConfig, 'categories'>
+  config: Pick<ParsedConfig, 'categories'> & {
+    autolabeler?: ParsedConfig['autolabeler']
+  }
 }): [Change[], (ChangelogCategory & { changes: Change[] })[]] => {
   const { changes, config } = params
   const changelogCategories = getChangelogCategories(config.categories)
@@ -20,7 +22,7 @@ export const categorizeChanges = (params: {
 
   for (const change of changes) {
     const evaluation = evaluateCategories(
-      changeForCategory(change),
+      changeForCategory(change, config.autolabeler),
       config.categories,
     )
     if (!evaluation.included) continue

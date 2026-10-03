@@ -213,17 +213,22 @@ export const draftRelease = async (params: {
         pullRequestFields: {
           body:
             pullRequestTemplate.includes('$CHANGE_BODY') ||
-            pullRequestTemplate.includes('$PR_BODY'),
+            pullRequestTemplate.includes('$PR_BODY') ||
+            Boolean(config.autolabeler?.some((r) => r.body.length > 0)),
           url:
             pullRequestTemplate.includes('$CHANGE_URL') ||
             pullRequestTemplate.includes('$PR_URL') ||
             config['new-contributor-template'].includes('$CHANGE_URL'),
           baseRefName: pullRequestTemplate.includes('$PR_BASE_REF_NAME'),
-          headRefName: pullRequestTemplate.includes('$PR_HEAD_REF_NAME'),
+          headRefName:
+            pullRequestTemplate.includes('$PR_HEAD_REF_NAME') ||
+            Boolean(config.autolabeler?.some((r) => r.branch.length > 0)),
         },
         pullRequestLimit: config['pull-request-limit'],
         historyLimit: config['history-limit'],
-        includeChangedFiles: needsPullRequestChangedFiles(config.categories),
+        includeChangedFiles:
+          needsPullRequestChangedFiles(config.categories) ||
+          Boolean(config.autolabeler?.some((r) => r.files.length > 0)),
         includeNewContributors: [
           config.header,
           config.template,

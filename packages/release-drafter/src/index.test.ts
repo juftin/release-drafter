@@ -54,6 +54,7 @@ const config = {
   'history-limit': 15,
   replacers: [],
   categories: [],
+  autolabeler: [],
   'category-template': '## $TITLE',
   template: '$CHANGES',
   latest: true,

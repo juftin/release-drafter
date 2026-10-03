@@ -18,6 +18,7 @@ export const generateChangeLog = (params: {
     | 'change-authors-separator'
     | 'change-authors-final-separator'
     | 'category-template'
+    | 'autolabeler'
   >
 }) => {
   const { commits = [], changes, serverUrl, config } = params
