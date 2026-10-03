@@ -362,11 +362,32 @@ async function run() {
 		for (const match of result.matches) info(`Found label for ${match.matcher}: '${match.label}'`);
 		if (result.labels.length > 0) {
 			if (input["dry-run"]) info(`[dry-run] Would add labels [${result.labels.join(", ")}] to PR #${payload.number}`);
-			else await adapter.octokit.rest.issues.addLabels({
-				...context.repo,
-				issue_number: payload.number,
-				labels: result.labels
-			});
+			else try {
+				await adapter.octokit.rest.issues.addLabels({
+					...context.repo,
+					issue_number: payload.number,
+					labels: result.labels
+				});
+			} catch {
+				for (const label of result.labels) try {
+					await adapter.octokit.rest.issues.addLabels({
+						...context.repo,
+						issue_number: payload.number,
+						labels: [label]
+					});
+				} catch (err) {
+					const spec = getGitmojiSpec(label);
+					if (spec?.code) try {
+						await adapter.octokit.rest.issues.addLabels({
+							...context.repo,
+							issue_number: payload.number,
+							labels: [spec.code]
+						});
+						continue;
+					} catch {}
+					warning(`Could not add label '${label}' to PR #${payload.number}: ${err instanceof Error ? err.message : String(err)}`);
+				}
+			}
 		}
 		const summaryMarkdown = buildExplainabilitySummary({
 			pullRequest: {
