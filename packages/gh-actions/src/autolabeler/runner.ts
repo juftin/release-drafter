@@ -77,6 +77,14 @@ export async function run(): Promise<void> {
       }
     }
 
+    if (result.supersededLabels && result.supersededLabels.length > 0) {
+      for (const superseded of result.supersededLabels) {
+        if (!labelsToRemove.includes(superseded)) {
+          labelsToRemove.push(superseded)
+        }
+      }
+    }
+
     if (result.labels.length > 0) {
       if (input['dry-run']) {
         core.info(

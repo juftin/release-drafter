@@ -139,6 +139,11 @@ var createPathMatcher = (patterns) => {
 };
 //#endregion
 //#region packages/autolabeler/src/match-labels.ts
+var SEMVER_PRECEDENCE = {
+	major: 3,
+	minor: 2,
+	patch: 1
+};
 var test = (matcher, value) => {
 	matcher.lastIndex = 0;
 	return matcher.test(value);
@@ -180,9 +185,12 @@ var matchLabels = (params) => {
 			matcher: "fallback"
 		});
 	}
+	const rawLabels = [...labels];
+	const supersededLabels = rawLabels.filter((l) => l in SEMVER_PRECEDENCE).sort((a, b) => SEMVER_PRECEDENCE[b] - SEMVER_PRECEDENCE[a]).slice(1);
 	return {
-		labels: [...labels],
-		matches
+		labels: rawLabels.filter((l) => !supersededLabels.includes(l)),
+		matches,
+		supersededLabels
 	};
 };
 //#endregion
@@ -252,6 +260,9 @@ async function run() {
 			const managedLabels = new Set(config.autolabeler.flatMap((rule) => rule.labels.map((label) => label.toLowerCase())));
 			const selectedLabels = new Set(result.labels.map((label) => label.toLowerCase()));
 			for (const { name } of currentLabels) if (managedLabels.has(name.toLowerCase()) && !selectedLabels.has(name.toLowerCase())) labelsToRemove.push(name);
+		}
+		if (result.supersededLabels && result.supersededLabels.length > 0) {
+			for (const superseded of result.supersededLabels) if (!labelsToRemove.includes(superseded)) labelsToRemove.push(superseded);
 		}
 		if (result.labels.length > 0) {
 			if (input["dry-run"]) info(`[dry-run] Would add labels [${result.labels.join(", ")}] to PR #${payload.number}`);
