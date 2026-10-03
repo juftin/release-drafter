@@ -8,6 +8,7 @@ import { getGitHubAdapter } from '../common/github.ts'
 import { actionOutputNames } from './action-metadata.ts'
 import {
   buildExplainabilitySummary,
+  getGitmojiSpec,
   postOrUpdatePRComment,
   writeStepSummary,
 } from './explainability.ts'
@@ -60,11 +61,40 @@ export async function run(): Promise<void> {
           `[dry-run] Would add labels [${result.labels.join(', ')}] to PR #${payload.number}`,
         )
       } else {
-        await adapter.octokit.rest.issues.addLabels({
-          ...context.repo,
-          issue_number: payload.number,
-          labels: result.labels,
-        })
+        try {
+          await adapter.octokit.rest.issues.addLabels({
+            ...context.repo,
+            issue_number: payload.number,
+            labels: result.labels,
+          })
+        } catch {
+          for (const label of result.labels) {
+            try {
+              await adapter.octokit.rest.issues.addLabels({
+                ...context.repo,
+                issue_number: payload.number,
+                labels: [label],
+              })
+            } catch (err) {
+              const spec = getGitmojiSpec(label)
+              if (spec?.code) {
+                try {
+                  await adapter.octokit.rest.issues.addLabels({
+                    ...context.repo,
+                    issue_number: payload.number,
+                    labels: [spec.code],
+                  })
+                  continue
+                } catch {
+                  // ignore
+                }
+              }
+              core.warning(
+                `Could not add label '${label}' to PR #${payload.number}: ${err instanceof Error ? err.message : String(err)}`,
+              )
+            }
+          }
+        }
       }
     }
 
