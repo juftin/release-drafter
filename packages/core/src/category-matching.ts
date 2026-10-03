@@ -238,18 +238,21 @@ export const filterPullRequestsByPreCategories = <Pr extends PullRequestLike>(
 export const filterChangesByPreCategories = (
   changes: Change[],
   categories: ParsedConfig['categories'],
+  autolabeler?: ParsedConfig['autolabeler'],
 ) =>
   changes.filter(
     (change) =>
-      evaluateCategories(changeForCategory(change), categories).included,
+      evaluateCategories(changeForCategory(change, autolabeler), categories)
+        .included,
   )
 
 export const needsPullRequestChangedFiles = (
   categories: ParsedConfig['categories'],
+  autolabeler: ParsedConfig['autolabeler'] = [],
 ) =>
   categories.some((category) =>
     category.when.some((condition) => condition.paths.length > 0),
-  )
+  ) || autolabeler.some((rule) => rule.files.length > 0)
 
 export const getChangelogCategories = (
   categories: ParsedConfig['categories'],

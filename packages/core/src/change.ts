@@ -1,4 +1,10 @@
-import type { Change, Commit, CommitAuthor } from './types.ts'
+import { createPathMatcher } from './path-matcher.ts'
+import type {
+  Change,
+  Commit,
+  CommitAuthor,
+  ParsedAutolabelerRule,
+} from './types.ts'
 
 export const splitCommitMessage = (message = '') => {
   const [title = '', ...body] = message.replaceAll('\r\n', '\n').split('\n')
@@ -15,10 +21,100 @@ export const changeDate = (change: Change) =>
     ? change.pullRequest.mergedAt
     : change.commit.committedAt
 
-export const changeForCategory = (change: Change) =>
-  change.type === 'pull-request'
-    ? change.pullRequest
-    : { title: change.commit.message }
+const testRegex = (regex: RegExp, text: string) => {
+  regex.lastIndex = 0
+  return regex.test(text)
+}
+
+export const inferChangeLabels = (
+  change: Change,
+  autolabeler: ParsedAutolabelerRule[] = [],
+): string[] => {
+  if (autolabeler.length === 0) return []
+  const inferred = new Set<string>()
+
+  const addRuleLabels = (rule: ParsedAutolabelerRule) => {
+    if (rule.label) inferred.add(rule.label)
+    if (rule.labels) {
+      for (const l of rule.labels) inferred.add(l)
+    }
+  }
+
+  if (change.type === 'pull-request') {
+    const { pullRequest } = change
+    const branch = pullRequest.headRefName ?? ''
+    const title = pullRequest.title
+    const body = pullRequest.body ?? ''
+    const files = pullRequest.changedFiles ?? []
+
+    for (const rule of autolabeler) {
+      if (rule.files.length > 0 && files.length > 0) {
+        const matches = createPathMatcher(rule.files)
+        if (files.some(matches)) {
+          addRuleLabels(rule)
+          continue
+        }
+      }
+      if (branch && rule.branch.some((regex) => testRegex(regex, branch))) {
+        addRuleLabels(rule)
+        continue
+      }
+      if (title && rule.title.some((regex) => testRegex(regex, title))) {
+        addRuleLabels(rule)
+        continue
+      }
+      if (body && rule.body.some((regex) => testRegex(regex, body))) {
+        addRuleLabels(rule)
+      }
+    }
+  } else {
+    const { title, body } = splitCommitMessage(change.commit.message ?? '')
+    const fullMessage = change.commit.message ?? ''
+    const files = change.commit.changedFiles ?? []
+
+    for (const rule of autolabeler) {
+      if (rule.files.length > 0 && files.length > 0) {
+        const matches = createPathMatcher(rule.files)
+        if (files.some(matches)) {
+          addRuleLabels(rule)
+          continue
+        }
+      }
+      if (
+        (title && rule.title.some((regex) => testRegex(regex, title))) ||
+        (fullMessage &&
+          rule.title.some((regex) => testRegex(regex, fullMessage))) ||
+        (body && rule.body.some((regex) => testRegex(regex, body)))
+      ) {
+        addRuleLabels(rule)
+      }
+    }
+  }
+
+  return [...inferred]
+}
+
+export const changeForCategory = (
+  change: Change,
+  autolabeler?: ParsedAutolabelerRule[],
+) => {
+  const inferredLabels = inferChangeLabels(change, autolabeler)
+
+  if (change.type === 'pull-request') {
+    const existingLabels = change.pullRequest.labels ?? []
+    return {
+      ...change.pullRequest,
+      labels: [...new Set([...existingLabels, ...inferredLabels])],
+    }
+  }
+
+  const { title } = splitCommitMessage(change.commit.message ?? '')
+  return {
+    title: title || change.commit.message,
+    labels: inferredLabels,
+    changedFiles: change.commit.changedFiles,
+  }
+}
 
 /** Uses adapter-provided authors when available, falling back to commit trailers. */
 export const commitAuthors = (commit: Commit): CommitAuthor[] => {

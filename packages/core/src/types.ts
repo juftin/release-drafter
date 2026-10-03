@@ -53,6 +53,7 @@ export type Commit = {
   associatedPullRequests?:
     | (Pick<PullRequest, 'number' | 'baseRepository'> | null)[]
     | null
+  changedFiles?: string[]
 }
 
 export type Change =
@@ -209,6 +210,15 @@ export type ParsedGroupChange = Omit<
   captureNames: string[]
 }
 
+export type ParsedAutolabelerRule = {
+  label?: string
+  labels?: string[]
+  files: string[]
+  branch: RegExp[]
+  title: RegExp[]
+  body: RegExp[]
+}
+
 export type ParsedConfig = Omit<
   Config,
   | 'exclude-labels'
@@ -222,6 +232,7 @@ export type ParsedConfig = Omit<
   | 'replacers'
   | 'categories'
   | 'group-changes'
+  | 'autolabeler'
 > & {
   commitish: string
   latest: boolean
@@ -229,6 +240,7 @@ export type ParsedConfig = Omit<
   replacers: ParsedReplacer[]
   categories: ParsedCategory[]
   'group-changes'?: ParsedGroupChange[]
+  autolabeler?: ParsedAutolabelerRule[]
 }
 
 export type ReleaseInput = {

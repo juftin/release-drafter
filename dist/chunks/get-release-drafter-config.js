@@ -386,38 +386,6 @@ var CommitParser = class {
 	}
 };
 //#endregion
-//#region packages/core/src/change.ts
-var splitCommitMessage = (message = "") => {
-	const [title = "", ...body] = message.replaceAll("\r\n", "\n").split("\n");
-	return {
-		title,
-		body: body.join("\n").replace(/^\n+/, "").trimEnd()
-	};
-};
-var changeTitle = (change) => change.type === "pull-request" ? change.pullRequest.title : splitCommitMessage(change.commit.message).title || change.commit.oid;
-var changeDate = (change) => change.type === "pull-request" ? change.pullRequest.mergedAt : change.commit.committedAt;
-var changeForCategory = (change) => change.type === "pull-request" ? change.pullRequest : { title: change.commit.message };
-/** Uses adapter-provided authors when available, falling back to commit trailers. */
-var commitAuthors = (commit) => {
-	if (commit.authors) return commit.authors.filter((author) => author != null);
-	const authors = commit.author ? [commit.author] : [];
-	const coauthorPattern = new RegExp(["^Co-authored-by:", String.raw`\s*(.+?)\s*<([^>]+)>\s*$`].join(""), "gim");
-	for (const match of (commit.message ?? "").matchAll(coauthorPattern)) {
-		const [, name, email] = match;
-		if (!authors.some((author) => email && author.email?.toLowerCase() === email.toLowerCase() || name && author.name === name)) authors.push({
-			name,
-			email
-		});
-	}
-	return authors;
-};
-/** Returns the strongest available stable identity: login, then email, then name. */
-var commitAuthorKey = (author) => {
-	if (author?.login) return `login:${author.login.toLowerCase()}`;
-	if (author?.email) return `email:${author.email.toLowerCase()}`;
-	if (author?.name) return `name:${author.name}`;
-};
-//#endregion
 //#region packages/core/src/path-matcher.ts
 var trimTrailingUnescapedSpaces = (pattern) => {
 	let end = pattern.length;
@@ -475,6 +443,105 @@ var createPathMatcher = (patterns) => {
 		}
 		return false;
 	};
+};
+//#endregion
+//#region packages/core/src/change.ts
+var splitCommitMessage = (message = "") => {
+	const [title = "", ...body] = message.replaceAll("\r\n", "\n").split("\n");
+	return {
+		title,
+		body: body.join("\n").replace(/^\n+/, "").trimEnd()
+	};
+};
+var changeTitle = (change) => change.type === "pull-request" ? change.pullRequest.title : splitCommitMessage(change.commit.message).title || change.commit.oid;
+var changeDate = (change) => change.type === "pull-request" ? change.pullRequest.mergedAt : change.commit.committedAt;
+var testRegex = (regex, text) => {
+	regex.lastIndex = 0;
+	return regex.test(text);
+};
+var inferChangeLabels = (change, autolabeler = []) => {
+	if (autolabeler.length === 0) return [];
+	const inferred = /* @__PURE__ */ new Set();
+	const addRuleLabels = (rule) => {
+		if (rule.label) inferred.add(rule.label);
+		if (rule.labels) for (const l of rule.labels) inferred.add(l);
+	};
+	if (change.type === "pull-request") {
+		const { pullRequest } = change;
+		const branch = pullRequest.headRefName ?? "";
+		const title = pullRequest.title;
+		const body = pullRequest.body ?? "";
+		const files = pullRequest.changedFiles ?? [];
+		for (const rule of autolabeler) {
+			if (rule.files.length > 0 && files.length > 0) {
+				const matches = createPathMatcher(rule.files);
+				if (files.some(matches)) {
+					addRuleLabels(rule);
+					continue;
+				}
+			}
+			if (branch && rule.branch.some((regex) => testRegex(regex, branch))) {
+				addRuleLabels(rule);
+				continue;
+			}
+			if (title && rule.title.some((regex) => testRegex(regex, title))) {
+				addRuleLabels(rule);
+				continue;
+			}
+			if (body && rule.body.some((regex) => testRegex(regex, body))) addRuleLabels(rule);
+		}
+	} else {
+		const { title, body } = splitCommitMessage(change.commit.message ?? "");
+		const fullMessage = change.commit.message ?? "";
+		const files = change.commit.changedFiles ?? [];
+		for (const rule of autolabeler) {
+			if (rule.files.length > 0 && files.length > 0) {
+				const matches = createPathMatcher(rule.files);
+				if (files.some(matches)) {
+					addRuleLabels(rule);
+					continue;
+				}
+			}
+			if (title && rule.title.some((regex) => testRegex(regex, title)) || fullMessage && rule.title.some((regex) => testRegex(regex, fullMessage)) || body && rule.body.some((regex) => testRegex(regex, body))) addRuleLabels(rule);
+		}
+	}
+	return [...inferred];
+};
+var changeForCategory = (change, autolabeler) => {
+	const inferredLabels = inferChangeLabels(change, autolabeler);
+	if (change.type === "pull-request") {
+		const existingLabels = change.pullRequest.labels ?? [];
+		return {
+			...change.pullRequest,
+			labels: [.../* @__PURE__ */ new Set([...existingLabels, ...inferredLabels])]
+		};
+	}
+	const { title } = splitCommitMessage(change.commit.message ?? "");
+	return {
+		title: title || change.commit.message,
+		labels: inferredLabels,
+		changedFiles: change.commit.changedFiles
+	};
+};
+/** Uses adapter-provided authors when available, falling back to commit trailers. */
+var commitAuthors = (commit) => {
+	if (commit.authors) return commit.authors.filter((author) => author != null);
+	const authors = commit.author ? [commit.author] : [];
+	const coauthorPattern = new RegExp(["^Co-authored-by:", String.raw`\s*(.+?)\s*<([^>]+)>\s*$`].join(""), "gim");
+	for (const match of (commit.message ?? "").matchAll(coauthorPattern)) {
+		const [, name, email] = match;
+		if (!authors.some((author) => email && author.email?.toLowerCase() === email.toLowerCase() || name && author.name === name)) authors.push({
+			name,
+			email
+		});
+	}
+	return authors;
+};
+/** Returns the strongest available stable identity: login, then email, then name. */
+var commitAuthorKey = (author) => {
+	if (author?.login) return `login:${author.login.toLowerCase()}`;
+	if (author?.email) return `email:${author.email.toLowerCase()}`;
+	if (author?.name) return `name:${author.name}`;
 };
 //#endregion
 //#region packages/core/src/category-matching.ts
@@ -584,8 +651,8 @@ var evaluateCategories = (pullRequest, categories) => {
 		versionIncrement: highest
 	};
 };
-var filterChangesByPreCategories = (changes, categories) => changes.filter((change) => evaluateCategories(changeForCategory(change), categories).included);
-var needsPullRequestChangedFiles = (categories) => categories.some((category) => category.when.some((condition) => condition.paths.length > 0));
+var filterChangesByPreCategories = (changes, categories, autolabeler) => changes.filter((change) => evaluateCategories(changeForCategory(change, autolabeler), categories).included);
+var needsPullRequestChangedFiles = (categories, autolabeler = []) => categories.some((category) => category.when.some((condition) => condition.paths.length > 0)) || autolabeler.some((rule) => rule.files.length > 0);
 var getChangelogCategories = (categories) => categories.filter((category) => category.type === "changelog");
 var getVersionResolverCategories = (categories) => categories.filter((category) => category.type === "version-resolver");
 //#endregion
@@ -1022,7 +1089,19 @@ var exclusiveConfigSchema = object({
 	* The template for the body of the draft release.
 	* Optional as it may be inherited via `_extends`.
 	*/
-	template: string().optional().default("")
+	template: string().optional().default(""),
+	/**
+	* Label inference rules.
+	* Inferred labels are evaluated against pull requests and direct commits for categorization.
+	*/
+	autolabeler: array(object({
+		label: string().min(1).optional(),
+		labels: array(string().min(1)).optional(),
+		files: array(string().min(1)).optional().default([]),
+		branch: array(string().min(1)).optional().default([]),
+		title: array(string().min(1)).optional().default([]),
+		body: array(string().min(1)).optional().default([])
+	})).optional().default([])
 }).meta({
 	title: "JSON schema for Release Drafter yaml files",
 	id: "https://github.com/release-drafter/release-drafter/blob/main/drafter/schema.json"
@@ -1626,6 +1705,19 @@ var mergeInputAndConfig = (params) => {
 		groupChanges: config["group-changes"],
 		logger
 	});
+	const autolabeler = (config.autolabeler ?? []).map((rule) => {
+		try {
+			return {
+				...rule,
+				branch: rule.branch.map(stringToRegex),
+				title: rule.title.map(stringToRegex),
+				body: rule.body.map(stringToRegex)
+			};
+		} catch {
+			logger.warning(`Bad autolabeler regex: '${rule.branch}', '${rule.title}' or '${rule.body}'`);
+			return false;
+		}
+	}).filter((rule) => Boolean(rule));
 	const parsedConfig = {
 		...config,
 		commitish,
@@ -1633,7 +1725,8 @@ var mergeInputAndConfig = (params) => {
 		prerelease,
 		replacers,
 		categories,
-		"group-changes": groupChanges
+		"group-changes": groupChanges,
+		autolabeler
 	};
 	validateParsedConfig(parsedConfig);
 	return parsedConfig;

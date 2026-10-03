@@ -289,4 +289,244 @@ describe('individual commit changes', () => {
     expect(result.body).toContain('@commit-author')
     expect(result.resolvedVersion).toBe('1.1.0')
   })
+
+  it('infers labels from autolabeler rules for direct commits using commit message only', async () => {
+    const gitmojiConfig = config({
+      categories: [
+        {
+          title: '✨ Features',
+          'semver-increment': 'minor',
+          when: { label: 'sparkles' },
+        },
+        {
+          title: '🐛 Bug Fixes',
+          'semver-increment': 'patch',
+          when: { label: 'bug' },
+        },
+      ],
+      autolabeler: [
+        {
+          label: 'sparkles',
+          title: ['/^(:sparkles:|✨)/'],
+          branch: ['/^feat/i'],
+        },
+        {
+          label: 'bug',
+          title: ['/^(:bug:|🐛)/'],
+          branch: ['/^fix/i'],
+        },
+      ],
+    })
+
+    const directGitmojiCommit = directCommit({
+      message: '✨ add awesome new feature\n\nDetailed description of feature.',
+    })
+
+    const resolveCommitish = vi.fn().mockResolvedValue('main')
+    const result = await buildReleasePayload({
+      adapter: { resolveCommitish },
+      commits: [directGitmojiCommit],
+      pullRequests: [],
+      config: gitmojiConfig,
+      input: { publish: false },
+      lastRelease: { id: 1, tagName: 'v1.0.0' },
+      logger: noopLogger,
+      repository: {
+        owner: 'owner',
+        name: 'repo',
+        serverUrl: 'https://example.test',
+      },
+    })
+
+    expect(result.body).toContain('## ✨ Features')
+    expect(result.body).toContain('✨ add awesome new feature')
+    expect(result.resolvedVersion).toBe('1.1.0')
+  })
+
+  it('does NOT infer branch rules on direct commits', async () => {
+    const branchOnlyConfig = config({
+      categories: [
+        {
+          title: 'Features',
+          'semver-increment': 'minor',
+          when: { label: 'feature' },
+        },
+      ],
+      autolabeler: [
+        {
+          label: 'feature',
+          branch: ['/.*feature.*/i'],
+        },
+      ],
+    })
+
+    const commit = directCommit({
+      message: 'ordinary commit without feature keyword',
+    })
+
+    const resolveCommitish = vi.fn().mockResolvedValue('main')
+    const result = await buildReleasePayload({
+      adapter: { resolveCommitish },
+      commits: [commit],
+      pullRequests: [],
+      config: branchOnlyConfig,
+      input: { publish: false },
+      lastRelease: { id: 1, tagName: 'v1.0.0' },
+      logger: noopLogger,
+      repository: {
+        owner: 'owner',
+        name: 'repo',
+        serverUrl: 'https://example.test',
+      },
+    })
+
+    // Should NOT be categorized under Features and should not trigger a minor bump
+    expect(result.body).not.toContain('## Features')
+    expect(result.resolvedVersion).toBe('1.0.1')
+  })
+
+  it('infers labels on PRs from branch name, commit message, and title', async () => {
+    const prConfig = config({
+      categories: [
+        {
+          title: 'Features',
+          'semver-increment': 'minor',
+          when: { label: 'feature' },
+        },
+        {
+          title: 'Bug Fixes',
+          'semver-increment': 'patch',
+          when: { label: 'bug' },
+        },
+      ],
+      autolabeler: [
+        {
+          label: 'feature',
+          branch: ['/^feature\\//i'],
+        },
+        {
+          label: 'bug',
+          title: ['/^fix:/i'],
+        },
+      ],
+    })
+
+    const branchMatchedPR: PullRequest = {
+      ...pullRequest,
+      number: 101,
+      title: 'some non-descriptive title',
+      headRefName: 'feature/new-api',
+      labels: [],
+    }
+
+    const titleMatchedPR: PullRequest = {
+      ...pullRequest,
+      number: 102,
+      title: 'fix: resolve edge-case crash',
+      headRefName: 'patch-1',
+      labels: [],
+    }
+
+    const resolveCommitish = vi.fn().mockResolvedValue('main')
+    const result = await buildReleasePayload({
+      adapter: { resolveCommitish },
+      commits: [],
+      pullRequests: [branchMatchedPR, titleMatchedPR],
+      config: prConfig,
+      input: { publish: false },
+      lastRelease: { id: 1, tagName: 'v1.0.0' },
+      logger: noopLogger,
+      repository: {
+        owner: 'owner',
+        name: 'repo',
+        serverUrl: 'https://example.test',
+      },
+    })
+
+    expect(result.body).toContain('## Features')
+    expect(result.body).toContain('* some non-descriptive title (#101)')
+    expect(result.body).toContain('## Bug Fixes')
+    expect(result.body).toContain('* fix: resolve edge-case crash (#102)')
+    expect(result.resolvedVersion).toBe('1.1.0')
+  })
+
+  it('infers labels from autolabeler file rules on direct commits with changed files', async () => {
+    const fileConfig = config({
+      categories: [
+        {
+          title: 'Documentation',
+          'semver-increment': 'patch',
+          when: { label: 'docs' },
+        },
+      ],
+      autolabeler: [
+        {
+          label: 'docs',
+          files: ['docs/**', '**/*.md'],
+        },
+      ],
+    })
+
+    const directDocCommit = directCommit({
+      message: 'update guide',
+      changedFiles: ['docs/getting-started.md'],
+    })
+
+    const resolveCommitish = vi.fn().mockResolvedValue('main')
+    const result = await buildReleasePayload({
+      adapter: { resolveCommitish },
+      commits: [directDocCommit],
+      pullRequests: [],
+      config: fileConfig,
+      input: { publish: false },
+      lastRelease: { id: 1, tagName: 'v1.0.0' },
+      logger: noopLogger,
+      repository: {
+        owner: 'owner',
+        name: 'repo',
+        serverUrl: 'https://example.test',
+      },
+    })
+
+    expect(result.body).toContain('## Documentation')
+    expect(result.body).toContain('update guide')
+    expect(result.resolvedVersion).toBe('1.0.1')
+  })
+
+  it('matches category path rules directly on commits with changed files', async () => {
+    const pathConfig = config({
+      categories: [
+        {
+          title: 'Core Engine',
+          'semver-increment': 'minor',
+          when: { path: 'packages/core/**' },
+        },
+      ],
+    })
+
+    const directCoreCommit = directCommit({
+      message: 'refactor internal engine algorithm',
+      changedFiles: ['packages/core/src/index.ts'],
+    })
+
+    const resolveCommitish = vi.fn().mockResolvedValue('main')
+    const result = await buildReleasePayload({
+      adapter: { resolveCommitish },
+      commits: [directCoreCommit],
+      pullRequests: [],
+      config: pathConfig,
+      input: { publish: false },
+      lastRelease: { id: 1, tagName: 'v1.0.0' },
+      logger: noopLogger,
+      repository: {
+        owner: 'owner',
+        name: 'repo',
+        serverUrl: 'https://example.test',
+      },
+    })
+
+    expect(result.body).toContain('## Core Engine')
+    expect(result.body).toContain('refactor internal engine algorithm')
+    expect(result.resolvedVersion).toBe('1.1.0')
+  })
 })

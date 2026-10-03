@@ -436,6 +436,23 @@ export const exclusiveConfigSchema = object({
    * Optional as it may be inherited via `_extends`.
    */
   template: string().optional().default(''),
+
+  /**
+   * Label inference rules.
+   * Inferred labels are evaluated against pull requests and direct commits for categorization.
+   */
+  autolabeler: array(
+    object({
+      label: string().min(1).optional(),
+      labels: array(string().min(1)).optional(),
+      files: array(string().min(1)).optional().default([]),
+      branch: array(string().min(1)).optional().default([]),
+      title: array(string().min(1)).optional().default([]),
+      body: array(string().min(1)).optional().default([]),
+    }),
+  )
+    .optional()
+    .default([]),
 }).meta({
   title: 'JSON schema for Release Drafter yaml files',
   id: 'https://github.com/release-drafter/release-drafter/blob/main/drafter/schema.json',

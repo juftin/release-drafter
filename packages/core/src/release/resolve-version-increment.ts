@@ -26,7 +26,9 @@ export const resolveVersionKeyIncrement = (params: {
   config: Pick<
     ParsedConfig,
     'categories' | 'prerelease' | 'prerelease-identifier'
-  >
+  > & {
+    autolabeler?: ParsedConfig['autolabeler']
+  }
   logger: Logger
 }): ReleaseType => {
   const { config, logger } = params
@@ -41,7 +43,7 @@ export const resolveVersionKeyIncrement = (params: {
 
   for (const change of changes) {
     const evaluation = evaluateCategories(
-      changeForCategory(change),
+      changeForCategory(change, config.autolabeler),
       config.categories,
     )
     if (!evaluation.included) continue

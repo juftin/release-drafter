@@ -27,6 +27,7 @@ const mockOctokit = (overrides: Record<string, unknown> = {}) =>
         createRelease: vi.fn(),
         updateRelease: vi.fn(),
         getContent: vi.fn(),
+        getCommit: vi.fn().mockResolvedValue({ data: { files: [] } }),
       },
       pulls: { get: vi.fn(), listFiles: vi.fn() },
     },
@@ -1279,5 +1280,75 @@ describe('GitHubAdapter', () => {
         path: '.github/release-drafter.yml',
       }),
     ).rejects.toThrow('Fetched content is null, expected a file')
+  })
+
+  it('hydrates changed files for direct unassociated commits when includeCommits and includeChangedFiles are enabled', async () => {
+    const octokit = mockOctokit()
+    vi.mocked(octokit.paginate.iterator).mockReturnValue(
+      (async function* () {
+        yield { data: { commits: [{ sha: 'direct-sha' }] } }
+      })() as never,
+    )
+    vi.mocked(octokit.graphql)
+      .mockResolvedValueOnce({
+        repository: {
+          object: {
+            __typename: 'Commit',
+            history: {
+              pageInfo: { hasNextPage: false, endCursor: null },
+              nodes: [
+                {
+                  oid: 'direct-sha',
+                  url: 'https://github.example/commit/direct-sha',
+                  authoredDate: '2026-01-01T00:00:00Z',
+                  committedDate: '2026-01-02T00:00:00Z',
+                  message: 'docs: update readme',
+                  author: {
+                    name: 'Commit Author',
+                    email: 'author@example.com',
+                  },
+                  associatedPullRequests: { totalCount: 0, nodes: [] },
+                },
+              ],
+            },
+          },
+        },
+      })
+      .mockResolvedValueOnce({
+        repository: { pullRequests: { nodes: [] } },
+      })
+    vi.mocked(octokit.rest.repos.getCommit).mockResolvedValueOnce({
+      data: {
+        files: [{ filename: 'docs/readme.md' }, { filename: 'package.json' }],
+      },
+    } as never)
+
+    const result = await adapter(octokit).findChanges({
+      repository,
+      comparison: { baseRef: 'v1.0.0', headRef: 'refs/heads/main' },
+      pullRequestFields: {
+        body: false,
+        url: false,
+        baseRefName: false,
+        headRefName: false,
+      },
+      pullRequestLimit: 20,
+      historyLimit: 100,
+      includeChangedFiles: true,
+      includeNewContributors: false,
+      includeCommits: true,
+    })
+
+    expect(result.commits).toHaveLength(1)
+    expect(result.commits[0]).toMatchObject({
+      oid: 'direct-sha',
+      associationStatus: 'unassociated',
+      changedFiles: ['docs/readme.md', 'package.json'],
+    })
+    expect(octokit.rest.repos.getCommit).toHaveBeenCalledWith({
+      owner: repository.owner,
+      repo: repository.name,
+      ref: 'direct-sha',
+    })
   })
 })

@@ -333,6 +333,33 @@ export class GitHubAdapter implements ForgeAdapter, PullRequestReader {
         `Classified ${directCommitCount} commit${directCommitCount === 1 ? '' : 's'} with empty pull request associations as unassociated.`,
       )
     }
+    if (params.includeCommits && params.includeChangedFiles) {
+      const directCommits = commits.filter(
+        (commit) => commit.associationStatus === 'unassociated',
+      )
+      if (directCommits.length > 0) {
+        await mapConcurrent(
+          directCommits,
+          this.changedFilesConcurrency,
+          async (commit) => {
+            try {
+              const res = await this.octokit.rest.repos.getCommit({
+                owner: repository.owner,
+                repo: repository.name,
+                ref: commit.oid,
+              })
+              commit.changedFiles = (res.data.files ?? []).flatMap((file) =>
+                file.filename ? [file.filename] : [],
+              )
+            } catch (error) {
+              this.logger.warning(
+                `Failed to load changed files for commit ${commit.oid}: ${error instanceof Error ? error.message : String(error)}`,
+              )
+            }
+          },
+        )
+      }
+    }
     const newCommitContributors =
       params.includeCommits && params.includeNewContributors
         ? await this.findNewCommitContributors(params, commits)

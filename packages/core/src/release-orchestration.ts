@@ -216,7 +216,10 @@ export const draftRelease = async (params: {
           },
           pullRequestLimit: config['pull-request-limit'],
           historyLimit: config['history-limit'],
-          includeChangedFiles: needsPullRequestChangedFiles(config.categories),
+          includeChangedFiles: needsPullRequestChangedFiles(
+            config.categories,
+            config.autolabeler,
+          ),
           includeNewContributors: [
             config.header,
             config.template,
