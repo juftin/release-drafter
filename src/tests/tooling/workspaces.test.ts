@@ -253,6 +253,7 @@ describe('workspace foundation', () => {
     const scripts = readJson('package.json').scripts
 
     expect(scripts?.ci).toContain('npm run generate:action-metadata')
+    expect(scripts?.ci).toContain('npm run generate:presets')
     expect(scripts?.['generate:schemas']).toBe(
       'npm run build:workspaces && node src/scripts/json-schema.ts',
     )

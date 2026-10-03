@@ -57,7 +57,7 @@
     "check:package-readiness": "node src/scripts/check-package-readiness.ts",
     "check:package-boundaries": "node src/scripts/guard-boundaries.ts",
     "check:workspaces": "npm run check:dependencies && npm run check:boundaries && npm run check:packages && npm run check:package-boundaries",
-    "ci": "npm run generate:action-metadata && npm run lint:fix && npm run format:docs && npm run typecheck && npm run test:run && npm run generate:schemas && npm run build:actions && npm run check:workspaces",
+    "ci": "npm run generate:action-metadata && npm run generate:presets && npm run lint:fix && npm run format:docs && npm run typecheck && npm run test:run && npm run generate:schemas && npm run build:actions && npm run check:workspaces",
     "check:clean": "node src/scripts/check-clean.ts",
     "version": "node src/scripts/sync-workspace-versions.ts && npm install --package-lock-only --ignore-scripts && git add package.json package-lock.json packages/*/package.json"
   },
