@@ -23,6 +23,16 @@ inputs:
       Prevents label updates. The action logs the labels that it would add.
     required: false
     default: ''
+  summary:
+    description: |
+      Writes an explainability summary table to the GitHub Actions Step Summary. Default: true.
+    required: false
+    default: 'true'
+  pr-comment:
+    description: |
+      Posts or updates an explainability comment on the pull request. Default: false.
+    required: false
+    default: 'false'
 
 outputs:
   number:

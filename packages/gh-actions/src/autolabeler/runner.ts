@@ -6,6 +6,11 @@ import { matchLabels } from '@release-drafter/autolabeler'
 import { writeActionOutputs } from '../common/action-contract.ts'
 import { getGitHubAdapter } from '../common/github.ts'
 import { actionOutputNames } from './action-metadata.ts'
+import {
+  buildExplainabilitySummary,
+  postOrUpdatePRComment,
+  writeStepSummary,
+} from './explainability.ts'
 import { getActionInput } from './get-action-inputs.ts'
 import { getConfig } from './get-config.ts'
 
@@ -62,6 +67,36 @@ export async function run(): Promise<void> {
         })
       }
     }
+
+    const summaryMarkdown = buildExplainabilitySummary({
+      pullRequest: {
+        number: payload.number,
+        title: payload.pull_request.title,
+        branch: payload.pull_request.head.ref,
+      },
+      matches: result.matches,
+      categories: config.categories,
+    })
+
+    if (input.summary) {
+      await writeStepSummary(summaryMarkdown)
+    }
+
+    if (input['pr-comment']) {
+      if (input['dry-run']) {
+        core.info(
+          `[dry-run] Would post/update PR comment on #${payload.number} with explainability summary`,
+        )
+      } else {
+        await postOrUpdatePRComment({
+          adapter,
+          repo: context.repo,
+          issueNumber: payload.number,
+          markdown: summaryMarkdown,
+        })
+      }
+    }
+
     writeActionOutputs(actionOutputNames, {
       number: payload.number.toString(),
       labels: result.labels.length > 0 ? result.labels.join(',') : undefined,

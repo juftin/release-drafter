@@ -35,8 +35,18 @@ describe('matchLabels', () => {
     })
     expect(result.labels).toEqual(['first', 'second'])
     expect(result.matches).toEqual([
-      { label: 'first', matcher: 'files' },
-      { label: 'second', matcher: 'title' },
+      {
+        label: 'first',
+        matcher: 'files',
+        pattern: 'src/**',
+        matchedValue: 'src/index.ts',
+      },
+      {
+        label: 'second',
+        matcher: 'title',
+        pattern: '/feat/',
+        matchedValue: 'feat: extract core',
+      },
     ])
   })
 

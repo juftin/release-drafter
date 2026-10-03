@@ -98,6 +98,7 @@ You can select a built-in preset using `config-name`:
 
 GitHub labels and Release Drafter category rules are not limited to words—**labels can be emojis**!
 All presets natively recognize:
+
 - Unicode emoji labels (e.g. `✨`, `🐛`, `💥`, `⚡`, `📝`, `📦`, `♻️`, `⏪`)
 - Emoji shortcode labels (e.g. `:sparkles:`, `:bug:`, `:boom:`, `:zap:`, `:memo:`, `:package:`, `:recycle:`)
 - Standard text labels (e.g. `feat`, `fix`, `breaking`, `sparkles`, `bug`, `docs`)

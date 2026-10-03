@@ -155,6 +155,18 @@ const autolabelerInputs = defineActionInputs<AutolabelerActionInput>()({
     required: false,
     default: '',
   },
+  summary: {
+    description:
+      'Writes an explainability summary table to the GitHub Actions Step Summary. Default: true.\n',
+    required: false,
+    default: 'true',
+  },
+  'pr-comment': {
+    description:
+      'Posts or updates an explainability comment on the pull request. Default: false.\n',
+    required: false,
+    default: 'false',
+  },
 })
 
 const autolabelerOutputs = {

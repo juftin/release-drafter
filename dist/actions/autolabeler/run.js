@@ -1,4 +1,4 @@
-import { C as core_exports, S as context, T as setFailed, _ as object, a as readActionInputs, c as getGitHubAdapter, i as defineActionInputNames, n as sharedInputSchema, o as writeActionOutputs, p as array, t as composeConfigGet, u as escapeStringRegexp, v as string, w as info, x as Minimatch } from "../../chunks/config.js";
+import { C as context, D as warning, E as setFailed, O as summary, S as Minimatch, T as info, a as defineActionInputNames, b as stringbool, d as escapeStringRegexp, h as boolean, l as getGitHubAdapter, m as array, n as GITMOJI_SPEC_DATA, o as readActionInputs, r as sharedInputSchema, s as writeActionOutputs, t as composeConfigGet, v as object, w as core_exports, y as string } from "../../chunks/config.js";
 import process from "node:process";
 //#region packages/autolabeler/src/config/config.schema.ts
 var configSchema = object({ 
@@ -116,10 +116,10 @@ var test = (matcher, value) => {
 	matcher.lastIndex = 0;
 	return matcher.test(value);
 };
-var matchesFiles = (patterns, files) => {
-	if (patterns.length === 0) return false;
+var findMatchingFile = (patterns, files) => {
+	if (patterns.length === 0) return void 0;
 	const matches = createPathMatcher(patterns);
-	return files.some(matches);
+	return files.find(matches);
 };
 /** Evaluates configured rules in files, branch, title, and body order. */
 var matchLabels = (params) => {
@@ -129,15 +129,44 @@ var matchLabels = (params) => {
 	for (const rule of config.autolabeler) {
 		const body = pullRequest.body;
 		let matcher;
-		if (matchesFiles(rule.files, pullRequest.files)) matcher = "files";
-		else if (rule.branch.some((regex) => test(regex, pullRequest.branch))) matcher = "branch";
-		else if (rule.title.some((regex) => test(regex, pullRequest.title))) matcher = "title";
-		else if (body != null && rule.body.some((regex) => test(regex, body))) matcher = "body";
+		let pattern;
+		let matchedValue;
+		const matchedFile = findMatchingFile(rule.files, pullRequest.files);
+		if (matchedFile !== void 0) {
+			matcher = "files";
+			pattern = rule.files.join(", ");
+			matchedValue = matchedFile;
+		} else {
+			for (const regex of rule.branch) if (test(regex, pullRequest.branch)) {
+				matcher = "branch";
+				pattern = regex.toString();
+				matchedValue = pullRequest.branch;
+				break;
+			}
+			if (!matcher) {
+				for (const regex of rule.title) if (test(regex, pullRequest.title)) {
+					matcher = "title";
+					pattern = regex.toString();
+					matchedValue = pullRequest.title;
+					break;
+				}
+			}
+			if (!matcher && body != null) {
+				for (const regex of rule.body) if (test(regex, body)) {
+					matcher = "body";
+					pattern = regex.toString();
+					matchedValue = body.length > 80 ? `${body.slice(0, 77)}...` : body;
+					break;
+				}
+			}
+		}
 		if (matcher) {
 			labels.add(rule.label);
 			matches.push({
 				label: rule.label,
-				matcher
+				matcher,
+				pattern,
+				matchedValue
 			});
 		}
 	}
@@ -151,12 +180,128 @@ var matchLabels = (params) => {
 var actionInputNames = defineActionInputNames()([
 	"token",
 	"config-name",
-	"dry-run"
+	"dry-run",
+	"summary",
+	"pr-comment"
 ]);
 var actionOutputNames = ["number", "labels"];
 //#endregion
+//#region packages/gh-actions/src/autolabeler/explainability.ts
+var COMMENT_MARKER = "<!-- release-drafter-autolabeler-summary -->";
+var GITMOJI_SPEC_MAP = /* @__PURE__ */ new Map();
+for (const entry of GITMOJI_SPEC_DATA) {
+	GITMOJI_SPEC_MAP.set(entry.name, entry);
+	GITMOJI_SPEC_MAP.set(entry.code, entry);
+	GITMOJI_SPEC_MAP.set(entry.emoji, entry);
+	if (entry.emoji.includes("️")) GITMOJI_SPEC_MAP.set(entry.emoji.replace(/\ufe0f/g, ""), entry);
+}
+/** Looks up Gitmoji specification entry for a preset gitmoji label. */
+var getGitmojiSpec = (label) => {
+	return GITMOJI_SPEC_MAP.get(label);
+};
+var resolveSemverBump = (label, spec) => {
+	if (spec?.semver) return spec.semver;
+	if (label === "major" || label === "breaking" || label === "breaking-change") return "major";
+	if (label === "minor" || label === "feat" || label === "feature") return "minor";
+	return "patch";
+};
+var PRIORITY = {
+	patch: 1,
+	minor: 2,
+	major: 3
+};
+/**
+* Builds a markdown explainability summary of the autolabeler decisions.
+* Only preset Gitmoji labels receive a linked intention from the Gitmoji specification.
+*/
+var buildExplainabilitySummary = (params) => {
+	const { pullRequest, matches, categories } = params;
+	if (matches.length === 0) return [
+		"## 🏷️ Autolabeler & Semver Summary",
+		"",
+		`No autolabeler rules matched Pull Request **#${pullRequest.number}** (\`${pullRequest.branch}\`).`,
+		""
+	].join("\n");
+	const rows = [];
+	let highestBump = "patch";
+	const matchedLabels = new Set(matches.map((m) => m.label));
+	for (const match of matches) {
+		const spec = getGitmojiSpec(match.label);
+		const semver = resolveSemverBump(match.label, spec);
+		if (PRIORITY[semver] > PRIORITY[highestBump]) highestBump = semver;
+		const intention = spec ? `[${spec.description}](https://gitmoji.dev/specification)` : "-";
+		const trigger = match.matcher === "files" ? "Files" : match.matcher === "branch" ? "Branch" : match.matcher === "title" ? "Title" : "Body";
+		const patternEscaped = match.pattern ? `\`${match.pattern.replace(/\|/g, "\\|")}\`` : "-";
+		const valueEscaped = match.matchedValue ? `\`${match.matchedValue.replace(/\|/g, "\\|")}\`` : "-";
+		const details = match.matcher === "files" ? `Pattern ${patternEscaped} matched file ${valueEscaped}` : `${trigger} ${valueEscaped} matched ${patternEscaped}`;
+		rows.push(`| \`${match.label}\` | ${intention} | \`${semver}\` | ${trigger} | ${details} |`);
+	}
+	const sections = [];
+	if (categories && categories.length > 0) {
+		for (const cat of categories) if (cat.labels.some((l) => matchedLabels.has(l))) sections.push(`- ${cat.title}`);
+	}
+	const lines = [
+		"## 🏷️ Autolabeler & Semver Summary",
+		"",
+		`Applied **${matches.length}** label(s) to Pull Request **#${pullRequest.number}** (\`${pullRequest.branch}\`):`,
+		"",
+		"| Label | Gitmoji Intention | Semver Impact | Trigger | Matched Details |",
+		"| :--- | :--- | :--- | :--- | :--- |",
+		...rows,
+		"",
+		"### 🚀 Release Impact",
+		`- **Calculated Version Increment:** \`${highestBump}\``
+	];
+	if (sections.length > 0) lines.push("- **Target Changelog Section(s):**", ...sections);
+	lines.push("");
+	return lines.join("\n");
+};
+/** Writes the explainability summary table to the GitHub Actions Job Step Summary. */
+var writeStepSummary = async (markdown) => {
+	try {
+		await summary.addRaw(markdown).write();
+	} catch (error) {
+		warning(`Failed to write GitHub Actions Step Summary: ${error instanceof Error ? error.message : String(error)}`);
+	}
+};
+/** Posts or updates an explainability comment on the pull request. */
+var postOrUpdatePRComment = async (params) => {
+	const { adapter, repo, issueNumber, markdown } = params;
+	const fullBody = `${COMMENT_MARKER}\n${markdown}`;
+	try {
+		const existing = (await adapter.octokit.rest.issues.listComments({
+			owner: repo.owner,
+			repo: repo.repo,
+			issue_number: issueNumber
+		})).data.find((c) => c.body?.includes(COMMENT_MARKER));
+		if (existing) {
+			await adapter.octokit.rest.issues.updateComment({
+				owner: repo.owner,
+				repo: repo.repo,
+				comment_id: existing.id,
+				body: fullBody
+			});
+			info(`Updated existing explainability comment #${existing.id} on PR #${issueNumber}.`);
+		} else {
+			const created = await adapter.octokit.rest.issues.createComment({
+				owner: repo.owner,
+				repo: repo.repo,
+				issue_number: issueNumber,
+				body: fullBody
+			});
+			info(`Posted new explainability comment #${created.data.id} on PR #${issueNumber}.`);
+		}
+	} catch (error) {
+		warning(`Failed to post or update pull request explainability comment: ${error instanceof Error ? error.message : String(error)}`);
+	}
+};
+//#endregion
 //#region packages/gh-actions/src/autolabeler/action-input.schema.ts
-var actionInputSchema = object({ "config-name": string().optional().default("release-drafter.yml") }).and(sharedInputSchema);
+var actionInputSchema = object({
+	"config-name": string().optional().default("release-drafter.yml"),
+	summary: stringbool().or(boolean()).optional().default(true),
+	"pr-comment": stringbool().or(boolean()).optional().default(false)
+}).and(sharedInputSchema);
 //#endregion
 //#region packages/gh-actions/src/autolabeler/get-action-inputs.ts
 var getActionInput = () => actionInputSchema.parse(readActionInputs(actionInputNames));
@@ -173,10 +318,19 @@ var getConfig = async (configName, token) => {
 		else location = `on remote "${source.repo?.owner}/${source.repo?.repo}${source.ref ? `@${source.ref}` : ""}"${source.ref ? "" : " on the default branch"}`;
 		info(`Config fetched ${location}.`);
 	}
-	return parseConfig({
+	const parsed = parseConfig({
 		config: configSchema.parse(config),
 		logger: core_exports
 	});
+	const rawCategories = config.categories;
+	const categories = Array.isArray(rawCategories) ? rawCategories.filter((c) => typeof c === "object" && c !== null && typeof c.title === "string" && Array.isArray(c.labels)).map((c) => ({
+		title: c.title,
+		labels: c.labels
+	})) : void 0;
+	return {
+		...parsed,
+		categories
+	};
 };
 //#endregion
 //#region packages/gh-actions/src/autolabeler/runner.ts
@@ -212,6 +366,25 @@ async function run() {
 				...context.repo,
 				issue_number: payload.number,
 				labels: result.labels
+			});
+		}
+		const summaryMarkdown = buildExplainabilitySummary({
+			pullRequest: {
+				number: payload.number,
+				title: payload.pull_request.title,
+				branch: payload.pull_request.head.ref
+			},
+			matches: result.matches,
+			categories: config.categories
+		});
+		if (input.summary) await writeStepSummary(summaryMarkdown);
+		if (input["pr-comment"]) {
+			if (input["dry-run"]) info(`[dry-run] Would post/update PR comment on #${payload.number} with explainability summary`);
+			else await postOrUpdatePRComment({
+				adapter,
+				repo: context.repo,
+				issueNumber: payload.number,
+				markdown: summaryMarkdown
 			});
 		}
 		writeActionOutputs(actionOutputNames, {

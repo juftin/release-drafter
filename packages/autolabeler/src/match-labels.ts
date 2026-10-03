@@ -11,6 +11,8 @@ export type PullRequestFacts = {
 export type AutolabelMatch = {
   label: string
   matcher: 'files' | 'branch' | 'title' | 'body'
+  pattern?: string
+  matchedValue?: string
 }
 
 const test = (matcher: RegExp, value: string) => {
@@ -18,13 +20,13 @@ const test = (matcher: RegExp, value: string) => {
   return matcher.test(value)
 }
 
-const matchesFiles = (
+const findMatchingFile = (
   patterns: readonly string[],
   files: readonly string[],
 ) => {
-  if (patterns.length === 0) return false
+  if (patterns.length === 0) return undefined
   const matches = createPathMatcher(patterns)
-  return files.some(matches)
+  return files.find(matches)
 }
 
 /** Evaluates configured rules in files, branch, title, and body order. */
@@ -39,19 +41,48 @@ export const matchLabels = (params: {
   for (const rule of config.autolabeler) {
     const body = pullRequest.body
     let matcher: AutolabelMatch['matcher'] | undefined
-    if (matchesFiles(rule.files, pullRequest.files)) {
+    let pattern: string | undefined
+    let matchedValue: string | undefined
+
+    const matchedFile = findMatchingFile(rule.files, pullRequest.files)
+    if (matchedFile !== undefined) {
       matcher = 'files'
-    } else if (rule.branch.some((regex) => test(regex, pullRequest.branch))) {
-      matcher = 'branch'
-    } else if (rule.title.some((regex) => test(regex, pullRequest.title))) {
-      matcher = 'title'
-    } else if (body != null && rule.body.some((regex) => test(regex, body))) {
-      matcher = 'body'
+      pattern = rule.files.join(', ')
+      matchedValue = matchedFile
+    } else {
+      for (const regex of rule.branch) {
+        if (test(regex, pullRequest.branch)) {
+          matcher = 'branch'
+          pattern = regex.toString()
+          matchedValue = pullRequest.branch
+          break
+        }
+      }
+      if (!matcher) {
+        for (const regex of rule.title) {
+          if (test(regex, pullRequest.title)) {
+            matcher = 'title'
+            pattern = regex.toString()
+            matchedValue = pullRequest.title
+            break
+          }
+        }
+      }
+      if (!matcher && body != null) {
+        for (const regex of rule.body) {
+          if (test(regex, body)) {
+            matcher = 'body'
+            pattern = regex.toString()
+            matchedValue = body.length > 80 ? `${body.slice(0, 77)}...` : body
+            break
+          }
+        }
+      }
     }
 
     if (matcher) {
       labels.add(rule.label)
-      matches.push({ label: rule.label, matcher })
+      matches.push({ label: rule.label, matcher, pattern, matchedValue })
     }
   }
 

@@ -57519,6 +57519,533 @@ var BUILTIN_PRESETS = [
 var getPresetConfig = (name) => {
 	return PRESET_CONFIGS[name.replace(/\.ya?ml$/, "")];
 };
+var GITMOJI_SPEC_DATA = [
+	{
+		"name": "art",
+		"emoji": "🎨",
+		"code": ":art:",
+		"description": "Improve structure / format of the code.",
+		"semver": null
+	},
+	{
+		"name": "zap",
+		"emoji": "⚡️",
+		"code": ":zap:",
+		"description": "Improve performance.",
+		"semver": "patch"
+	},
+	{
+		"name": "fire",
+		"emoji": "🔥",
+		"code": ":fire:",
+		"description": "Remove code or files.",
+		"semver": null
+	},
+	{
+		"name": "bug",
+		"emoji": "🐛",
+		"code": ":bug:",
+		"description": "Fix a bug.",
+		"semver": "patch"
+	},
+	{
+		"name": "ambulance",
+		"emoji": "🚑️",
+		"code": ":ambulance:",
+		"description": "Critical hotfix.",
+		"semver": "patch"
+	},
+	{
+		"name": "sparkles",
+		"emoji": "✨",
+		"code": ":sparkles:",
+		"description": "Introduce new features.",
+		"semver": "minor"
+	},
+	{
+		"name": "memo",
+		"emoji": "📝",
+		"code": ":memo:",
+		"description": "Add or update documentation.",
+		"semver": null
+	},
+	{
+		"name": "rocket",
+		"emoji": "🚀",
+		"code": ":rocket:",
+		"description": "Deploy stuff.",
+		"semver": null
+	},
+	{
+		"name": "lipstick",
+		"emoji": "💄",
+		"code": ":lipstick:",
+		"description": "Add or update the UI and style files.",
+		"semver": "patch"
+	},
+	{
+		"name": "tada",
+		"emoji": "🎉",
+		"code": ":tada:",
+		"description": "Begin a project.",
+		"semver": null
+	},
+	{
+		"name": "white-check-mark",
+		"emoji": "✅",
+		"code": ":white_check_mark:",
+		"description": "Add, update, or pass tests.",
+		"semver": null
+	},
+	{
+		"name": "lock",
+		"emoji": "🔒️",
+		"code": ":lock:",
+		"description": "Fix security or privacy issues.",
+		"semver": "patch"
+	},
+	{
+		"name": "closed-lock-with-key",
+		"emoji": "🔐",
+		"code": ":closed_lock_with_key:",
+		"description": "Add or update secrets.",
+		"semver": null
+	},
+	{
+		"name": "bookmark",
+		"emoji": "🔖",
+		"code": ":bookmark:",
+		"description": "Release / Version tags.",
+		"semver": null
+	},
+	{
+		"name": "rotating-light",
+		"emoji": "🚨",
+		"code": ":rotating_light:",
+		"description": "Fix compiler / linter warnings.",
+		"semver": null
+	},
+	{
+		"name": "construction",
+		"emoji": "🚧",
+		"code": ":construction:",
+		"description": "Work in progress.",
+		"semver": null
+	},
+	{
+		"name": "green-heart",
+		"emoji": "💚",
+		"code": ":green_heart:",
+		"description": "Fix CI Build.",
+		"semver": null
+	},
+	{
+		"name": "arrow-down",
+		"emoji": "⬇️",
+		"code": ":arrow_down:",
+		"description": "Downgrade dependencies.",
+		"semver": "patch"
+	},
+	{
+		"name": "arrow-up",
+		"emoji": "⬆️",
+		"code": ":arrow_up:",
+		"description": "Upgrade dependencies.",
+		"semver": "patch"
+	},
+	{
+		"name": "pushpin",
+		"emoji": "📌",
+		"code": ":pushpin:",
+		"description": "Pin dependencies to specific versions.",
+		"semver": "patch"
+	},
+	{
+		"name": "construction-worker",
+		"emoji": "👷",
+		"code": ":construction_worker:",
+		"description": "Add or update CI build system.",
+		"semver": null
+	},
+	{
+		"name": "chart-with-upwards-trend",
+		"emoji": "📈",
+		"code": ":chart_with_upwards_trend:",
+		"description": "Add or update analytics or track code.",
+		"semver": "patch"
+	},
+	{
+		"name": "recycle",
+		"emoji": "♻️",
+		"code": ":recycle:",
+		"description": "Refactor code.",
+		"semver": null
+	},
+	{
+		"name": "heavy-plus-sign",
+		"emoji": "➕",
+		"code": ":heavy_plus_sign:",
+		"description": "Add a dependency.",
+		"semver": "patch"
+	},
+	{
+		"name": "heavy-minus-sign",
+		"emoji": "➖",
+		"code": ":heavy_minus_sign:",
+		"description": "Remove a dependency.",
+		"semver": "patch"
+	},
+	{
+		"name": "wrench",
+		"emoji": "🔧",
+		"code": ":wrench:",
+		"description": "Add or update configuration files.",
+		"semver": "patch"
+	},
+	{
+		"name": "hammer",
+		"emoji": "🔨",
+		"code": ":hammer:",
+		"description": "Add or update development scripts.",
+		"semver": null
+	},
+	{
+		"name": "globe-with-meridians",
+		"emoji": "🌐",
+		"code": ":globe_with_meridians:",
+		"description": "Internationalization and localization.",
+		"semver": "patch"
+	},
+	{
+		"name": "pencil2",
+		"emoji": "✏️",
+		"code": ":pencil2:",
+		"description": "Fix typos.",
+		"semver": "patch"
+	},
+	{
+		"name": "poop",
+		"emoji": "💩",
+		"code": ":poop:",
+		"description": "Write bad code that needs to be improved.",
+		"semver": null
+	},
+	{
+		"name": "rewind",
+		"emoji": "⏪️",
+		"code": ":rewind:",
+		"description": "Revert changes.",
+		"semver": "patch"
+	},
+	{
+		"name": "twisted-rightwards-arrows",
+		"emoji": "🔀",
+		"code": ":twisted_rightwards_arrows:",
+		"description": "Merge branches.",
+		"semver": null
+	},
+	{
+		"name": "package",
+		"emoji": "📦️",
+		"code": ":package:",
+		"description": "Add or update compiled files or packages.",
+		"semver": "patch"
+	},
+	{
+		"name": "alien",
+		"emoji": "👽️",
+		"code": ":alien:",
+		"description": "Update code due to external API changes.",
+		"semver": "patch"
+	},
+	{
+		"name": "truck",
+		"emoji": "🚚",
+		"code": ":truck:",
+		"description": "Move or rename resources (e.g.: files, paths, routes).",
+		"semver": null
+	},
+	{
+		"name": "page-facing-up",
+		"emoji": "📄",
+		"code": ":page_facing_up:",
+		"description": "Add or update license.",
+		"semver": null
+	},
+	{
+		"name": "boom",
+		"emoji": "💥",
+		"code": ":boom:",
+		"description": "Introduce breaking changes.",
+		"semver": "major"
+	},
+	{
+		"name": "bento",
+		"emoji": "🍱",
+		"code": ":bento:",
+		"description": "Add or update assets.",
+		"semver": "patch"
+	},
+	{
+		"name": "wheelchair",
+		"emoji": "♿️",
+		"code": ":wheelchair:",
+		"description": "Improve accessibility.",
+		"semver": "patch"
+	},
+	{
+		"name": "bulb",
+		"emoji": "💡",
+		"code": ":bulb:",
+		"description": "Add or update comments in source code.",
+		"semver": null
+	},
+	{
+		"name": "beers",
+		"emoji": "🍻",
+		"code": ":beers:",
+		"description": "Write code drunkenly.",
+		"semver": null
+	},
+	{
+		"name": "speech-balloon",
+		"emoji": "💬",
+		"code": ":speech_balloon:",
+		"description": "Add or update text and literals.",
+		"semver": "patch"
+	},
+	{
+		"name": "card-file-box",
+		"emoji": "🗃️",
+		"code": ":card_file_box:",
+		"description": "Perform database related changes.",
+		"semver": "patch"
+	},
+	{
+		"name": "loud-sound",
+		"emoji": "🔊",
+		"code": ":loud_sound:",
+		"description": "Add or update logs.",
+		"semver": null
+	},
+	{
+		"name": "mute",
+		"emoji": "🔇",
+		"code": ":mute:",
+		"description": "Remove logs.",
+		"semver": null
+	},
+	{
+		"name": "busts-in-silhouette",
+		"emoji": "👥",
+		"code": ":busts_in_silhouette:",
+		"description": "Add or update contributor(s).",
+		"semver": null
+	},
+	{
+		"name": "children-crossing",
+		"emoji": "🚸",
+		"code": ":children_crossing:",
+		"description": "Improve user experience / usability.",
+		"semver": "patch"
+	},
+	{
+		"name": "building-construction",
+		"emoji": "🏗️",
+		"code": ":building_construction:",
+		"description": "Make architectural changes.",
+		"semver": null
+	},
+	{
+		"name": "iphone",
+		"emoji": "📱",
+		"code": ":iphone:",
+		"description": "Work on responsive design.",
+		"semver": "patch"
+	},
+	{
+		"name": "clown-face",
+		"emoji": "🤡",
+		"code": ":clown_face:",
+		"description": "Mock things.",
+		"semver": null
+	},
+	{
+		"name": "egg",
+		"emoji": "🥚",
+		"code": ":egg:",
+		"description": "Add or update an easter egg.",
+		"semver": "patch"
+	},
+	{
+		"name": "see-no-evil",
+		"emoji": "🙈",
+		"code": ":see_no_evil:",
+		"description": "Add or update a .gitignore file.",
+		"semver": null
+	},
+	{
+		"name": "camera-flash",
+		"emoji": "📸",
+		"code": ":camera_flash:",
+		"description": "Add or update snapshots.",
+		"semver": null
+	},
+	{
+		"name": "alembic",
+		"emoji": "⚗️",
+		"code": ":alembic:",
+		"description": "Perform experiments.",
+		"semver": "patch"
+	},
+	{
+		"name": "mag",
+		"emoji": "🔍️",
+		"code": ":mag:",
+		"description": "Improve SEO.",
+		"semver": "patch"
+	},
+	{
+		"name": "label",
+		"emoji": "🏷️",
+		"code": ":label:",
+		"description": "Add or update types.",
+		"semver": "patch"
+	},
+	{
+		"name": "seedling",
+		"emoji": "🌱",
+		"code": ":seedling:",
+		"description": "Add or update seed files.",
+		"semver": null
+	},
+	{
+		"name": "triangular-flag-on-post",
+		"emoji": "🚩",
+		"code": ":triangular_flag_on_post:",
+		"description": "Add, update, or remove feature flags.",
+		"semver": "patch"
+	},
+	{
+		"name": "goal-net",
+		"emoji": "🥅",
+		"code": ":goal_net:",
+		"description": "Catch errors.",
+		"semver": "patch"
+	},
+	{
+		"name": "dizzy",
+		"emoji": "💫",
+		"code": ":dizzy:",
+		"description": "Add or update animations and transitions.",
+		"semver": "patch"
+	},
+	{
+		"name": "wastebasket",
+		"emoji": "🗑️",
+		"code": ":wastebasket:",
+		"description": "Deprecate code that needs to be cleaned up.",
+		"semver": "patch"
+	},
+	{
+		"name": "passport-control",
+		"emoji": "🛂",
+		"code": ":passport_control:",
+		"description": "Work on code related to authorization, roles and permissions.",
+		"semver": "patch"
+	},
+	{
+		"name": "adhesive-bandage",
+		"emoji": "🩹",
+		"code": ":adhesive_bandage:",
+		"description": "Simple fix for a non-critical issue.",
+		"semver": "patch"
+	},
+	{
+		"name": "monocle-face",
+		"emoji": "🧐",
+		"code": ":monocle_face:",
+		"description": "Data exploration/inspection.",
+		"semver": null
+	},
+	{
+		"name": "coffin",
+		"emoji": "⚰️",
+		"code": ":coffin:",
+		"description": "Remove dead code.",
+		"semver": null
+	},
+	{
+		"name": "test-tube",
+		"emoji": "🧪",
+		"code": ":test_tube:",
+		"description": "Add a failing test.",
+		"semver": null
+	},
+	{
+		"name": "necktie",
+		"emoji": "👔",
+		"code": ":necktie:",
+		"description": "Add or update business logic.",
+		"semver": "patch"
+	},
+	{
+		"name": "stethoscope",
+		"emoji": "🩺",
+		"code": ":stethoscope:",
+		"description": "Add or update healthcheck.",
+		"semver": null
+	},
+	{
+		"name": "bricks",
+		"emoji": "🧱",
+		"code": ":bricks:",
+		"description": "Infrastructure related changes.",
+		"semver": null
+	},
+	{
+		"name": "technologist",
+		"emoji": "🧑‍💻",
+		"code": ":technologist:",
+		"description": "Improve developer experience.",
+		"semver": null
+	},
+	{
+		"name": "money-with-wings",
+		"emoji": "💸",
+		"code": ":money_with_wings:",
+		"description": "Add sponsorships or money related infrastructure.",
+		"semver": null
+	},
+	{
+		"name": "thread",
+		"emoji": "🧵",
+		"code": ":thread:",
+		"description": "Add or update code related to multithreading or concurrency.",
+		"semver": null
+	},
+	{
+		"name": "safety-vest",
+		"emoji": "🦺",
+		"code": ":safety_vest:",
+		"description": "Add or update code related to validation.",
+		"semver": null
+	},
+	{
+		"name": "airplane",
+		"emoji": "✈️",
+		"code": ":airplane:",
+		"description": "Improve offline support.",
+		"semver": null
+	},
+	{
+		"name": "t-rex",
+		"emoji": "🦖",
+		"code": ":t-rex:",
+		"description": "Code that adds backwards compatibility.",
+		"semver": null
+	}
+];
 //#endregion
 //#region packages/gh-actions/src/common/config/get-config-file.ts
 var SUPPORTED_FILE_EXTENSIONS = [
@@ -57735,4 +58262,4 @@ async function composeConfigGet(configFilename, currentContext, token) {
 	return result;
 }
 //#endregion
-export { core_exports as C, context as S, setFailed as T, object as _, readActionInputs as a, union as b, getGitHubAdapter as c, ZodDefault as d, _enum as f, number as g, literal as h, defineActionInputNames as i, getRepository as l, boolean as m, sharedInputSchema as n, writeActionOutputs as o, array as p, tokenInputSchema as r, actionLogger as s, composeConfigGet as t, escapeStringRegexp as u, string$1 as v, info as w, Minimatch as x, stringbool as y };
+export { context as C, warning as D, setFailed as E, summary as O, Minimatch as S, info as T, number as _, defineActionInputNames as a, stringbool as b, actionLogger as c, escapeStringRegexp as d, ZodDefault as f, literal as g, boolean as h, tokenInputSchema as i, getGitHubAdapter as l, array as m, GITMOJI_SPEC_DATA as n, readActionInputs as o, _enum as p, sharedInputSchema as r, writeActionOutputs as s, composeConfigGet as t, getRepository as u, object as v, core_exports as w, union as x, string$1 as y };

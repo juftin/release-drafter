@@ -7,10 +7,14 @@ import {
 } from '@release-drafter/autolabeler'
 import { composeConfigGet } from '../common/config/index.ts'
 
+export type AutolabelerResolvedConfig = ParsedConfig & {
+  categories?: Array<{ title: string; labels: string[] }>
+}
+
 export const getConfig = async (
   configName: string,
   token?: string,
-): Promise<ParsedConfig> => {
+): Promise<AutolabelerResolvedConfig> => {
   const { config, contexts } = await composeConfigGet(
     configName,
     context,
@@ -30,5 +34,26 @@ export const getConfig = async (
     }
     core.info(`Config fetched ${location}.`)
   }
-  return parseConfig({ config: configSchema.parse(config), logger: core })
+  const parsed = parseConfig({
+    config: configSchema.parse(config),
+    logger: core,
+  })
+
+  const rawCategories = (config as Record<string, unknown>).categories
+  const categories = Array.isArray(rawCategories)
+    ? rawCategories
+        .filter(
+          (c): c is { title: string; labels: string[] } =>
+            typeof c === 'object' &&
+            c !== null &&
+            typeof (c as { title?: unknown }).title === 'string' &&
+            Array.isArray((c as { labels?: unknown }).labels),
+        )
+        .map((c) => ({
+          title: c.title,
+          labels: c.labels,
+        }))
+    : undefined
+
+  return { ...parsed, categories }
 }
