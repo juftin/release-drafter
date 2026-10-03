@@ -19,528 +19,224 @@ exclude-labels:
 categories:
   - title: '💥 Breaking Changes'
     labels:
-      - 'boom'
       - '💥'
-      - ':boom:'
-      - 'breaking'
-      - 'breaking-change'
   - title: '✨ Features & Improvements'
     labels:
-      - 'sparkles'
       - '✨'
-      - ':sparkles:'
-      - 'tada'
       - '🎉'
-      - ':tada:'
-      - 'rocket'
       - '🚀'
-      - ':rocket:'
-      - 'children-crossing'
       - '🚸'
-      - ':children_crossing:'
-      - 'iphone'
       - '📱'
-      - ':iphone:'
-      - 'dizzy'
       - '💫'
-      - ':dizzy:'
-      - 'globe-with-meridians'
       - '🌐'
-      - ':globe_with_meridians:'
-      - 'bento'
       - '🍱'
-      - ':bento:'
-      - 'wheelchair'
       - '♿️'
-      - ':wheelchair:'
-      - 'egg'
+      - '♿'
       - '🥚'
-      - ':egg:'
-      - 'alembic'
       - '⚗️'
-      - ':alembic:'
-      - 'triangular-flag-on-post'
+      - '⚗'
       - '🚩'
-      - ':triangular_flag_on_post:'
-      - 'necktie'
       - '👔'
-      - ':necktie:'
-      - 't-rex'
       - '🦖'
-      - ':t-rex:'
-      - 'airplane'
       - '✈️'
-      - ':airplane:'
-      - 'feature'
-      - 'enhancement'
-      - 'feat'
+      - '✈'
   - title: '🐛 Bug Fixes & Security'
     labels:
-      - 'bug'
       - '🐛'
-      - ':bug:'
-      - 'ambulance'
       - '🚑️'
-      - ':ambulance:'
-      - 'adhesive-bandage'
+      - '🚑'
       - '🩹'
-      - ':adhesive_bandage:'
-      - 'lock'
       - '🔒️'
-      - ':lock:'
-      - 'closed-lock-with-key'
+      - '🔒'
       - '🔐'
-      - ':closed_lock_with_key:'
-      - 'passport-control'
       - '🛂'
-      - ':passport_control:'
-      - 'safety-vest'
       - '🦺'
-      - ':safety_vest:'
-      - 'goal-net'
       - '🥅'
-      - ':goal_net:'
-      - 'rotating-light'
       - '🚨'
-      - ':rotating_light:'
-      - 'pencil2'
       - '✏️'
-      - ':pencil2:'
-      - 'alien'
+      - '✏'
       - '👽️'
-      - ':alien:'
-      - 'fix'
-      - 'bugfix'
-      - 'security'
+      - '👽'
   - title: '⚡ Performance'
     labels:
-      - 'zap'
       - '⚡️'
-      - ':zap:'
-      - 'thread'
+      - '⚡'
       - '🧵'
-      - ':thread:'
-      - 'mag'
       - '🔍️'
-      - ':mag:'
-      - 'perf'
-      - 'performance'
+      - '🔍'
   - title: '📝 Documentation'
     labels:
-      - 'memo'
       - '📝'
-      - ':memo:'
-      - 'bulb'
       - '💡'
-      - ':bulb:'
-      - 'page-facing-up'
       - '📄'
-      - ':page_facing_up:'
-      - 'busts-in-silhouette'
       - '👥'
-      - ':busts_in_silhouette:'
-      - 'speech-balloon'
       - '💬'
-      - ':speech_balloon:'
-      - 'docs'
-      - 'documentation'
   - title: '♻️ Code Refactoring & Style'
     labels:
-      - 'recycle'
       - '♻️'
-      - ':recycle:'
-      - 'art'
+      - '♻'
       - '🎨'
-      - ':art:'
-      - 'fire'
       - '🔥'
-      - ':fire:'
-      - 'coffin'
       - '⚰️'
-      - ':coffin:'
-      - 'building-construction'
+      - '⚰'
       - '🏗️'
-      - ':building_construction:'
-      - 'wastebasket'
+      - '🏗'
       - '🗑️'
-      - ':wastebasket:'
-      - 'truck'
+      - '🗑'
       - '🚚'
-      - ':truck:'
-      - 'label'
       - '🏷️'
-      - ':label:'
-      - 'card-file-box'
+      - '🏷'
       - '🗃️'
-      - ':card_file_box:'
-      - 'lipstick'
+      - '🗃'
       - '💄'
-      - ':lipstick:'
-      - 'poop'
       - '💩'
-      - ':poop:'
-      - 'refactor'
-      - 'style'
   - title: '📦 Dependency Updates'
     labels:
-      - 'arrow-up'
       - '⬆️'
-      - ':arrow_up:'
-      - 'arrow-down'
+      - '⬆'
       - '⬇️'
-      - ':arrow_down:'
-      - 'pushpin'
+      - '⬇'
       - '📌'
-      - ':pushpin:'
-      - 'heavy-plus-sign'
       - '➕'
-      - ':heavy_plus_sign:'
-      - 'heavy-minus-sign'
       - '➖'
-      - ':heavy_minus_sign:'
-      - 'package'
       - '📦️'
-      - ':package:'
-      - 'dependencies'
-      - 'deps'
+      - '📦'
   - title: '👷 CI, Build & Tooling'
     labels:
-      - 'construction-worker'
       - '👷'
-      - ':construction_worker:'
-      - 'green-heart'
       - '💚'
-      - ':green_heart:'
-      - 'wrench'
       - '🔧'
-      - ':wrench:'
-      - 'hammer'
       - '🔨'
-      - ':hammer:'
-      - 'bricks'
       - '🧱'
-      - ':bricks:'
-      - 'technologist'
       - '🧑‍💻'
-      - ':technologist:'
-      - 'see-no-evil'
       - '🙈'
-      - ':see_no_evil:'
-      - 'chart-with-upwards-trend'
       - '📈'
-      - ':chart_with_upwards_trend:'
-      - 'stethoscope'
       - '🩺'
-      - ':stethoscope:'
-      - 'money-with-wings'
       - '💸'
-      - ':money_with_wings:'
-      - 'bookmark'
       - '🔖'
-      - ':bookmark:'
-      - 'construction'
       - '🚧'
-      - ':construction:'
-      - 'loud-sound'
       - '🔊'
-      - ':loud_sound:'
-      - 'mute'
       - '🔇'
-      - ':mute:'
-      - 'ci'
-      - 'build'
-      - 'chore'
   - title: '🧪 Tests'
     labels:
-      - 'white-check-mark'
       - '✅'
-      - ':white_check_mark:'
-      - 'test-tube'
       - '🧪'
-      - ':test_tube:'
-      - 'camera-flash'
       - '📸'
-      - ':camera_flash:'
-      - 'clown-face'
       - '🤡'
-      - ':clown_face:'
-      - 'seedling'
       - '🌱'
-      - ':seedling:'
-      - 'monocle-face'
       - '🧐'
-      - ':monocle_face:'
-      - 'test'
   - title: '⏪️ Reverts & Branches'
     labels:
-      - 'rewind'
       - '⏪️'
-      - ':rewind:'
-      - 'twisted-rightwards-arrows'
+      - '⏪'
       - '🔀'
-      - ':twisted_rightwards_arrows:'
-      - 'beers'
       - '🍻'
-      - ':beers:'
-      - 'revert'
 
 version-resolver:
   major:
     labels:
-      - 'boom'
       - '💥'
-      - ':boom:'
-      - 'breaking'
-      - 'breaking-change'
   minor:
     labels:
-      - 'sparkles'
       - '✨'
-      - ':sparkles:'
-      - 'tada'
       - '🎉'
-      - ':tada:'
-      - 'rocket'
       - '🚀'
-      - ':rocket:'
-      - 'children-crossing'
       - '🚸'
-      - ':children_crossing:'
-      - 'iphone'
       - '📱'
-      - ':iphone:'
-      - 'dizzy'
       - '💫'
-      - ':dizzy:'
-      - 'globe-with-meridians'
       - '🌐'
-      - ':globe_with_meridians:'
-      - 'bento'
       - '🍱'
-      - ':bento:'
-      - 'wheelchair'
       - '♿️'
-      - ':wheelchair:'
-      - 'egg'
+      - '♿'
       - '🥚'
-      - ':egg:'
-      - 'alembic'
       - '⚗️'
-      - ':alembic:'
-      - 'triangular-flag-on-post'
+      - '⚗'
       - '🚩'
-      - ':triangular_flag_on_post:'
-      - 'necktie'
       - '👔'
-      - ':necktie:'
-      - 't-rex'
       - '🦖'
-      - ':t-rex:'
-      - 'airplane'
       - '✈️'
-      - ':airplane:'
-      - 'feature'
-      - 'enhancement'
-      - 'feat'
+      - '✈'
   patch:
     labels:
-      - 'bug'
       - '🐛'
-      - ':bug:'
-      - 'ambulance'
       - '🚑️'
-      - ':ambulance:'
-      - 'adhesive-bandage'
+      - '🚑'
       - '🩹'
-      - ':adhesive_bandage:'
-      - 'lock'
       - '🔒️'
-      - ':lock:'
-      - 'closed-lock-with-key'
+      - '🔒'
       - '🔐'
-      - ':closed_lock_with_key:'
-      - 'passport-control'
       - '🛂'
-      - ':passport_control:'
-      - 'safety-vest'
       - '🦺'
-      - ':safety_vest:'
-      - 'goal-net'
       - '🥅'
-      - ':goal_net:'
-      - 'rotating-light'
       - '🚨'
-      - ':rotating_light:'
-      - 'pencil2'
       - '✏️'
-      - ':pencil2:'
-      - 'alien'
+      - '✏'
       - '👽️'
-      - ':alien:'
-      - 'fix'
-      - 'bugfix'
-      - 'security'
-      - 'zap'
+      - '👽'
       - '⚡️'
-      - ':zap:'
-      - 'thread'
+      - '⚡'
       - '🧵'
-      - ':thread:'
-      - 'mag'
       - '🔍️'
-      - ':mag:'
-      - 'perf'
-      - 'performance'
-      - 'memo'
+      - '🔍'
       - '📝'
-      - ':memo:'
-      - 'bulb'
       - '💡'
-      - ':bulb:'
-      - 'page-facing-up'
       - '📄'
-      - ':page_facing_up:'
-      - 'busts-in-silhouette'
       - '👥'
-      - ':busts_in_silhouette:'
-      - 'speech-balloon'
       - '💬'
-      - ':speech_balloon:'
-      - 'docs'
-      - 'documentation'
-      - 'recycle'
       - '♻️'
-      - ':recycle:'
-      - 'art'
+      - '♻'
       - '🎨'
-      - ':art:'
-      - 'fire'
       - '🔥'
-      - ':fire:'
-      - 'coffin'
       - '⚰️'
-      - ':coffin:'
-      - 'building-construction'
+      - '⚰'
       - '🏗️'
-      - ':building_construction:'
-      - 'wastebasket'
+      - '🏗'
       - '🗑️'
-      - ':wastebasket:'
-      - 'truck'
+      - '🗑'
       - '🚚'
-      - ':truck:'
-      - 'label'
       - '🏷️'
-      - ':label:'
-      - 'card-file-box'
+      - '🏷'
       - '🗃️'
-      - ':card_file_box:'
-      - 'lipstick'
+      - '🗃'
       - '💄'
-      - ':lipstick:'
-      - 'poop'
       - '💩'
-      - ':poop:'
-      - 'refactor'
-      - 'style'
-      - 'arrow-up'
       - '⬆️'
-      - ':arrow_up:'
-      - 'arrow-down'
+      - '⬆'
       - '⬇️'
-      - ':arrow_down:'
-      - 'pushpin'
+      - '⬇'
       - '📌'
-      - ':pushpin:'
-      - 'heavy-plus-sign'
       - '➕'
-      - ':heavy_plus_sign:'
-      - 'heavy-minus-sign'
       - '➖'
-      - ':heavy_minus_sign:'
-      - 'package'
       - '📦️'
-      - ':package:'
-      - 'dependencies'
-      - 'deps'
-      - 'construction-worker'
+      - '📦'
       - '👷'
-      - ':construction_worker:'
-      - 'green-heart'
       - '💚'
-      - ':green_heart:'
-      - 'wrench'
       - '🔧'
-      - ':wrench:'
-      - 'hammer'
       - '🔨'
-      - ':hammer:'
-      - 'bricks'
       - '🧱'
-      - ':bricks:'
-      - 'technologist'
       - '🧑‍💻'
-      - ':technologist:'
-      - 'see-no-evil'
       - '🙈'
-      - ':see_no_evil:'
-      - 'chart-with-upwards-trend'
       - '📈'
-      - ':chart_with_upwards_trend:'
-      - 'stethoscope'
       - '🩺'
-      - ':stethoscope:'
-      - 'money-with-wings'
       - '💸'
-      - ':money_with_wings:'
-      - 'bookmark'
       - '🔖'
-      - ':bookmark:'
-      - 'construction'
       - '🚧'
-      - ':construction:'
-      - 'loud-sound'
       - '🔊'
-      - ':loud_sound:'
-      - 'mute'
       - '🔇'
-      - ':mute:'
-      - 'ci'
-      - 'build'
-      - 'chore'
-      - 'white-check-mark'
       - '✅'
-      - ':white_check_mark:'
-      - 'test-tube'
       - '🧪'
-      - ':test_tube:'
-      - 'camera-flash'
       - '📸'
-      - ':camera_flash:'
-      - 'clown-face'
       - '🤡'
-      - ':clown_face:'
-      - 'seedling'
       - '🌱'
-      - ':seedling:'
-      - 'monocle-face'
       - '🧐'
-      - ':monocle_face:'
-      - 'test'
-      - 'rewind'
       - '⏪️'
-      - ':rewind:'
-      - 'twisted-rightwards-arrows'
+      - '⏪'
       - '🔀'
-      - ':twisted_rightwards_arrows:'
-      - 'beers'
       - '🍻'
-      - ':beers:'
-      - 'revert'
   default: patch
 
 autolabeler:
-  - label: 'boom'
+  - label: '💥'
     title:
       - '/^(:boom:|💥)/'
       - '/^([a-z]+(\([^\)]+\))?!:|.*BREAKING CHANGE:?)/i'
@@ -550,148 +246,70 @@ autolabeler:
     body:
       - '/BREAKING[ -]CHANGE:/i'
 
-  - label: 'feat'
-    title:
-      - '/^((:sparkles:|✨|:tada:|🎉|:rocket:|🚀)\s*)?feat(ure)?(\([^\)]+\))?:/i'
-    branch:
-      - '/^feat(\//|-)/i'
-      - '/^feature(\//|-)/i'
-
-  - label: 'fix'
-    title:
-      - '/^((:bug:|🐛|:ambulance:|🚑️|🚑|:adhesive_bandage:|🩹)\s*)?(fix|bugfix|hotfix)(\([^\)]+\))?:/i'
-    branch:
-      - '/^fix(\//|-)/i'
-      - '/^bugfix(\//|-)/i'
-      - '/^hotfix(\//|-)/i'
-
-  - label: 'security'
-    title:
-      - '/^((:lock:|🔒)\s*)?sec(urity)?(\([^\)]+\))?:/i'
-    branch:
-      - '/^sec(urity)?(\//|-)/i'
-
-  - label: 'perf'
-    title:
-      - '/^((:zap:|⚡️|⚡)\s*)?perf(ormance)?(\([^\)]+\))?:/i'
-    branch:
-      - '/^perf(\//|-)/i'
-
-  - label: 'docs'
-    files:
-      - '**/*.md'
-      - 'docs/**'
-    title:
-      - '/^((:memo:|📝|:books:|📚|:bulb:|💡)\s*)?docs?(\([^\)]+\))?:/i'
-    branch:
-      - '/^docs?(\//|-)/i'
-
-  - label: 'refactor'
-    title:
-      - '/^((:recycle:|♻️|♻|:art:|🎨|:fire:|🔥)\s*)?refactor(\([^\)]+\))?:/i'
-    branch:
-      - '/^refactor(\//|-)/i'
-
-  - label: 'dependencies'
-    title:
-      - '/^((:arrow_up:|⬆️|⬆|:arrow_down:|⬇️|⬇|:package:|📦️|📦|:pushpin:|📌)\s*)?(deps?|dependencies)(\([^\)]+\))?:/i'
-      - '/^chore\(deps(-[a-z0-9]+)?\):/i'
-    branch:
-      - '/^dependabot\//i'
-      - '/^renovate\//i'
-      - '/^deps?(\//|-)/i'
-
-  - label: 'ci'
-    files:
-      - '.github/**'
-    title:
-      - '/^((:construction_worker:|👷|:green_heart:|💚)\s*)?(ci|build)(\([^\)]+\))?:/i'
-    branch:
-      - '/^ci(\//|-)/i'
-      - '/^build(\//|-)/i'
-
-  - label: 'chore'
-    title:
-      - '/^((:wrench:|🔧|:hammer:|🔨|:truck:|🚚|:wastebasket:|🗑️|🗑)\s*)?chore(\([^\)]+\))?:/i'
-    branch:
-      - '/^chore(\//|-)/i'
-
-  - label: 'test'
-    title:
-      - '/^((:white_check_mark:|✅|:test_tube:|🧪)\s*)?tests?(\([^\)]+\))?:/i'
-    branch:
-      - '/^tests?(\//|-)/i'
-
-  - label: 'revert'
-    title:
-      - '/^((:rewind:|⏪️|⏪)\s*)?revert(\([^\)]+\))?:/i'
-    branch:
-      - '/^revert(\//|-)/i'
-
-  - label: 'sparkles'
+  - label: '✨'
     title:
       - '/^(:sparkles:|✨)/'
     branch:
       - '/^feat(\//|-)/i'
       - '/^feature(\//|-)/i'
 
-  - label: 'tada'
+  - label: '🎉'
     title:
       - '/^(:tada:|🎉)/'
 
-  - label: 'rocket'
+  - label: '🚀'
     title:
       - '/^(:rocket:|🚀)/'
 
-  - label: 'children-crossing'
+  - label: '🚸'
     title:
       - '/^(:children_crossing:|🚸)/'
 
-  - label: 'iphone'
+  - label: '📱'
     title:
       - '/^(:iphone:|📱)/'
 
-  - label: 'dizzy'
+  - label: '💫'
     title:
       - '/^(:dizzy:|💫)/'
 
-  - label: 'globe-with-meridians'
+  - label: '🌐'
     title:
       - '/^(:globe_with_meridians:|🌐)/'
 
-  - label: 'bento'
+  - label: '🍱'
     title:
       - '/^(:bento:|🍱)/'
 
-  - label: 'wheelchair'
+  - label: '♿️'
     title:
       - '/^(:wheelchair:|♿️?)/'
 
-  - label: 'egg'
+  - label: '🥚'
     title:
       - '/^(:egg:|🥚)/'
 
-  - label: 'alembic'
+  - label: '⚗️'
     title:
       - '/^(:alembic:|⚗️?)/'
 
-  - label: 'triangular-flag-on-post'
+  - label: '🚩'
     title:
       - '/^(:triangular_flag_on_post:|🚩)/'
 
-  - label: 'necktie'
+  - label: '👔'
     title:
       - '/^(:necktie:|👔)/'
 
-  - label: 't-rex'
+  - label: '🦖'
     title:
       - '/^(:t-rex:|🦖)/'
 
-  - label: 'airplane'
+  - label: '✈️'
     title:
       - '/^(:airplane:|✈️?)/'
 
-  - label: 'bug'
+  - label: '🐛'
     title:
       - '/^(:bug:|🐛)/'
     branch:
@@ -700,130 +318,133 @@ autolabeler:
       - '/^hotfix(\//|-)/i'
       - '/^sec(urity)?(\//|-)/i'
 
-  - label: 'ambulance'
+  - label: '🚑️'
     title:
       - '/^(:ambulance:|🚑️?)/'
 
-  - label: 'adhesive-bandage'
+  - label: '🩹'
     title:
       - '/^(:adhesive_bandage:|🩹)/'
 
-  - label: 'lock'
+  - label: '🔒️'
     title:
       - '/^(:lock:|🔒️?)/'
 
-  - label: 'closed-lock-with-key'
+  - label: '🔐'
     title:
       - '/^(:closed_lock_with_key:|🔐)/'
 
-  - label: 'passport-control'
+  - label: '🛂'
     title:
       - '/^(:passport_control:|🛂)/'
 
-  - label: 'safety-vest'
+  - label: '🦺'
     title:
       - '/^(:safety_vest:|🦺)/'
 
-  - label: 'goal-net'
+  - label: '🥅'
     title:
       - '/^(:goal_net:|🥅)/'
 
-  - label: 'rotating-light'
+  - label: '🚨'
     title:
       - '/^(:rotating_light:|🚨)/'
 
-  - label: 'pencil2'
+  - label: '✏️'
     title:
       - '/^(:pencil2:|✏️?)/'
 
-  - label: 'alien'
+  - label: '👽️'
     title:
       - '/^(:alien:|👽️?)/'
 
-  - label: 'zap'
+  - label: '⚡️'
     title:
       - '/^(:zap:|⚡️?)/'
     branch:
       - '/^perf(\//|-)/i'
 
-  - label: 'thread'
+  - label: '🧵'
     title:
       - '/^(:thread:|🧵)/'
 
-  - label: 'mag'
+  - label: '🔍️'
     title:
       - '/^(:mag:|🔍️?)/'
 
-  - label: 'memo'
+  - label: '📝'
+    files:
+      - '**/*.md'
+      - 'docs/**'
     title:
       - '/^(:memo:|📝)/'
     branch:
       - '/^docs?(\//|-)/i'
 
-  - label: 'bulb'
+  - label: '💡'
     title:
       - '/^(:bulb:|💡)/'
 
-  - label: 'page-facing-up'
+  - label: '📄'
     title:
       - '/^(:page_facing_up:|📄)/'
 
-  - label: 'busts-in-silhouette'
+  - label: '👥'
     title:
       - '/^(:busts_in_silhouette:|👥)/'
 
-  - label: 'speech-balloon'
+  - label: '💬'
     title:
       - '/^(:speech_balloon:|💬)/'
 
-  - label: 'recycle'
+  - label: '♻️'
     title:
       - '/^(:recycle:|♻️?)/'
     branch:
       - '/^refactor(\//|-)/i'
       - '/^style(\//|-)/i'
 
-  - label: 'art'
+  - label: '🎨'
     title:
       - '/^(:art:|🎨)/'
 
-  - label: 'fire'
+  - label: '🔥'
     title:
       - '/^(:fire:|🔥)/'
 
-  - label: 'coffin'
+  - label: '⚰️'
     title:
       - '/^(:coffin:|⚰️?)/'
 
-  - label: 'building-construction'
+  - label: '🏗️'
     title:
       - '/^(:building_construction:|🏗️?)/'
 
-  - label: 'wastebasket'
+  - label: '🗑️'
     title:
       - '/^(:wastebasket:|🗑️?)/'
 
-  - label: 'truck'
+  - label: '🚚'
     title:
       - '/^(:truck:|🚚)/'
 
-  - label: 'label'
+  - label: '🏷️'
     title:
       - '/^(:label:|🏷️?)/'
 
-  - label: 'card-file-box'
+  - label: '🗃️'
     title:
       - '/^(:card_file_box:|🗃️?)/'
 
-  - label: 'lipstick'
+  - label: '💄'
     title:
       - '/^(:lipstick:|💄)/'
 
-  - label: 'poop'
+  - label: '💩'
     title:
       - '/^(:poop:|💩)/'
 
-  - label: 'arrow-up'
+  - label: '⬆️'
     title:
       - '/^(:arrow_up:|⬆️?)/'
     branch:
@@ -831,27 +452,29 @@ autolabeler:
       - '/^renovate\//i'
       - '/^deps?(\//|-)/i'
 
-  - label: 'arrow-down'
+  - label: '⬇️'
     title:
       - '/^(:arrow_down:|⬇️?)/'
 
-  - label: 'pushpin'
+  - label: '📌'
     title:
       - '/^(:pushpin:|📌)/'
 
-  - label: 'heavy-plus-sign'
+  - label: '➕'
     title:
       - '/^(:heavy_plus_sign:|➕)/'
 
-  - label: 'heavy-minus-sign'
+  - label: '➖'
     title:
       - '/^(:heavy_minus_sign:|➖)/'
 
-  - label: 'package'
+  - label: '📦️'
     title:
       - '/^(:package:|📦️?)/'
 
-  - label: 'construction-worker'
+  - label: '👷'
+    files:
+      - '.github/**'
     title:
       - '/^(:construction_worker:|👷)/'
     branch:
@@ -859,94 +482,94 @@ autolabeler:
       - '/^build(\//|-)/i'
       - '/^chore(\//|-)/i'
 
-  - label: 'green-heart'
+  - label: '💚'
     title:
       - '/^(:green_heart:|💚)/'
 
-  - label: 'wrench'
+  - label: '🔧'
     title:
       - '/^(:wrench:|🔧)/'
 
-  - label: 'hammer'
+  - label: '🔨'
     title:
       - '/^(:hammer:|🔨)/'
 
-  - label: 'bricks'
+  - label: '🧱'
     title:
       - '/^(:bricks:|🧱)/'
 
-  - label: 'technologist'
+  - label: '🧑‍💻'
     title:
       - '/^(:technologist:|🧑‍💻)/'
 
-  - label: 'see-no-evil'
+  - label: '🙈'
     title:
       - '/^(:see_no_evil:|🙈)/'
 
-  - label: 'chart-with-upwards-trend'
+  - label: '📈'
     title:
       - '/^(:chart_with_upwards_trend:|📈)/'
 
-  - label: 'stethoscope'
+  - label: '🩺'
     title:
       - '/^(:stethoscope:|🩺)/'
 
-  - label: 'money-with-wings'
+  - label: '💸'
     title:
       - '/^(:money_with_wings:|💸)/'
 
-  - label: 'bookmark'
+  - label: '🔖'
     title:
       - '/^(:bookmark:|🔖)/'
 
-  - label: 'construction'
+  - label: '🚧'
     title:
       - '/^(:construction:|🚧)/'
 
-  - label: 'loud-sound'
+  - label: '🔊'
     title:
       - '/^(:loud_sound:|🔊)/'
 
-  - label: 'mute'
+  - label: '🔇'
     title:
       - '/^(:mute:|🔇)/'
 
-  - label: 'white-check-mark'
+  - label: '✅'
     title:
       - '/^(:white_check_mark:|✅)/'
     branch:
       - '/^tests?(\//|-)/i'
 
-  - label: 'test-tube'
+  - label: '🧪'
     title:
       - '/^(:test_tube:|🧪)/'
 
-  - label: 'camera-flash'
+  - label: '📸'
     title:
       - '/^(:camera_flash:|📸)/'
 
-  - label: 'clown-face'
+  - label: '🤡'
     title:
       - '/^(:clown_face:|🤡)/'
 
-  - label: 'seedling'
+  - label: '🌱'
     title:
       - '/^(:seedling:|🌱)/'
 
-  - label: 'monocle-face'
+  - label: '🧐'
     title:
       - '/^(:monocle_face:|🧐)/'
 
-  - label: 'rewind'
+  - label: '⏪️'
     title:
       - '/^(:rewind:|⏪️?)/'
     branch:
       - '/^revert(\//|-)/i'
 
-  - label: 'twisted-rightwards-arrows'
+  - label: '🔀'
     title:
       - '/^(:twisted_rightwards_arrows:|🔀)/'
 
-  - label: 'beers'
+  - label: '🍻'
     title:
       - '/^(:beers:|🍻)/'

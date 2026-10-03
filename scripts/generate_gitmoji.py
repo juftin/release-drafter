@@ -170,21 +170,27 @@ def make_emoji_regex(emoji: str, code: str) -> str:
     return f"/{pattern}/"
 
 
-def get_category_labels(cat, gitmojis):
+def get_category_labels(cat, gitmojis, mode="gitmoji"):
     labels = []
+    # Unicode emojis are included for all modes
     for name in cat["names"]:
-        if name not in labels:
-            labels.append(name)
         g = gitmojis[name]
         raw_emoji = g["emoji"]
         if raw_emoji not in labels:
             labels.append(raw_emoji)
-        code = g["code"]
-        if code not in labels:
-            labels.append(code)
-    for extra in cat.get("extra_labels", []):
-        if extra not in labels:
-            labels.append(extra)
+        if "\ufe0f" in raw_emoji:
+            without_vs = raw_emoji.replace("\ufe0f", "")
+            if without_vs not in labels:
+                labels.append(without_vs)
+
+    if mode == "hybrid":
+        for name in cat["names"]:
+            if name not in labels:
+                labels.append(name)
+        for extra in cat.get("extra_labels", []):
+            if extra not in labels:
+                labels.append(extra)
+
     return labels
 
 
@@ -229,7 +235,7 @@ def generate_gitmoji_yaml(gitmojis):
     for cat in CATEGORIES:
         lines.append(f"  - title: '{cat['title']}'")
         lines.append("    labels:")
-        all_labels = get_category_labels(cat, gitmojis)
+        all_labels = get_category_labels(cat, gitmojis, mode="gitmoji")
         for label in all_labels:
             lines.append(f"      - '{label}'")
 
@@ -242,7 +248,7 @@ def generate_gitmoji_yaml(gitmojis):
     patch_labels = []
 
     for cat in CATEGORIES:
-        labels = get_category_labels(cat, gitmojis)
+        labels = get_category_labels(cat, gitmojis, mode="gitmoji")
         if cat["semver"] == "major":
             major_labels.extend(labels)
         elif cat["semver"] == "minor":
@@ -269,10 +275,11 @@ def generate_gitmoji_yaml(gitmojis):
     lines.append("")
     lines.append("autolabeler:")
 
-    # Special breaking rule
-    lines.append("  - label: 'boom'")
+    # Pure Gitmoji autolabelers (all labels are emojis)
+    boom = gitmojis["boom"]
+    lines.append(f"  - label: '{boom['emoji']}'")
     lines.append("    title:")
-    lines.append(f"      - '{make_emoji_regex(gitmojis['boom']['emoji'], gitmojis['boom']['code'])}'")
+    lines.append(f"      - '{make_emoji_regex(boom['emoji'], boom['code'])}'")
     lines.append("      - '/^([a-z]+(\\([^\\)]+\\))?!:|.*BREAKING CHANGE:?)/i'")
     lines.append("      - '/BREAKING[ -]CHANGE/i'")
     lines.append("    branch:")
@@ -281,31 +288,19 @@ def generate_gitmoji_yaml(gitmojis):
     lines.append("      - '/BREAKING[ -]CHANGE:/i'")
     lines.append("")
 
-    for item in CONV_RULES:
-        label = item[0]
-        title_patterns = item[1]
-        branch_patterns = item[2]
-        files_patterns = item[3] if len(item) > 3 else []
-
-        lines.append(f"  - label: '{label}'")
-        if files_patterns:
-            lines.append("    files:")
-            for fp in files_patterns:
-                lines.append(f"      - '{fp}'")
-        lines.append("    title:")
-        for tp in title_patterns:
-            lines.append(f"      - '{tp}'")
-        lines.append("    branch:")
-        for bp in branch_patterns:
-            lines.append(f"      - '{bp}'")
-        lines.append("")
-
     for cat in CATEGORIES:
         for name in cat["names"]:
             if name == "boom":
                 continue  # already added above
             g = gitmojis[name]
-            lines.append(f"  - label: '{name}'")
+            lines.append(f"  - label: '{g['emoji']}'")
+            if name == "construction-worker":
+                lines.append("    files:")
+                lines.append("      - '.github/**'")
+            elif name == "memo":
+                lines.append("    files:")
+                lines.append("      - '**/*.md'")
+                lines.append("      - 'docs/**'")
             lines.append("    title:")
             lines.append(f"      - '{make_emoji_regex(g['emoji'], g['code'])}'")
             if "branch_patterns" in cat and name == cat["names"][0]:
@@ -343,7 +338,7 @@ def generate_hybrid_yaml(gitmojis):
     for cat in CATEGORIES:
         lines.append(f"  - title: '{cat['title']}'")
         lines.append("    labels:")
-        all_labels = get_category_labels(cat, gitmojis)
+        all_labels = get_category_labels(cat, gitmojis, mode="hybrid")
         for label in all_labels:
             lines.append(f"      - '{label}'")
 
@@ -355,7 +350,7 @@ def generate_hybrid_yaml(gitmojis):
     patch_labels = []
 
     for cat in CATEGORIES:
-        labels = get_category_labels(cat, gitmojis)
+        labels = get_category_labels(cat, gitmojis, mode="hybrid")
         if cat["semver"] == "major":
             major_labels.extend(labels)
         elif cat["semver"] == "minor":
@@ -385,7 +380,18 @@ def generate_hybrid_yaml(gitmojis):
     # Breaking Changes (Conventional + Gitmoji)
     lines.append("  - label: 'breaking'")
     lines.append("    title:")
-    lines.append("      - '/^(:boom:|💥)/'")
+    lines.append("      - '/^([a-z]+(\\([^\\)]+\\))?!:|.*BREAKING CHANGE:?)/i'")
+    lines.append("      - '/BREAKING[ -]CHANGE/i'")
+    lines.append("    branch:")
+    lines.append("      - '/.*breaking.*/i'")
+    lines.append("    body:")
+    lines.append("      - '/BREAKING[ -]CHANGE:/i'")
+    lines.append("")
+
+    boom = gitmojis["boom"]
+    lines.append(f"  - label: '{boom['emoji']}'")
+    lines.append("    title:")
+    lines.append(f"      - '{make_emoji_regex(boom['emoji'], boom['code'])}'")
     lines.append("      - '/^([a-z]+(\\([^\\)]+\\))?!:|.*BREAKING CHANGE:?)/i'")
     lines.append("      - '/BREAKING[ -]CHANGE/i'")
     lines.append("    branch:")
@@ -413,13 +419,20 @@ def generate_hybrid_yaml(gitmojis):
             lines.append(f"      - '{bp}'")
         lines.append("")
 
-    # Add individual Gitmoji autolabelers
+    # Add individual Gitmoji autolabelers (emojis as labels)
     for cat in CATEGORIES:
         for name in cat["names"]:
             if name == "boom":
                 continue
             g = gitmojis[name]
-            lines.append(f"  - label: '{name}'")
+            lines.append(f"  - label: '{g['emoji']}'")
+            if name == "construction-worker":
+                lines.append("    files:")
+                lines.append("      - '.github/**'")
+            elif name == "memo":
+                lines.append("    files:")
+                lines.append("      - '**/*.md'")
+                lines.append("      - 'docs/**'")
             lines.append("    title:")
             lines.append(f"      - '{make_emoji_regex(g['emoji'], g['code'])}'")
             lines.append("")

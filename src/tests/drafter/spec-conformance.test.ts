@@ -26,35 +26,30 @@ describe('GitMoji & Conventional Commits Spec Conformance', () => {
   describe('GitMoji Specification (https://gitmoji.dev/specification)', () => {
     // Format: <intention> [scope?][:?] <message>
     const examples = [
-      { title: '⚡️ Lazyload home screen images.', expectedGitmoji: 'zap' },
-      { title: '🐛 Fix onClick event handler', expectedGitmoji: 'bug' },
-      { title: '🔖 Bump version 1.2.0', expectedGitmoji: 'bookmark' },
-      { title: '♻️ (components): Transform classes to hooks', expectedGitmoji: 'recycle' },
-      { title: '✨ (ui) Add button', expectedGitmoji: 'sparkles' },
-      { title: ':sparkles: Add feature', expectedGitmoji: 'sparkles' },
-      { title: ':sparkles: (ui): Add button', expectedGitmoji: 'sparkles' },
-      { title: '💥 Break existing API', expectedGitmoji: 'boom' },
-      { title: ':boom: (db): Drop deprecated tables', expectedGitmoji: 'boom' },
+      { title: '⚡️ Lazyload home screen images.', expectedEmoji: '⚡️' },
+      { title: '🐛 Fix onClick event handler', expectedEmoji: '🐛' },
+      { title: '🔖 Bump version 1.2.0', expectedEmoji: '🔖' },
+      { title: '♻️ (components): Transform classes to hooks', expectedEmoji: '♻️' },
+      { title: '✨ (ui) Add button', expectedEmoji: '✨' },
+      { title: ':sparkles: Add feature', expectedEmoji: '✨' },
+      { title: ':sparkles: (ui): Add button', expectedEmoji: '✨' },
+      { title: '💥 Break existing API', expectedEmoji: '💥' },
+      { title: ':boom: (db): Drop deprecated tables', expectedEmoji: '💥' },
     ]
 
-    for (const { title, expectedGitmoji } of examples) {
+    for (const { title, expectedEmoji } of examples) {
       it(`matches gitmoji title: "${title}"`, () => {
         const gitmojiResult = matchLabels({
           config: parsedGitmojiAutolabeler,
           pullRequest: { files: [], branch: 'main', title, body: null },
         })
-        expect(gitmojiResult.labels).toContain(expectedGitmoji)
+        expect(Array.from(gitmojiResult.labels)).toContain(expectedEmoji)
 
         const hybridResult = matchLabels({
           config: parsedHybridAutolabeler,
           pullRequest: { files: [], branch: 'main', title, body: null },
         })
-        // In hybrid, boom maps to breaking or boom
-        if (expectedGitmoji === 'boom') {
-          expect(hybridResult.labels.some((l) => l === 'boom' || l === 'breaking')).toBe(true)
-        } else {
-          expect(hybridResult.labels).toContain(expectedGitmoji)
-        }
+        expect(Array.from(hybridResult.labels)).toContain(expectedEmoji)
       })
     }
   })
@@ -118,46 +113,85 @@ describe('GitMoji & Conventional Commits Spec Conformance', () => {
     })
   })
 
-  describe('Emoji Labels Support', () => {
-    it('matches emoji labels directly on categories and version-resolvers', () => {
-      // Test that all presets include emoji labels (✨, :sparkles:, 🐛, :bug:, 💥, :boom:)
-      for (const [name, cfg] of [
-        ['gitmoji', gitmojiConfig],
-        ['conventional-commits', convConfig],
-        ['hybrid', hybridConfig],
-      ] as const) {
-        // Check Breaking category
-        const breakingCat = cfg.categories.find((c) =>
-          c.title?.includes('Breaking') || (c.labels && c.labels.includes('boom')),
-        )
-        expect(breakingCat, `${name} missing breaking category`).toBeDefined()
-        expect(breakingCat?.labels).toContain('💥')
-        expect(breakingCat?.labels).toContain(':boom:')
-
-        // Check Features category
-        const featureCat = cfg.categories.find((c) =>
-          c.title?.includes('Feature') || (c.labels && c.labels.includes('sparkles')),
-        )
-        expect(featureCat, `${name} missing feature category`).toBeDefined()
-        expect(featureCat?.labels).toContain('✨')
-        expect(featureCat?.labels).toContain(':sparkles:')
-
-        // Check Bug category
-        const bugCat = cfg.categories.find((c) =>
-          c.title?.includes('Bug') || (c.labels && c.labels.includes('bug')),
-        )
-        expect(bugCat, `${name} missing bug category`).toBeDefined()
-        expect(bugCat?.labels).toContain('🐛')
-        expect(bugCat?.labels).toContain(':bug:')
-
-        // Check Version Resolver
-        expect(cfg['version-resolver'].major.labels).toContain('💥')
-        expect(cfg['version-resolver'].major.labels).toContain(':boom:')
-        expect(cfg['version-resolver'].minor.labels).toContain('✨')
-        expect(cfg['version-resolver'].minor.labels).toContain(':sparkles:')
-        expect(cfg['version-resolver'].patch.labels).toContain('🐛')
-        expect(cfg['version-resolver'].patch.labels).toContain(':bug:')
+  describe('Emoji & Word Labels Separation', () => {
+    it('gitmoji preset uses emoji labels, no shortcodes or conventional words', () => {
+      // Categories in gitmoji preset must only have emoji labels
+      for (const cat of gitmojiConfig.categories) {
+        if (cat.labels) {
+          for (const l of cat.labels) {
+            expect(l).not.toMatch(/^:[a-z0-9_]+:$/) // no shortcodes
+            expect(l).not.toMatch(/^[a-z_-]+$/i) // no word labels
+          }
+        }
       }
+
+      // Autolabeler in gitmoji preset must emit emoji labels
+      for (const rule of gitmojiConfig.autolabeler ?? []) {
+        expect(rule.label).not.toMatch(/^:[a-z0-9_]+:$/)
+        expect(rule.label).not.toMatch(/^[a-z_-]+$/i)
+      }
+
+      // Check specific categories and version resolvers have emojis
+      expect(gitmojiConfig['version-resolver'].major.labels).toContain('💥')
+      expect(gitmojiConfig['version-resolver'].minor.labels).toContain('✨')
+      expect(gitmojiConfig['version-resolver'].patch.labels).toContain('🐛')
+    })
+
+    it('conventional preset uses word labels and does NOT give emoji labels', () => {
+      // Categories in conventional preset must only have word labels
+      for (const cat of convConfig.categories) {
+        if (cat.labels) {
+          for (const l of cat.labels) {
+            expect(l).not.toMatch(/^:[a-z0-9_]+:$/)
+            expect(l).toMatch(/^[a-z0-9_-]+$/i) // strictly words/slugs
+          }
+        }
+      }
+
+      // Autolabeler in conventional preset must NOT emit emoji labels
+      for (const rule of convConfig.autolabeler ?? []) {
+        expect(rule.label).toMatch(/^[a-z0-9_-]+$/i) // strictly words/slugs
+      }
+
+      // Version resolver must only have words
+      expect(convConfig['version-resolver'].major.labels).toContain('breaking')
+      expect(convConfig['version-resolver'].minor.labels).toContain('feat')
+      expect(convConfig['version-resolver'].patch.labels).toContain('fix')
+    })
+
+    it('hybrid preset accepts both word and emoji labels', () => {
+      expect(hybridConfig['version-resolver'].major.labels).toContain('breaking')
+      expect(hybridConfig['version-resolver'].major.labels).toContain('💥')
+      expect(hybridConfig['version-resolver'].minor.labels).toContain('feat')
+      expect(hybridConfig['version-resolver'].minor.labels).toContain('✨')
+      expect(hybridConfig['version-resolver'].patch.labels).toContain('fix')
+      expect(hybridConfig['version-resolver'].patch.labels).toContain('🐛')
+    })
+
+    it('gitmoji autolabeler produces emoji labels', () => {
+      const result = matchLabels({
+        config: parsedGitmojiAutolabeler,
+        pullRequest: {
+          files: [],
+          title: ':sparkles: Add awesome feature',
+          branch: 'main',
+          body: '',
+        },
+      })
+      expect(Array.from(result.labels)).toEqual(['✨'])
+    })
+
+    it('conventional autolabeler produces word labels', () => {
+      const result = matchLabels({
+        config: parsedConvAutolabeler,
+        pullRequest: {
+          files: [],
+          title: 'feat: add awesome feature',
+          branch: 'main',
+          body: '',
+        },
+      })
+      expect(Array.from(result.labels)).toEqual(['feat'])
     })
   })
 
@@ -173,53 +207,82 @@ describe('GitMoji & Conventional Commits Spec Conformance', () => {
       }
     })
 
-    it('autolabels .github changes as ci across all presets', () => {
-      for (const [name, parsed] of [
-        ['gitmoji', parsedGitmojiAutolabeler],
-        ['conventional-commits', parsedConvAutolabeler],
-        ['hybrid', parsedHybridAutolabeler],
-      ] as const) {
-        const result = matchLabels({
-          config: parsed,
-          pullRequest: {
-            files: ['.github/workflows/release.yml'],
-            title: 'update workflow',
-            branch: 'main',
-            body: '',
-          },
-        })
-        expect(Array.from(result.labels), `${name} failed to label .github as ci`).toContain('ci')
-      }
+    it('autolabels .github changes as ci (or 👷) across presets', () => {
+      // Gitmoji autolabels .github as 👷
+      const gitmojiResult = matchLabels({
+        config: parsedGitmojiAutolabeler,
+        pullRequest: {
+          files: ['.github/workflows/release.yml'],
+          title: 'update workflow',
+          branch: 'main',
+          body: '',
+        },
+      })
+      expect(Array.from(gitmojiResult.labels)).toContain('👷')
+
+      // Conventional autolabels .github as ci
+      const convResult = matchLabels({
+        config: parsedConvAutolabeler,
+        pullRequest: {
+          files: ['.github/workflows/release.yml'],
+          title: 'update workflow',
+          branch: 'main',
+          body: '',
+        },
+      })
+      expect(Array.from(convResult.labels)).toContain('ci')
+
+      // Hybrid autolabels .github as ci (and 👷)
+      const hybridResult = matchLabels({
+        config: parsedHybridAutolabeler,
+        pullRequest: {
+          files: ['.github/workflows/release.yml'],
+          title: 'update workflow',
+          branch: 'main',
+          body: '',
+        },
+      })
+      expect(Array.from(hybridResult.labels)).toContain('ci')
+      expect(Array.from(hybridResult.labels)).toContain('👷')
     })
 
-    it('autolabels markdown and docs files as docs across all presets', () => {
-      for (const [name, parsed] of [
-        ['gitmoji', parsedGitmojiAutolabeler],
-        ['conventional-commits', parsedConvAutolabeler],
-        ['hybrid', parsedHybridAutolabeler],
-      ] as const) {
-        const mdResult = matchLabels({
-          config: parsed,
-          pullRequest: {
-            files: ['README.md'],
-            title: 'update guide',
-            branch: 'main',
-            body: '',
-          },
-        })
-        expect(Array.from(mdResult.labels), `${name} failed to label README.md as docs`).toContain('docs')
+    it('autolabels markdown and docs files as docs (or 📝) across presets', () => {
+      // Gitmoji autolabels markdown as 📝
+      const gitmojiResult = matchLabels({
+        config: parsedGitmojiAutolabeler,
+        pullRequest: {
+          files: ['README.md'],
+          title: 'update guide',
+          branch: 'main',
+          body: '',
+        },
+      })
+      expect(Array.from(gitmojiResult.labels)).toContain('📝')
 
-        const docDirResult = matchLabels({
-          config: parsed,
-          pullRequest: {
-            files: ['docs/architecture.png'],
-            title: 'update diagrams',
-            branch: 'main',
-            body: '',
-          },
-        })
-        expect(Array.from(docDirResult.labels), `${name} failed to label docs/ as docs`).toContain('docs')
-      }
+      // Conventional autolabels markdown as docs
+      const convResult = matchLabels({
+        config: parsedConvAutolabeler,
+        pullRequest: {
+          files: ['README.md'],
+          title: 'update guide',
+          branch: 'main',
+          body: '',
+        },
+      })
+      expect(Array.from(convResult.labels)).toContain('docs')
+
+      // Hybrid autolabels markdown as docs (and 📝)
+      const hybridResult = matchLabels({
+        config: parsedHybridAutolabeler,
+        pullRequest: {
+          files: ['README.md'],
+          title: 'update guide',
+          branch: 'main',
+          body: '',
+        },
+      })
+      expect(Array.from(hybridResult.labels)).toContain('docs')
+      expect(Array.from(hybridResult.labels)).toContain('📝')
     })
   })
 })
