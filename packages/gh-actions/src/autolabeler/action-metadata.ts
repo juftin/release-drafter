@@ -5,6 +5,7 @@ export const actionInputNames = defineActionInputNames<ActionInput>()([
   'token',
   'config-name',
   'dry-run',
+  'summary',
 ])
 
 export const actionOutputNames = ['number', 'labels'] as const
