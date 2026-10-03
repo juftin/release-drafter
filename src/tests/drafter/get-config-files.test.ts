@@ -46,6 +46,30 @@ describe('getConfigFile', () => {
       `[Error: Unsupported file extension: .md. Supported extensions are: json, yml, yaml]`,
     )
   })
+  describe('with a preset scheme', () => {
+    it('should return preset config for built-in presets', async () => {
+      for (const presetName of ['conventional-commits', 'gitmoji', 'hybrid']) {
+        const res = await getConfigFile({
+          scheme: 'preset',
+          filepath: presetName,
+        })
+        expect(res.fetchedFrom.scheme).toBe('preset')
+        expect(res.fetchedFrom.filepath).toBe(presetName)
+        expect(res.config).toHaveProperty('categories')
+      }
+    })
+
+    it('should reject unknown presets with clear error message', async () => {
+      await expect(
+        getConfigFile({
+          scheme: 'preset',
+          filepath: 'unknown-preset',
+        }),
+      ).rejects.toThrowError(
+        'Unknown preset "unknown-preset". Available presets are: conventional-commits, gitmoji, hybrid',
+      )
+    })
+  })
   describe('with a file scheme', () => {
     it('should return config content', async () => {
       vi.stubEnv('GITHUB_WORKSPACE', '/home/runner/workspace')
@@ -447,6 +471,18 @@ describe('getConfigFiles', () => {
       expect(scope.isDone()).toBe(true)
       expect(files).toHaveLength(1)
       expect(files[0].config.template).toBe('standalone')
+    })
+
+    it('should return preset config when preset: scheme is requested', async () => {
+      const files = await getConfigFiles('preset:gitmoji', {
+        repo: { owner: 'octocat', repo: 'hello-world' },
+        ref: 'main',
+      })
+
+      expect(files).toHaveLength(1)
+      expect(files[0].fetchedFrom.scheme).toBe('preset')
+      expect(files[0].fetchedFrom.filepath).toBe('gitmoji')
+      expect(files[0].config).toHaveProperty('categories')
     })
   })
 })

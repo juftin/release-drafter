@@ -8,6 +8,7 @@ import {
   type ConfigTarget,
   describeConfigTarget,
 } from './parse-config-target.ts'
+import { BUILTIN_PRESETS, getPresetConfig } from './presets.generated.ts'
 
 const SUPPORTED_FILE_EXTENSIONS = ['json', 'yml', 'yaml']
 
@@ -17,6 +18,39 @@ export const getConfigFile = async (
   token?: string,
 ) => {
   const _configTarget = structuredClone(configTarget)
+
+  if (_configTarget.scheme === 'preset') {
+    const presetRaw = getPresetConfig(_configTarget.filepath)
+    if (!presetRaw) {
+      throw new Error(
+        `Unknown preset "${_configTarget.filepath}". Available presets are: ${BUILTIN_PRESETS.join(', ')}`,
+      )
+    }
+    let rawConfig: unknown
+    try {
+      rawConfig = parseYaml(presetRaw)
+    } catch {
+      throw new Error(
+        `Could not parse preset syntax in ${describeConfigTarget(_configTarget)}.`,
+      )
+    }
+
+    let config: ReturnType<typeof configFileSchema.parse>
+    try {
+      config = configFileSchema.parse(rawConfig)
+    } catch (error) {
+      if (error instanceof ZodError) {
+        throw new Error(
+          `Invalid config in ${describeConfigTarget(_configTarget)}:\n${prettifyError(error)}`,
+          { cause: error },
+        )
+      }
+      throw error
+    }
+
+    return { config, fetchedFrom: _configTarget }
+  }
+
   const fileExtension = (
     _configTarget.filepath.split('.').pop() as string
   ).toLowerCase()

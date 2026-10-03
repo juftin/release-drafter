@@ -1690,8 +1690,10 @@ var validateParsedConfig = (parsedConfig) => {
 var getReleaseDrafterConfig = async (configName, currentContext, token) => {
 	const { config, contexts } = await composeConfigGet(configName, currentContext, token);
 	contexts.forEach(({ filepath, ref, repo, scheme }) => {
-		const remotePath = `${repo.owner}/${repo.repo}/${filepath}${ref ? `@${ref}` : ""}`;
-		const location = scheme === "file" ? `locally from "${filepath}"` : `from "${remotePath}"${ref ? "" : " on the default branch"}`;
+		let location;
+		if (scheme === "preset") location = `from preset "${filepath}"`;
+		else if (scheme === "file") location = `locally from "${filepath}"`;
+		else location = `from "${`${repo?.owner}/${repo?.repo}/${filepath}${ref ? `@${ref}` : ""}`}"${ref ? "" : " on the default branch"}`;
 		info(`Config fetched ${location}.`);
 	});
 	return configSchema.parse(config);

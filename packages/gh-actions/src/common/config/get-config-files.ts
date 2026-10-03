@@ -27,16 +27,21 @@ export const getConfigFiles = async (
   const canFallBackToOrgRepo =
     isCurrentRepoGithubScheme && currentContext.repo.repo !== '.github'
 
+  const isDefaultConfig =
+    configTarget.scheme === 'github' &&
+    ['release-drafter.yml', 'release-drafter.yaml'].includes(
+      basename(configTarget.filepath).toLowerCase(),
+    ) &&
+    isCurrentRepoGithubScheme
+
   let requestedRepoConfig: Awaited<ReturnType<typeof getConfigFile>>
   try {
     requestedRepoConfig = await getConfigFile(configTarget, undefined, token)
   } catch (error) {
-    if (
-      canFallBackToOrgRepo &&
-      error instanceof Error &&
-      error.message.includes('Config file not found') &&
-      configTarget.scheme === 'github'
-    ) {
+    const isNotFound =
+      error instanceof Error && error.message.includes('Config file not found')
+
+    if (canFallBackToOrgRepo && isNotFound && configTarget.scheme === 'github') {
       core.info(
         `Config not found in ${currentContext.repo.owner}/${currentContext.repo.repo}, falling back to ${currentContext.repo.owner}/.github`,
       )
@@ -45,8 +50,35 @@ export const getConfigFiles = async (
         repo: { owner: currentContext.repo.owner, repo: '.github' },
         ref: undefined,
       }
+      try {
+        requestedRepoConfig = await getConfigFile(
+          orgFallbackTarget,
+          undefined,
+          token,
+        )
+      } catch (orgError) {
+        const isOrgNotFound =
+          orgError instanceof Error &&
+          orgError.message.includes('Config file not found')
+        if (isDefaultConfig && isOrgNotFound) {
+          core.info(
+            `Config not found in ${currentContext.repo.owner}/${currentContext.repo.repo} or .github, falling back to hybrid preset.`,
+          )
+          requestedRepoConfig = await getConfigFile(
+            { scheme: 'preset', filepath: 'hybrid' },
+            undefined,
+            token,
+          )
+        } else {
+          throw orgError
+        }
+      }
+    } else if (isDefaultConfig && isNotFound) {
+      core.info(
+        `Config not found in ${currentContext.repo.owner}/${currentContext.repo.repo}, falling back to hybrid preset.`,
+      )
       requestedRepoConfig = await getConfigFile(
-        orgFallbackTarget,
+        { scheme: 'preset', filepath: 'hybrid' },
         undefined,
         token,
       )

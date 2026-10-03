@@ -167,7 +167,11 @@ var getConfig = async (configName, token) => {
 	if (contexts.length > 1) info(`Config was fetched from ${contexts.length} different contexts.`);
 	else if (contexts.length === 1) {
 		const source = contexts[0];
-		info(`Config fetched ${source.scheme === "file" ? "locally" : `on remote "${source.repo.owner}/${source.repo.repo}${source.ref ? `@${source.ref}` : ""}"${source.ref ? "" : " on the default branch"}`}.`);
+		let location;
+		if (source.scheme === "preset") location = `from preset "${source.filepath}"`;
+		else if (source.scheme === "file") location = "locally";
+		else location = `on remote "${source.repo?.owner}/${source.repo?.repo}${source.ref ? `@${source.ref}` : ""}"${source.ref ? "" : " on the default branch"}`;
+		info(`Config fetched ${location}.`);
 	}
 	return parseConfig({
 		config: configSchema.parse(config),

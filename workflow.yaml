@@ -120,18 +120,7 @@ jobs:
           if [ -n "${{ inputs.config-name }}" ]; then
             echo "target=${{ inputs.config-name }}" >> "$GITHUB_OUTPUT"
           else
-            WORKFLOW_REF="${{ github.workflow_ref }}"
-            REPO="juftin/release-drafter"
-            REF="main"
-
-            if [[ "$WORKFLOW_REF" =~ ^([^/]+/[^/]+)/.*@(.*)$ ]]; then
-              REPO="${BASH_REMATCH[1]}"
-              REF="${BASH_REMATCH[2]}"
-            fi
-
-            CONFIG_NAME="${{ inputs.config }}"
-            [[ "$CONFIG_NAME" != *.yaml ]] && CONFIG_NAME="${CONFIG_NAME}.yaml"
-            echo "target=${REPO}:configs/${CONFIG_NAME}@${REF}" >> "$GITHUB_OUTPUT"
+            echo "target=preset:${{ inputs.config }}" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Run Release Drafter

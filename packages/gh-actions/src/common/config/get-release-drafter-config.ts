@@ -17,11 +17,15 @@ export const getReleaseDrafterConfig = async (
     token,
   )
   contexts.forEach(({ filepath, ref, repo, scheme }) => {
-    const remotePath = `${repo.owner}/${repo.repo}/${filepath}${ref ? `@${ref}` : ''}`
-    const location =
-      scheme === 'file'
-        ? `locally from "${filepath}"`
-        : `from "${remotePath}"${ref ? '' : ' on the default branch'}`
+    let location: string
+    if (scheme === 'preset') {
+      location = `from preset "${filepath}"`
+    } else if (scheme === 'file') {
+      location = `locally from "${filepath}"`
+    } else {
+      const remotePath = `${repo?.owner}/${repo?.repo}/${filepath}${ref ? `@${ref}` : ''}`
+      location = `from "${remotePath}"${ref ? '' : ' on the default branch'}`
+    }
     core.info(`Config fetched ${location}.`)
   })
   return configSchema.parse(config)

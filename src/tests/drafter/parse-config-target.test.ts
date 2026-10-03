@@ -349,6 +349,49 @@ const testSuites: Array<{
       'invalid format: "for:those:who:come:after". Expected format [github:][owner/repo:]filepath[@ref] or file:filepath. ":" or "@" was specified more than once.',
     ),
   },
+  {
+    suiteName: 'preset target without extension',
+    input: [
+      'preset:gitmoji',
+      { repo: { owner: 'cchanche', repo: 'hello-world' }, ref: 'main' },
+    ],
+    expected: {
+      scheme: 'preset',
+      filepath: 'gitmoji',
+    },
+  },
+  {
+    suiteName: 'preset target with yaml extension',
+    input: [
+      'preset:hybrid.yaml',
+      { repo: { owner: 'cchanche', repo: 'hello-world' }, ref: 'main' },
+    ],
+    expected: {
+      scheme: 'preset',
+      filepath: 'hybrid',
+    },
+  },
+  {
+    suiteName: 'preset target with yml extension',
+    input: [
+      'preset:conventional-commits.yml',
+      { repo: { owner: 'cchanche', repo: 'hello-world' }, ref: 'main' },
+    ],
+    expected: {
+      scheme: 'preset',
+      filepath: 'conventional-commits',
+    },
+  },
+  {
+    suiteName: 'preset target with invalid specifier',
+    input: [
+      'preset:gitmoji@main',
+      { repo: { owner: 'cchanche', repo: 'hello-world' }, ref: 'main' },
+    ],
+    expected: new Error(
+      'invalid format: "preset:gitmoji@main". Expected format [github:][owner/repo:]filepath[@ref], file:filepath, or preset:<name>. Preset targets cannot have ":" or "@" specifiers.',
+    ),
+  },
 ]
 
 describe('parse a config target', () => {
