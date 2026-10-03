@@ -254,15 +254,14 @@ var buildExplainabilitySummary = (params) => {
 	if (bodyMatches.size > 0) for (const val of bodyMatches) matchCallouts.push(`- **Matched Body:** \`${val}\``);
 	const rows = [];
 	for (const match of matches) {
+		if (supersededLabels?.includes(match.label)) continue;
 		const spec = getGitmojiSpec(match.label);
 		const semver = resolveSemverBump(match.label, spec);
-		const isSuperseded = supersededLabels?.includes(match.label);
 		const intention = spec ? `[${spec.description}](https://gitmoji.dev/specification)` : "-";
 		const trigger = match.matcher === "files" ? "Files" : match.matcher === "branch" ? "Branch" : match.matcher === "title" ? "Title" : "Body";
 		const patternEscaped = match.pattern ? `\`${match.pattern.replace(/\|/g, "\\|")}\`` : "-";
 		const details = match.matcher === "files" ? `Files matched pattern ${patternEscaped}` : `${trigger} matched ${patternEscaped}`;
-		const semverDisplay = isSuperseded ? `\`${semver}\` *(superseded by \`${highestBump}\`)*` : `\`${semver}\``;
-		rows.push(`| \`${match.label}\` | ${intention} | ${semverDisplay} | ${trigger} | ${details} |`);
+		rows.push(`| \`${match.label}\` | ${intention} | \`${semver}\` | ${trigger} | ${details} |`);
 	}
 	const sections = [];
 	if (categories && categories.length > 0) {
@@ -271,13 +270,12 @@ var buildExplainabilitySummary = (params) => {
 	const lines = [
 		"## 🏷️ Autolabeler & Semver Summary",
 		"",
-		`Applied **${appliedLabels ? appliedLabels.length : matches.length}** label(s) to Pull Request **#${pullRequest.number}** (\`${pullRequest.branch}\`):`,
+		`Applied **${appliedLabels ? appliedLabels.length : rows.length}** label(s) to Pull Request **#${pullRequest.number}** (\`${pullRequest.branch}\`):`,
 		...matchCallouts,
 		"",
 		"### 🚀 Release Impact",
 		`- **Calculated Version Increment:** \`${highestBump}\``
 	];
-	if (supersededLabels && supersededLabels.length > 0) lines.push(`- **Superseded Bump Label(s):** ${supersededLabels.map((l) => `\`${l}\``).join(", ")} (superseded by \`${highestBump}\`)`);
 	if (sections.length > 0) lines.push("- **Target Changelog Section(s):**", ...sections);
 	lines.push("", "<details>", "<summary>🏷️ Label Decision Details</summary>", "", "| Label | Gitmoji Intention | Semver Impact | Trigger | Matched Rule |", "| :--- | :--- | :--- | :--- | :--- |", ...rows, "", "</details>", "");
 	return lines.join("\n");
