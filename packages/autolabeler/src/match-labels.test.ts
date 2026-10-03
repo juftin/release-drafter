@@ -39,6 +39,7 @@ describe('matchLabels', () => {
         { label: 'core', matcher: 'title' },
         { label: 'feature', matcher: 'title' },
       ],
+      supersededLabels: [],
     })
   })
 
@@ -53,6 +54,7 @@ describe('matchLabels', () => {
         { label: 'core', matcher: 'title' },
         { label: 'core', matcher: 'title' },
       ],
+      supersededLabels: [],
     })
   })
 
@@ -84,6 +86,7 @@ describe('matchLabels', () => {
           { label: 'prior', matcher },
           { label: 'feature', matcher },
         ],
+        supersededLabels: [],
       })
     },
   )
@@ -121,6 +124,7 @@ describe('matchLabels', () => {
     expect(matchLabels({ config, pullRequest })).toEqual({
       labels: ['needs-triage'],
       matches: [{ label: 'needs-triage', matcher: 'fallback' }],
+      supersededLabels: [],
     })
   })
 
@@ -135,6 +139,7 @@ describe('matchLabels', () => {
     expect(matchLabels({ config, pullRequest })).toEqual({
       labels: ['core'],
       matches: [{ label: 'core', matcher: 'title' }],
+      supersededLabels: [],
     })
   })
 
@@ -143,6 +148,7 @@ describe('matchLabels', () => {
     expect(matchLabels({ config, pullRequest })).toEqual({
       labels: [],
       matches: [],
+      supersededLabels: [],
     })
   })
 
@@ -154,6 +160,7 @@ describe('matchLabels', () => {
     expect(matchLabels({ config, pullRequest })).toEqual({
       labels: [],
       matches: [],
+      supersededLabels: [],
     })
   })
 
@@ -169,6 +176,7 @@ describe('matchLabels', () => {
       expect(matchLabels({ config, pullRequest })).toEqual({
         labels: ['core'],
         matches: [{ label: 'core', matcher: 'title' }],
+        supersededLabels: [],
       })
     },
   )
@@ -190,6 +198,7 @@ describe('matchLabels', () => {
         { label: 'needs-triage', matcher: 'fallback' },
         { label: 'uncategorized', matcher: 'fallback' },
       ],
+      supersededLabels: [],
     })
   })
 
@@ -305,5 +314,45 @@ describe('matchLabels', () => {
 
     expect(matchLabels({ config, pullRequest }).labels).toEqual(['repeatable'])
     expect(matchLabels({ config, pullRequest }).labels).toEqual(['repeatable'])
+  })
+
+  it('resolves mutually exclusive semver bump labels to the highest precedence', () => {
+    const { config } = compile([
+      { label: 'feature', title: ['/feat/'] },
+      { label: 'minor', title: ['/feat/'] },
+      { label: 'docs', files: ['docs/**'] },
+      { label: 'patch', files: ['docs/**'] },
+    ])
+    const result = matchLabels({
+      config,
+      pullRequest: {
+        files: ['docs/readme.md'],
+        branch: 'main',
+        title: 'feat: add docs',
+        body: null,
+      },
+    })
+    // minor supersedes patch
+    expect(result.labels).toEqual(['feature', 'minor', 'docs'])
+    expect(result.supersededLabels).toEqual(['patch'])
+    expect(result.matches).toHaveLength(4)
+
+    // major supersedes minor and patch
+    const { config: majorConfig } = compile([
+      { label: 'major', title: ['/break/'] },
+      { label: 'minor', title: ['/feat/'] },
+      { label: 'patch', files: ['docs/**'] },
+    ])
+    const majorResult = matchLabels({
+      config: majorConfig,
+      pullRequest: {
+        files: ['docs/readme.md'],
+        branch: 'main',
+        title: 'feat: break something',
+        body: null,
+      },
+    })
+    expect(majorResult.labels).toEqual(['major'])
+    expect(majorResult.supersededLabels).toEqual(['minor', 'patch'])
   })
 })
