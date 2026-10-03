@@ -10,6 +10,8 @@
 
 ## Usage
 
+### Action Step
+
 Add the
 [Release Drafter GitHub Action](https://github.com/marketplace/actions/release-drafter)
 to a
@@ -39,6 +41,31 @@ jobs:
           config-name: release-drafter.yml
 ```
 
+### Reusable Workflow
+
+Alternatively, invoke Release Drafter directly as a reusable workflow without defining runner steps:
+
+```yaml
+name: Release Drafter
+
+on:
+  push:
+    branches:
+      - main
+  pull_request_target:
+    types: [opened, reopened, synchronize]
+
+jobs:
+  release_drafter:
+    permissions:
+      contents: write
+      pull-requests: write
+    uses: release-drafter/release-drafter/.github/workflows/workflow.yml@v7
+    with:
+      config-name: release-drafter.yml # optional, defaults to release-drafter.yml
+      check: false # optional: set to true to run check-pr validation on pull requests
+```
+
 ## Use outside GitHub Actions
 
 The `release-drafter` package provides a command-line interface and a programmatic
@@ -57,14 +84,41 @@ supported events, and matching behavior.
 
 ## Configuration
 
-The action requires a configuration file. By default, it loads
-`.github/release-drafter.yml` through the GitHub API. You do not need to check
-out the repository.
+By default, Release Drafter looks for `.github/release-drafter.yml` through the
+GitHub API, followed by `.github/release-drafter.yml` in the organization's
+`.github` repository. If no configuration file exists, Release Drafter
+automatically falls back to the built-in **`presets:conventional-commits`**
+preset for zero-configuration drafting.
 
 > [!note]
 > See [Configuration loading](./docs/configuration-loading.md) to load a
-> generated file, extend another configuration, or load from another
-> repository.
+> generated file, extend another configuration, load from another repository,
+> or choose a built-in preset.
+
+### Built-in presets
+
+Release Drafter includes built-in presets that provide complete changelog
+categories, semantic version bumping, and autolabeler rules out of the box:
+
+- **`presets:gitmoji`** (or `preset:gitmoji`): Comprehensive specification for [Gitmoji](https://gitmoji.dev) commits and PR titles, mapping 80+ emojis and shortcodes (`:sparkles:`, `:bug:`, `:boom:`, etc.) to semantic versioning and changelog categories.
+- **`presets:conventional-commits`** (or `preset:conventional-commits`): Standard [Conventional Commits](https://www.conventionalcommits.org) specification mapping types (`feat`, `fix`, `docs`, `perf`, `refactor`, `breaking change`, etc.).
+- **`presets:hybrid`** (or `preset:hybrid`): Unified preset recognizing both Conventional Commits and Gitmojis simultaneously.
+
+To use a preset directly:
+
+```yaml
+- uses: release-drafter/release-drafter@v7
+  with:
+    config-name: presets:gitmoji
+```
+
+To extend a preset and customize specific templates:
+
+```yaml
+# .github/release-drafter.yml
+_extends: presets:gitmoji
+tag-template: 'v$RESOLVED_VERSION'
+```
 
 ### Example
 
@@ -541,6 +595,25 @@ categories:
 Release Drafter includes only changes with the `app-foo` label in the release
 draft.
 
+## Include direct commits
+
+By default, Release Drafter compiles release notes from merged pull requests.
+To include individual commits pushed directly to the branch between releases,
+set `include-commits: true`:
+
+```yml
+include-commits: true
+```
+
+When enabled:
+
+- Direct commits are discovered between the baseline tag and the target commit.
+- Commit messages are evaluated against autolabeler title patterns and category
+  title regular expressions to determine their changelog category and SemVer bump.
+- Individual commit authors are credited in `$AUTHORS` and `$CONTRIBUTORS`.
+- All built-in presets (`presets:gitmoji`, `presets:conventional-commits`,
+  `presets:hybrid`) have `include-commits: true` enabled by default.
+
 ## Exclude contributors
 
 By default, `$CONTRIBUTORS` contains the names or usernames of all release
@@ -739,6 +812,18 @@ In this example, a matching documentation rule adds both `chore` and
 `documentation`. A matching bug rule adds `bug` and skips the enhancement rule,
 while keeping any documentation labels already selected. A pull request that
 matches none of the ordinary rules receives `needs-triage` and `uncategorized`.
+
+### Explainability step summary
+
+When Autolabeler runs within GitHub Actions, it automatically publishes an
+execution breakdown to the GitHub Actions Job Summary (`$GITHUB_STEP_SUMMARY`).
+The summary details:
+
+- Evaluated pull request context (PR number, title, head branch).
+- Every evaluated rule, indicating matched criteria (`title`, `branch`, `body`,
+  `files`) or fallback status.
+- Applied labels along with their semantic version impact (`major`, `minor`,
+  `patch`), including Gitmoji specifications when using preset configurations.
 
 ## Prerelease workflow
 

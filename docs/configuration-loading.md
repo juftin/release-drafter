@@ -11,8 +11,10 @@ Use one of these forms:
 
 - `[github:][[owner/]repo:]filepath[@ref]`
 - `file:filepath`
+- `preset:<name>` or `presets:<name>`
 
-The optional scheme is `github:` or `file:`. The default is `github:`.
+The optional scheme is `github:`, `file:`, or `preset:` (alias `presets:`). The default is `github:`.
+Built-in presets include `gitmoji`, `conventional-commits`, and `hybrid`. If no configuration is found in the repository or `.github` organization repo, Release Drafter automatically falls back to `preset:conventional-commits`.
 
 <p align="center">
   <img width="767" height="150" alt="Configuration target syntax diagram" src="design/config-name-syntax.png" />
@@ -47,6 +49,15 @@ the repository, run `actions/checkout@v6` before Release Drafter.
 > ```
 
 ## Recipes
+
+### Use a built-in preset
+
+- `config-name: presets:gitmoji` (or `preset:gitmoji`)
+  - Loads the built-in [Gitmoji](https://gitmoji.dev) preset with emoji/shortcode categories and SemVer bumping.
+- `config-name: presets:conventional-commits` (or `preset:conventional-commits`)
+  - Loads the built-in [Conventional Commits](https://www.conventionalcommits.org) preset.
+- `config-name: presets:hybrid` (or `preset:hybrid`)
+  - Loads the built-in hybrid preset supporting both Gitmoji and Conventional Commits.
 
 ### Load from another directory
 
@@ -133,7 +144,13 @@ template: |
 
 > [!note]
 > `_extends` and its `from` mapping key use the same syntax as `config-name`.
-> These values select the same file:
+> You can also extend built-in presets:
+>
+> - `_extends: presets:gitmoji`
+> - `_extends: presets:conventional-commits`
+> - `_extends: presets:hybrid`
+>
+> Or target specific files across repos and local workspaces:
 >
 > - `_extends: ../configs/release-drafter-common.yml`
 > - `_extends: github:/configs/release-drafter-common.yml`
