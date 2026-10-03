@@ -1,0 +1,1106 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/release-drafter/release-drafter/master/schema.json
+
+name-template: 'v$RESOLVED_VERSION'
+tag-template: 'v$RESOLVED_VERSION'
+include-commits: true
+change-template: '- $CHANGE_TITLE ($CHANGE_REFERENCE) $CHANGE_AUTHORS'
+
+template: |
+  ## What's Changed
+
+  $CHANGES
+
+  **Full Changelog**: https://github.com/$OWNER/$REPOSITORY/compare/$PREVIOUS_TAG...$RESOLVED_TAG
+
+exclude-labels:
+  - 'skip-changelog'
+  - 'skip-release'
+
+categories:
+  - title: '💥 Breaking Changes'
+    labels:
+      - 'major'
+      - '💥'
+      - ':boom:'
+      - 'boom'
+      - 'breaking'
+      - 'breaking-change'
+  - title: '✨ Features & Improvements'
+    labels:
+      - 'minor'
+      - '✨'
+      - ':sparkles:'
+      - 'sparkles'
+      - '🎉'
+      - ':tada:'
+      - 'tada'
+      - '🚀'
+      - ':rocket:'
+      - 'rocket'
+      - '🚸'
+      - ':children_crossing:'
+      - 'children-crossing'
+      - '📱'
+      - ':iphone:'
+      - 'iphone'
+      - '💫'
+      - ':dizzy:'
+      - 'dizzy'
+      - '🌐'
+      - ':globe_with_meridians:'
+      - 'globe-with-meridians'
+      - '🍱'
+      - ':bento:'
+      - 'bento'
+      - '♿️'
+      - '♿'
+      - ':wheelchair:'
+      - 'wheelchair'
+      - '🥚'
+      - ':egg:'
+      - 'egg'
+      - '⚗️'
+      - '⚗'
+      - ':alembic:'
+      - 'alembic'
+      - '🚩'
+      - ':triangular_flag_on_post:'
+      - 'triangular-flag-on-post'
+      - '👔'
+      - ':necktie:'
+      - 'necktie'
+      - '🦖'
+      - ':t-rex:'
+      - 't-rex'
+      - '✈️'
+      - '✈'
+      - ':airplane:'
+      - 'airplane'
+      - 'feature'
+      - 'enhancement'
+      - 'feat'
+  - title: '🐛 Bug Fixes & Security'
+    labels:
+      - '🐛'
+      - ':bug:'
+      - 'bug'
+      - '🚑️'
+      - '🚑'
+      - ':ambulance:'
+      - 'ambulance'
+      - '🩹'
+      - ':adhesive_bandage:'
+      - 'adhesive-bandage'
+      - '🔒️'
+      - '🔒'
+      - ':lock:'
+      - 'lock'
+      - '🔐'
+      - ':closed_lock_with_key:'
+      - 'closed-lock-with-key'
+      - '🛂'
+      - ':passport_control:'
+      - 'passport-control'
+      - '🦺'
+      - ':safety_vest:'
+      - 'safety-vest'
+      - '🥅'
+      - ':goal_net:'
+      - 'goal-net'
+      - '🚨'
+      - ':rotating_light:'
+      - 'rotating-light'
+      - '✏️'
+      - '✏'
+      - ':pencil2:'
+      - 'pencil2'
+      - '👽️'
+      - '👽'
+      - ':alien:'
+      - 'alien'
+      - 'fix'
+      - 'bugfix'
+      - 'security'
+  - title: '⚡ Performance'
+    labels:
+      - '⚡️'
+      - '⚡'
+      - ':zap:'
+      - 'zap'
+      - '🧵'
+      - ':thread:'
+      - 'thread'
+      - '🔍️'
+      - '🔍'
+      - ':mag:'
+      - 'mag'
+      - 'perf'
+      - 'performance'
+  - title: '📝 Documentation'
+    labels:
+      - '📝'
+      - ':memo:'
+      - 'memo'
+      - '💡'
+      - ':bulb:'
+      - 'bulb'
+      - '📄'
+      - ':page_facing_up:'
+      - 'page-facing-up'
+      - '👥'
+      - ':busts_in_silhouette:'
+      - 'busts-in-silhouette'
+      - '💬'
+      - ':speech_balloon:'
+      - 'speech-balloon'
+      - 'docs'
+      - 'documentation'
+  - title: '♻️ Code Refactoring & Style'
+    labels:
+      - '♻️'
+      - '♻'
+      - ':recycle:'
+      - 'recycle'
+      - '🎨'
+      - ':art:'
+      - 'art'
+      - '🔥'
+      - ':fire:'
+      - 'fire'
+      - '⚰️'
+      - '⚰'
+      - ':coffin:'
+      - 'coffin'
+      - '🏗️'
+      - '🏗'
+      - ':building_construction:'
+      - 'building-construction'
+      - '🗑️'
+      - '🗑'
+      - ':wastebasket:'
+      - 'wastebasket'
+      - '🚚'
+      - ':truck:'
+      - 'truck'
+      - '🏷️'
+      - '🏷'
+      - ':label:'
+      - 'label'
+      - '🗃️'
+      - '🗃'
+      - ':card_file_box:'
+      - 'card-file-box'
+      - '💄'
+      - ':lipstick:'
+      - 'lipstick'
+      - '💩'
+      - ':poop:'
+      - 'poop'
+      - 'refactor'
+      - 'style'
+  - title: '📦 Dependency Updates'
+    labels:
+      - '⬆️'
+      - '⬆'
+      - ':arrow_up:'
+      - 'arrow-up'
+      - '⬇️'
+      - '⬇'
+      - ':arrow_down:'
+      - 'arrow-down'
+      - '📌'
+      - ':pushpin:'
+      - 'pushpin'
+      - '➕'
+      - ':heavy_plus_sign:'
+      - 'heavy-plus-sign'
+      - '➖'
+      - ':heavy_minus_sign:'
+      - 'heavy-minus-sign'
+      - '📦️'
+      - '📦'
+      - ':package:'
+      - 'package'
+      - 'dependencies'
+      - 'deps'
+  - title: '👷 CI/CD'
+    labels:
+      - '👷'
+      - ':construction_worker:'
+      - 'construction-worker'
+      - '💚'
+      - ':green_heart:'
+      - 'green-heart'
+      - '🔧'
+      - ':wrench:'
+      - 'wrench'
+      - '🔨'
+      - ':hammer:'
+      - 'hammer'
+      - '🧱'
+      - ':bricks:'
+      - 'bricks'
+      - '🧑‍💻'
+      - ':technologist:'
+      - 'technologist'
+      - '🙈'
+      - ':see_no_evil:'
+      - 'see-no-evil'
+      - '📈'
+      - ':chart_with_upwards_trend:'
+      - 'chart-with-upwards-trend'
+      - '🩺'
+      - ':stethoscope:'
+      - 'stethoscope'
+      - '💸'
+      - ':money_with_wings:'
+      - 'money-with-wings'
+      - '🔖'
+      - ':bookmark:'
+      - 'bookmark'
+      - '🚧'
+      - ':construction:'
+      - 'construction'
+      - '🔊'
+      - ':loud_sound:'
+      - 'loud-sound'
+      - '🔇'
+      - ':mute:'
+      - 'mute'
+      - 'ci'
+      - 'build'
+      - 'chore'
+  - title: '🧪 Tests'
+    labels:
+      - '✅'
+      - ':white_check_mark:'
+      - 'white-check-mark'
+      - '🧪'
+      - ':test_tube:'
+      - 'test-tube'
+      - '📸'
+      - ':camera_flash:'
+      - 'camera-flash'
+      - '🤡'
+      - ':clown_face:'
+      - 'clown-face'
+      - '🌱'
+      - ':seedling:'
+      - 'seedling'
+      - '🧐'
+      - ':monocle_face:'
+      - 'monocle-face'
+      - 'test'
+  - title: '⏪️ Reverts & Branches'
+    labels:
+      - '⏪️'
+      - '⏪'
+      - ':rewind:'
+      - 'rewind'
+      - '🔀'
+      - ':twisted_rightwards_arrows:'
+      - 'twisted-rightwards-arrows'
+      - '🍻'
+      - ':beers:'
+      - 'beers'
+      - 'revert'
+
+version-resolver:
+  major:
+    labels:
+      - 'major'
+      - '💥'
+      - ':boom:'
+      - 'boom'
+      - 'breaking'
+      - 'breaking-change'
+  minor:
+    labels:
+      - 'minor'
+      - '✨'
+      - ':sparkles:'
+      - 'sparkles'
+      - '🎉'
+      - ':tada:'
+      - 'tada'
+      - '🚀'
+      - ':rocket:'
+      - 'rocket'
+      - '🚸'
+      - ':children_crossing:'
+      - 'children-crossing'
+      - '📱'
+      - ':iphone:'
+      - 'iphone'
+      - '💫'
+      - ':dizzy:'
+      - 'dizzy'
+      - '🌐'
+      - ':globe_with_meridians:'
+      - 'globe-with-meridians'
+      - '🍱'
+      - ':bento:'
+      - 'bento'
+      - '♿️'
+      - '♿'
+      - ':wheelchair:'
+      - 'wheelchair'
+      - '🥚'
+      - ':egg:'
+      - 'egg'
+      - '⚗️'
+      - '⚗'
+      - ':alembic:'
+      - 'alembic'
+      - '🚩'
+      - ':triangular_flag_on_post:'
+      - 'triangular-flag-on-post'
+      - '👔'
+      - ':necktie:'
+      - 'necktie'
+      - '🦖'
+      - ':t-rex:'
+      - 't-rex'
+      - '✈️'
+      - '✈'
+      - ':airplane:'
+      - 'airplane'
+      - 'feature'
+      - 'enhancement'
+      - 'feat'
+  patch:
+    labels:
+      - 'patch'
+      - '🐛'
+      - ':bug:'
+      - 'bug'
+      - '🚑️'
+      - '🚑'
+      - ':ambulance:'
+      - 'ambulance'
+      - '🩹'
+      - ':adhesive_bandage:'
+      - 'adhesive-bandage'
+      - '🔒️'
+      - '🔒'
+      - ':lock:'
+      - 'lock'
+      - '🔐'
+      - ':closed_lock_with_key:'
+      - 'closed-lock-with-key'
+      - '🛂'
+      - ':passport_control:'
+      - 'passport-control'
+      - '🦺'
+      - ':safety_vest:'
+      - 'safety-vest'
+      - '🥅'
+      - ':goal_net:'
+      - 'goal-net'
+      - '🚨'
+      - ':rotating_light:'
+      - 'rotating-light'
+      - '✏️'
+      - '✏'
+      - ':pencil2:'
+      - 'pencil2'
+      - '👽️'
+      - '👽'
+      - ':alien:'
+      - 'alien'
+      - 'fix'
+      - 'bugfix'
+      - 'security'
+      - '⚡️'
+      - '⚡'
+      - ':zap:'
+      - 'zap'
+      - '🧵'
+      - ':thread:'
+      - 'thread'
+      - '🔍️'
+      - '🔍'
+      - ':mag:'
+      - 'mag'
+      - 'perf'
+      - 'performance'
+      - '📝'
+      - ':memo:'
+      - 'memo'
+      - '💡'
+      - ':bulb:'
+      - 'bulb'
+      - '📄'
+      - ':page_facing_up:'
+      - 'page-facing-up'
+      - '👥'
+      - ':busts_in_silhouette:'
+      - 'busts-in-silhouette'
+      - '💬'
+      - ':speech_balloon:'
+      - 'speech-balloon'
+      - 'docs'
+      - 'documentation'
+      - '♻️'
+      - '♻'
+      - ':recycle:'
+      - 'recycle'
+      - '🎨'
+      - ':art:'
+      - 'art'
+      - '🔥'
+      - ':fire:'
+      - 'fire'
+      - '⚰️'
+      - '⚰'
+      - ':coffin:'
+      - 'coffin'
+      - '🏗️'
+      - '🏗'
+      - ':building_construction:'
+      - 'building-construction'
+      - '🗑️'
+      - '🗑'
+      - ':wastebasket:'
+      - 'wastebasket'
+      - '🚚'
+      - ':truck:'
+      - 'truck'
+      - '🏷️'
+      - '🏷'
+      - ':label:'
+      - 'label'
+      - '🗃️'
+      - '🗃'
+      - ':card_file_box:'
+      - 'card-file-box'
+      - '💄'
+      - ':lipstick:'
+      - 'lipstick'
+      - '💩'
+      - ':poop:'
+      - 'poop'
+      - 'refactor'
+      - 'style'
+      - '⬆️'
+      - '⬆'
+      - ':arrow_up:'
+      - 'arrow-up'
+      - '⬇️'
+      - '⬇'
+      - ':arrow_down:'
+      - 'arrow-down'
+      - '📌'
+      - ':pushpin:'
+      - 'pushpin'
+      - '➕'
+      - ':heavy_plus_sign:'
+      - 'heavy-plus-sign'
+      - '➖'
+      - ':heavy_minus_sign:'
+      - 'heavy-minus-sign'
+      - '📦️'
+      - '📦'
+      - ':package:'
+      - 'package'
+      - 'dependencies'
+      - 'deps'
+      - '👷'
+      - ':construction_worker:'
+      - 'construction-worker'
+      - '💚'
+      - ':green_heart:'
+      - 'green-heart'
+      - '🔧'
+      - ':wrench:'
+      - 'wrench'
+      - '🔨'
+      - ':hammer:'
+      - 'hammer'
+      - '🧱'
+      - ':bricks:'
+      - 'bricks'
+      - '🧑‍💻'
+      - ':technologist:'
+      - 'technologist'
+      - '🙈'
+      - ':see_no_evil:'
+      - 'see-no-evil'
+      - '📈'
+      - ':chart_with_upwards_trend:'
+      - 'chart-with-upwards-trend'
+      - '🩺'
+      - ':stethoscope:'
+      - 'stethoscope'
+      - '💸'
+      - ':money_with_wings:'
+      - 'money-with-wings'
+      - '🔖'
+      - ':bookmark:'
+      - 'bookmark'
+      - '🚧'
+      - ':construction:'
+      - 'construction'
+      - '🔊'
+      - ':loud_sound:'
+      - 'loud-sound'
+      - '🔇'
+      - ':mute:'
+      - 'mute'
+      - 'ci'
+      - 'build'
+      - 'chore'
+      - '✅'
+      - ':white_check_mark:'
+      - 'white-check-mark'
+      - '🧪'
+      - ':test_tube:'
+      - 'test-tube'
+      - '📸'
+      - ':camera_flash:'
+      - 'camera-flash'
+      - '🤡'
+      - ':clown_face:'
+      - 'clown-face'
+      - '🌱'
+      - ':seedling:'
+      - 'seedling'
+      - '🧐'
+      - ':monocle_face:'
+      - 'monocle-face'
+      - 'test'
+      - '⏪️'
+      - '⏪'
+      - ':rewind:'
+      - 'rewind'
+      - '🔀'
+      - ':twisted_rightwards_arrows:'
+      - 'twisted-rightwards-arrows'
+      - '🍻'
+      - ':beers:'
+      - 'beers'
+      - 'revert'
+  default: patch
+
+autolabeler:
+  # Semver: Major
+  - label: 'major'
+    title:
+      - '/^(:boom:|💥)/'
+      - '/^([a-z]+(\([^\)]+\))?!:|.*BREAKING CHANGE:?)/i'
+      - '/BREAKING[ -]CHANGE/i'
+    branch:
+      - '/.*breaking.*/i'
+    body:
+      - '/BREAKING[ -]CHANGE:/i'
+
+  # Semver: Minor
+  - label: 'minor'
+    title:
+      - '/^(:sparkles:|✨)/'
+      - '/^(:tada:|🎉)/'
+      - '/^(:rocket:|🚀)/'
+      - '/^(:children_crossing:|🚸)/'
+      - '/^(:iphone:|📱)/'
+      - '/^(:dizzy:|💫)/'
+      - '/^(:globe_with_meridians:|🌐)/'
+      - '/^(:bento:|🍱)/'
+      - '/^(:wheelchair:|♿\ufe0f?)/'
+      - '/^(:egg:|🥚)/'
+      - '/^(:alembic:|⚗\ufe0f?)/'
+      - '/^(:triangular_flag_on_post:|🚩)/'
+      - '/^(:necktie:|👔)/'
+      - '/^(:t-rex:|🦖)/'
+      - '/^(:airplane:|✈\ufe0f?)/'
+      - '/^feat(ure)?(\([^\)]+\))?:/i'
+    branch:
+      - '/^feat(\/|-)/i'
+      - '/^feature(\/|-)/i'
+
+  # Semver: Patch
+  - label: 'patch'
+    title:
+      - '/^(:bug:|🐛)/'
+      - '/^(:ambulance:|🚑\ufe0f?)/'
+      - '/^(:adhesive_bandage:|🩹)/'
+      - '/^(:lock:|🔒\ufe0f?)/'
+      - '/^(:closed_lock_with_key:|🔐)/'
+      - '/^(:passport_control:|🛂)/'
+      - '/^(:safety_vest:|🦺)/'
+      - '/^(:goal_net:|🥅)/'
+      - '/^(:rotating_light:|🚨)/'
+      - '/^(:pencil2:|✏\ufe0f?)/'
+      - '/^(:alien:|👽\ufe0f?)/'
+      - '/^(:zap:|⚡\ufe0f?)/'
+      - '/^(:thread:|🧵)/'
+      - '/^(:mag:|🔍\ufe0f?)/'
+      - '/^(:memo:|📝)/'
+      - '/^(:bulb:|💡)/'
+      - '/^(:page_facing_up:|📄)/'
+      - '/^(:busts_in_silhouette:|👥)/'
+      - '/^(:speech_balloon:|💬)/'
+      - '/^(:recycle:|♻\ufe0f?)/'
+      - '/^(:art:|🎨)/'
+      - '/^(:fire:|🔥)/'
+      - '/^(:coffin:|⚰\ufe0f?)/'
+      - '/^(:building_construction:|🏗\ufe0f?)/'
+      - '/^(:wastebasket:|🗑\ufe0f?)/'
+      - '/^(:truck:|🚚)/'
+      - '/^(:label:|🏷\ufe0f?)/'
+      - '/^(:card_file_box:|🗃\ufe0f?)/'
+      - '/^(:lipstick:|💄)/'
+      - '/^(:poop:|💩)/'
+      - '/^(:arrow_up:|⬆\ufe0f?)/'
+      - '/^(:arrow_down:|⬇\ufe0f?)/'
+      - '/^(:pushpin:|📌)/'
+      - '/^(:heavy_plus_sign:|➕)/'
+      - '/^(:heavy_minus_sign:|➖)/'
+      - '/^(:package:|📦\ufe0f?)/'
+      - '/^(:construction_worker:|👷)/'
+      - '/^(:green_heart:|💚)/'
+      - '/^(:wrench:|🔧)/'
+      - '/^(:hammer:|🔨)/'
+      - '/^(:bricks:|🧱)/'
+      - '/^(:technologist:|🧑‍💻)/'
+      - '/^(:see_no_evil:|🙈)/'
+      - '/^(:chart_with_upwards_trend:|📈)/'
+      - '/^(:stethoscope:|🩺)/'
+      - '/^(:money_with_wings:|💸)/'
+      - '/^(:bookmark:|🔖)/'
+      - '/^(:construction:|🚧)/'
+      - '/^(:loud_sound:|🔊)/'
+      - '/^(:mute:|🔇)/'
+      - '/^(:white_check_mark:|✅)/'
+      - '/^(:test_tube:|🧪)/'
+      - '/^(:camera_flash:|📸)/'
+      - '/^(:clown_face:|🤡)/'
+      - '/^(:seedling:|🌱)/'
+      - '/^(:monocle_face:|🧐)/'
+      - '/^(:rewind:|⏪\ufe0f?)/'
+      - '/^(:twisted_rightwards_arrows:|🔀)/'
+      - '/^(:beers:|🍻)/'
+      - '/^(fix|bugfix|hotfix)(\([^\)]+\))?:/i'
+      - '/^sec(urity)?(\([^\)]+\))?:/i'
+      - '/^perf(ormance)?(\([^\)]+\))?:/i'
+      - '/^docs?(\([^\)]+\))?:/i'
+      - '/^refactor(\([^\)]+\))?:/i'
+      - '/^(deps?|dependencies)(\([^\)]+\))?:/i'
+      - '/^chore\(deps(-[a-z0-9]+)?\):/i'
+      - '/^(ci|build)(\([^\)]+\))?:/i'
+      - '/^chore(\([^\)]+\))?:/i'
+      - '/^tests?(\([^\)]+\))?:/i'
+      - '/^revert(\([^\)]+\))?:/i'
+    branch:
+      - '/^fix(\/|-)/i'
+      - '/^bugfix(\/|-)/i'
+      - '/^hotfix(\/|-)/i'
+      - '/^sec(urity)?(\/|-)/i'
+      - '/^perf(\/|-)/i'
+      - '/^docs?(\/|-)/i'
+      - '/^refactor(\/|-)/i'
+      - '/^dependabot\//i'
+      - '/^renovate\//i'
+      - '/^deps?(\/|-)/i'
+      - '/^ci(\/|-)/i'
+      - '/^build(\/|-)/i'
+      - '/^chore(\/|-)/i'
+      - '/^tests?(\/|-)/i'
+      - '/^revert(\/|-)/i'
+
+  - label: 'breaking'
+    title:
+      - '/^([a-z]+(\([^\)]+\))?!:|.*BREAKING CHANGE:?)/i'
+      - '/BREAKING[ -]CHANGE/i'
+    branch:
+      - '/.*breaking.*/i'
+    body:
+      - '/BREAKING[ -]CHANGE:/i'
+
+  - label: ':boom:'
+    title:
+      - '/^(:boom:|💥)/'
+      - '/^([a-z]+(\([^\)]+\))?!:|.*BREAKING CHANGE:?)/i'
+      - '/BREAKING[ -]CHANGE/i'
+    branch:
+      - '/.*breaking.*/i'
+    body:
+      - '/BREAKING[ -]CHANGE:/i'
+
+  - label: 'feat'
+    title:
+      - '/^feat(ure)?(\([^\)]+\))?:/i'
+    branch:
+      - '/^feat(\/|-)/i'
+      - '/^feature(\/|-)/i'
+
+  - label: 'fix'
+    title:
+      - '/^(fix|bugfix|hotfix)(\([^\)]+\))?:/i'
+    branch:
+      - '/^fix(\/|-)/i'
+      - '/^bugfix(\/|-)/i'
+      - '/^hotfix(\/|-)/i'
+
+  - label: 'security'
+    title:
+      - '/^sec(urity)?(\([^\)]+\))?:/i'
+    branch:
+      - '/^sec(urity)?(\/|-)/i'
+
+  - label: 'perf'
+    title:
+      - '/^perf(ormance)?(\([^\)]+\))?:/i'
+    branch:
+      - '/^perf(\/|-)/i'
+
+  - label: 'docs'
+    files:
+      - '**/*.md'
+      - 'docs/**'
+    title:
+      - '/^docs?(\([^\)]+\))?:/i'
+    branch:
+      - '/^docs?(\/|-)/i'
+
+  - label: 'refactor'
+    title:
+      - '/^refactor(\([^\)]+\))?:/i'
+    branch:
+      - '/^refactor(\/|-)/i'
+
+  - label: 'dependencies'
+    title:
+      - '/^(deps?|dependencies)(\([^\)]+\))?:/i'
+      - '/^chore\(deps(-[a-z0-9]+)?\):/i'
+    branch:
+      - '/^dependabot\//i'
+      - '/^renovate\//i'
+      - '/^deps?(\/|-)/i'
+
+  - label: 'ci'
+    files:
+      - '.github/**'
+    title:
+      - '/^(ci|build)(\([^\)]+\))?:/i'
+    branch:
+      - '/^ci(\/|-)/i'
+      - '/^build(\/|-)/i'
+
+  - label: 'chore'
+    title:
+      - '/^chore(\([^\)]+\))?:/i'
+    branch:
+      - '/^chore(\/|-)/i'
+
+  - label: 'test'
+    title:
+      - '/^tests?(\([^\)]+\))?:/i'
+    branch:
+      - '/^tests?(\/|-)/i'
+
+  - label: 'revert'
+    title:
+      - '/^revert(\([^\)]+\))?:/i'
+    branch:
+      - '/^revert(\/|-)/i'
+
+  - label: ':sparkles:'
+    title:
+      - '/^(:sparkles:|✨)/'
+
+  - label: ':tada:'
+    title:
+      - '/^(:tada:|🎉)/'
+
+  - label: ':rocket:'
+    title:
+      - '/^(:rocket:|🚀)/'
+
+  - label: ':children_crossing:'
+    title:
+      - '/^(:children_crossing:|🚸)/'
+
+  - label: ':iphone:'
+    title:
+      - '/^(:iphone:|📱)/'
+
+  - label: ':dizzy:'
+    title:
+      - '/^(:dizzy:|💫)/'
+
+  - label: ':globe_with_meridians:'
+    title:
+      - '/^(:globe_with_meridians:|🌐)/'
+
+  - label: ':bento:'
+    title:
+      - '/^(:bento:|🍱)/'
+
+  - label: ':wheelchair:'
+    title:
+      - '/^(:wheelchair:|♿\ufe0f?)/'
+
+  - label: ':egg:'
+    title:
+      - '/^(:egg:|🥚)/'
+
+  - label: ':alembic:'
+    title:
+      - '/^(:alembic:|⚗\ufe0f?)/'
+
+  - label: ':triangular_flag_on_post:'
+    title:
+      - '/^(:triangular_flag_on_post:|🚩)/'
+
+  - label: ':necktie:'
+    title:
+      - '/^(:necktie:|👔)/'
+
+  - label: ':t-rex:'
+    title:
+      - '/^(:t-rex:|🦖)/'
+
+  - label: ':airplane:'
+    title:
+      - '/^(:airplane:|✈\ufe0f?)/'
+
+  - label: ':bug:'
+    title:
+      - '/^(:bug:|🐛)/'
+
+  - label: ':ambulance:'
+    title:
+      - '/^(:ambulance:|🚑\ufe0f?)/'
+
+  - label: ':adhesive_bandage:'
+    title:
+      - '/^(:adhesive_bandage:|🩹)/'
+
+  - label: ':lock:'
+    title:
+      - '/^(:lock:|🔒\ufe0f?)/'
+
+  - label: ':closed_lock_with_key:'
+    title:
+      - '/^(:closed_lock_with_key:|🔐)/'
+
+  - label: ':passport_control:'
+    title:
+      - '/^(:passport_control:|🛂)/'
+
+  - label: ':safety_vest:'
+    title:
+      - '/^(:safety_vest:|🦺)/'
+
+  - label: ':goal_net:'
+    title:
+      - '/^(:goal_net:|🥅)/'
+
+  - label: ':rotating_light:'
+    title:
+      - '/^(:rotating_light:|🚨)/'
+
+  - label: ':pencil2:'
+    title:
+      - '/^(:pencil2:|✏\ufe0f?)/'
+
+  - label: ':alien:'
+    title:
+      - '/^(:alien:|👽\ufe0f?)/'
+
+  - label: ':zap:'
+    title:
+      - '/^(:zap:|⚡\ufe0f?)/'
+
+  - label: ':thread:'
+    title:
+      - '/^(:thread:|🧵)/'
+
+  - label: ':mag:'
+    title:
+      - '/^(:mag:|🔍\ufe0f?)/'
+
+  - label: ':memo:'
+    files:
+      - '**/*.md'
+      - 'docs/**'
+    title:
+      - '/^(:memo:|📝)/'
+
+  - label: ':bulb:'
+    title:
+      - '/^(:bulb:|💡)/'
+
+  - label: ':page_facing_up:'
+    title:
+      - '/^(:page_facing_up:|📄)/'
+
+  - label: ':busts_in_silhouette:'
+    title:
+      - '/^(:busts_in_silhouette:|👥)/'
+
+  - label: ':speech_balloon:'
+    title:
+      - '/^(:speech_balloon:|💬)/'
+
+  - label: ':recycle:'
+    title:
+      - '/^(:recycle:|♻\ufe0f?)/'
+
+  - label: ':art:'
+    title:
+      - '/^(:art:|🎨)/'
+
+  - label: ':fire:'
+    title:
+      - '/^(:fire:|🔥)/'
+
+  - label: ':coffin:'
+    title:
+      - '/^(:coffin:|⚰\ufe0f?)/'
+
+  - label: ':building_construction:'
+    title:
+      - '/^(:building_construction:|🏗\ufe0f?)/'
+
+  - label: ':wastebasket:'
+    title:
+      - '/^(:wastebasket:|🗑\ufe0f?)/'
+
+  - label: ':truck:'
+    title:
+      - '/^(:truck:|🚚)/'
+
+  - label: ':label:'
+    title:
+      - '/^(:label:|🏷\ufe0f?)/'
+
+  - label: ':card_file_box:'
+    title:
+      - '/^(:card_file_box:|🗃\ufe0f?)/'
+
+  - label: ':lipstick:'
+    title:
+      - '/^(:lipstick:|💄)/'
+
+  - label: ':poop:'
+    title:
+      - '/^(:poop:|💩)/'
+
+  - label: ':arrow_up:'
+    title:
+      - '/^(:arrow_up:|⬆\ufe0f?)/'
+
+  - label: ':arrow_down:'
+    title:
+      - '/^(:arrow_down:|⬇\ufe0f?)/'
+
+  - label: ':pushpin:'
+    title:
+      - '/^(:pushpin:|📌)/'
+
+  - label: ':heavy_plus_sign:'
+    title:
+      - '/^(:heavy_plus_sign:|➕)/'
+
+  - label: ':heavy_minus_sign:'
+    title:
+      - '/^(:heavy_minus_sign:|➖)/'
+
+  - label: ':package:'
+    title:
+      - '/^(:package:|📦\ufe0f?)/'
+
+  - label: ':construction_worker:'
+    files:
+      - '.github/**'
+    title:
+      - '/^(:construction_worker:|👷)/'
+
+  - label: ':green_heart:'
+    title:
+      - '/^(:green_heart:|💚)/'
+
+  - label: ':wrench:'
+    title:
+      - '/^(:wrench:|🔧)/'
+
+  - label: ':hammer:'
+    title:
+      - '/^(:hammer:|🔨)/'
+
+  - label: ':bricks:'
+    title:
+      - '/^(:bricks:|🧱)/'
+
+  - label: ':technologist:'
+    title:
+      - '/^(:technologist:|🧑‍💻)/'
+
+  - label: ':see_no_evil:'
+    title:
+      - '/^(:see_no_evil:|🙈)/'
+
+  - label: ':chart_with_upwards_trend:'
+    title:
+      - '/^(:chart_with_upwards_trend:|📈)/'
+
+  - label: ':stethoscope:'
+    title:
+      - '/^(:stethoscope:|🩺)/'
+
+  - label: ':money_with_wings:'
+    title:
+      - '/^(:money_with_wings:|💸)/'
+
+  - label: ':bookmark:'
+    title:
+      - '/^(:bookmark:|🔖)/'
+
+  - label: ':construction:'
+    title:
+      - '/^(:construction:|🚧)/'
+
+  - label: ':loud_sound:'
+    title:
+      - '/^(:loud_sound:|🔊)/'
+
+  - label: ':mute:'
+    title:
+      - '/^(:mute:|🔇)/'
+
+  - label: ':white_check_mark:'
+    title:
+      - '/^(:white_check_mark:|✅)/'
+
+  - label: ':test_tube:'
+    title:
+      - '/^(:test_tube:|🧪)/'
+
+  - label: ':camera_flash:'
+    title:
+      - '/^(:camera_flash:|📸)/'
+
+  - label: ':clown_face:'
+    title:
+      - '/^(:clown_face:|🤡)/'
+
+  - label: ':seedling:'
+    title:
+      - '/^(:seedling:|🌱)/'
+
+  - label: ':monocle_face:'
+    title:
+      - '/^(:monocle_face:|🧐)/'
+
+  - label: ':rewind:'
+    title:
+      - '/^(:rewind:|⏪\ufe0f?)/'
+
+  - label: ':twisted_rightwards_arrows:'
+    title:
+      - '/^(:twisted_rightwards_arrows:|🔀)/'
+
+  - label: ':beers:'
+    title:
+      - '/^(:beers:|🍻)/'

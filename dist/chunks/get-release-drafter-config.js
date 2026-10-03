@@ -1,4 +1,4 @@
-import { S as Minimatch, T as info, _ as number, b as stringbool, d as escapeStringRegexp, f as ZodDefault, g as literal, h as boolean, m as array, p as _enum, t as composeConfigGet, v as object, x as union, y as string } from "./config.js";
+import { C as Minimatch, E as info, S as union, _ as literal, b as string, f as escapeStringRegexp, g as boolean, h as array, m as _enum, p as ZodDefault, t as composeConfigGet, v as number, x as stringbool, y as object } from "./config.js";
 //#region node_modules/conventional-commits-parser/dist/regex.js
 var nomatchRegex = /(?!.*)/;
 function escape(string) {
@@ -1780,8 +1780,8 @@ var validateParsedConfig = (parsedConfig) => {
 var getReleaseDrafterConfig = async (configName, currentContext, token) => {
 	const { config, contexts } = await composeConfigGet(configName, currentContext, token);
 	contexts.forEach(({ filepath, ref, repo, scheme }) => {
-		const remotePath = `${repo.owner}/${repo.repo}/${filepath}${ref ? `@${ref}` : ""}`;
-		const location = scheme === "file" ? `locally from "${filepath}"` : `from "${remotePath}"${ref ? "" : " on the default branch"}`;
+		const remotePath = repo ? `${repo.owner}/${repo.repo}/${filepath}${ref ? `@${ref}` : ""}` : filepath;
+		const location = scheme === "file" ? `locally from "${filepath}"` : scheme === "preset" ? `from preset "${filepath}"` : `from "${remotePath}"${ref ? "" : " on the default branch"}`;
 		info(`Config fetched ${location}.`);
 	});
 	return configSchema.parse(config);

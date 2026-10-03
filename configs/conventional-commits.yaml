@@ -1,0 +1,251 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/release-drafter/release-drafter/master/schema.json
+
+name-template: 'v$RESOLVED_VERSION'
+tag-template: 'v$RESOLVED_VERSION'
+include-commits: true
+change-template: '- $CHANGE_TITLE ($CHANGE_REFERENCE) $CHANGE_AUTHORS'
+
+template: |
+  ## What's Changed
+
+  $CHANGES
+
+  **Full Changelog**: https://github.com/$OWNER/$REPOSITORY/compare/$PREVIOUS_TAG...$RESOLVED_TAG
+
+exclude-labels:
+  - 'skip-changelog'
+  - 'skip-release'
+
+categories:
+  - title: '💥 Breaking Changes'
+    labels:
+      - 'breaking'
+      - 'breaking-change'
+      - 'major'
+  - title: '🚀 Features & Enhancements'
+    labels:
+      - 'feat'
+      - 'feature'
+      - 'enhancement'
+      - 'minor'
+  - title: '🐛 Bug Fixes'
+    labels:
+      - 'fix'
+      - 'bug'
+      - 'bugfix'
+      - 'security'
+  - title: '⚡ Performance Improvements'
+    labels:
+      - 'perf'
+      - 'performance'
+  - title: '📚 Documentation'
+    labels:
+      - 'docs'
+      - 'documentation'
+  - title: '📦 Dependency Updates'
+    labels:
+      - 'dependencies'
+      - 'deps'
+  - title: '👷 CI/CD'
+    labels:
+      - 'ci'
+      - 'build'
+  - title: '🧰 Maintenance & Code Quality'
+    labels:
+      - 'refactor'
+      - 'chore'
+      - 'style'
+      - 'test'
+      - 'tests'
+  - title: '🔄 Reverts'
+    labels:
+      - 'revert'
+
+version-resolver:
+  major:
+    labels:
+      - 'breaking'
+      - 'breaking-change'
+      - 'major'
+  minor:
+    labels:
+      - 'feat'
+      - 'feature'
+      - 'minor'
+  patch:
+    labels:
+      - 'fix'
+      - 'bug'
+      - 'bugfix'
+      - 'security'
+      - 'patch'
+      - 'perf'
+      - 'performance'
+      - 'docs'
+      - 'documentation'
+      - 'dependencies'
+      - 'deps'
+      - 'refactor'
+      - 'chore'
+      - 'style'
+      - 'build'
+      - 'ci'
+      - 'test'
+      - 'tests'
+      - 'revert'
+  default: patch
+
+autolabeler:
+  # Semver Labels
+  - label: 'major'
+    title:
+      - '/^[a-z]+(\([^\\)]+\))?!:/i'
+      - '/^BREAKING( CHANGE)?(:|(\([^\\)]+\))?:)/i'
+      - '/BREAKING CHANGE/i'
+    branch:
+      - '/.*breaking.*/i'
+    body:
+      - '/BREAKING[ -]CHANGE:/i'
+
+  - label: 'minor'
+    title:
+      - '/^feat(ure)?(\([^\\)]+\))?:/i'
+    branch:
+      - '/^feat(\/|-)/i'
+      - '/^feature(\/|-)/i'
+
+  - label: 'patch'
+    title:
+      - '/^(fix|bugfix|hotfix)(\([^\\)]+\))?:/i'
+      - '/^sec(urity)?(\([^\\)]+\))?:/i'
+      - '/^perf(ormance)?(\([^\\)]+\))?:/i'
+      - '/^docs?(\([^\\)]+\))?:/i'
+      - '/^refactor(\([^\\)]+\))?:/i'
+      - '/^(deps?|dependencies)(\([^\\)]+\))?:/i'
+      - '/^chore\(deps(-[a-z0-9]+)?\):/i'
+      - '/^(ci|build)(\([^\\)]+\))?:/i'
+      - '/^chore(\([^\\)]+\))?:/i'
+      - '/^tests?(\([^\\)]+\))?:/i'
+      - '/^revert(\([^\\)]+\))?:/i'
+    branch:
+      - '/^fix(\/|-)/i'
+      - '/^bugfix(\/|-)/i'
+      - '/^hotfix(\/|-)/i'
+      - '/^sec(urity)?(\/|-)/i'
+      - '/^perf(\/|-)/i'
+      - '/^docs?(\/|-)/i'
+      - '/^refactor(\/|-)/i'
+      - '/^dependabot\//i'
+      - '/^renovate\//i'
+      - '/^deps?(\/|-)/i'
+      - '/^ci(\/|-)/i'
+      - '/^build(\/|-)/i'
+      - '/^chore(\/|-)/i'
+      - '/^tests?(\/|-)/i'
+      - '/^revert(\/|-)/i'
+
+  # Breaking Changes
+  - label: 'breaking'
+    title:
+      - '/^[a-z]+(\([^\\)]+\))?!:/i'
+      - '/^BREAKING( CHANGE)?(:|(\([^\\)]+\))?:)/i'
+      - '/BREAKING CHANGE/i'
+    branch:
+      - '/.*breaking.*/i'
+    body:
+      - '/BREAKING[ -]CHANGE:/i'
+
+  # Features
+  - label: 'feat'
+    title:
+      - '/^feat(ure)?(\([^\\)]+\))?:/i'
+    branch:
+      - '/^feat(\/|-)/i'
+      - '/^feature(\/|-)/i'
+
+  # Fixes
+  - label: 'fix'
+    title:
+      - '/^(fix|bugfix|hotfix)(\([^\\)]+\))?:/i'
+    branch:
+      - '/^fix(\/|-)/i'
+      - '/^bugfix(\/|-)/i'
+      - '/^hotfix(\/|-)/i'
+
+  # Performance
+  - label: 'perf'
+    title:
+      - '/^perf(ormance)?(\([^\\)]+\))?:/i'
+    branch:
+      - '/^perf(\/|-)/i'
+
+  # Documentation
+  - label: 'docs'
+    files:
+      - '**/*.md'
+      - 'docs/**'
+    title:
+      - '/^docs?(\([^\\)]+\))?:/i'
+    branch:
+      - '/^docs?(\/|-)/i'
+
+  # Refactoring
+  - label: 'refactor'
+    title:
+      - '/^refactor(\([^\\)]+\))?:/i'
+    branch:
+      - '/^refactor(\/|-)/i'
+
+  # Tests
+  - label: 'test'
+    title:
+      - '/^tests?(\([^\\)]+\))?:/i'
+    branch:
+      - '/^tests?(\/|-)/i'
+
+  # Dependencies
+  - label: 'dependencies'
+    title:
+      - '/^(deps?|dependencies)(\([^\\)]+\))?:/i'
+      - '/^chore\(deps(-[a-z0-9]+)?\):/i'
+    branch:
+      - '/^dependabot\//i'
+      - '/^renovate\//i'
+      - '/^deps?(\/|-)/i'
+
+  # Build
+  - label: 'build'
+    title:
+      - '/^build(\([^\\)]+\))?:/i'
+    branch:
+      - '/^build(\/|-)/i'
+
+  # CI
+  - label: 'ci'
+    files:
+      - '.github/**'
+    title:
+      - '/^(ci|build)(\([^\\)]+\))?:/i'
+    branch:
+      - '/^ci(\/|-)/i'
+
+  # Chores & Maintenance
+  - label: 'chore'
+    title:
+      - '/^chore(\([^\\)]+\))?:/i'
+    branch:
+      - '/^chore(\/|-)/i'
+
+  # Code Style
+  - label: 'style'
+    title:
+      - '/^style(\([^\\)]+\))?:/i'
+    branch:
+      - '/^style(\/|-)/i'
+
+  # Reverts
+  - label: 'revert'
+    title:
+      - '/^revert(\([^\\)]+\))?:/i'
+    branch:
+      - '/^revert(\/|-)/i'

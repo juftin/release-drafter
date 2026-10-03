@@ -181,7 +181,7 @@ describe('get config file', () => {
         }
       `)
     })
-    it('should error if config not found in current repo and org .github repo', async () => {
+    it('should fall back to hybrid preset if default config not found in current repo and org .github repo', async () => {
       vi.stubEnv('GITHUB_TOKEN', 'test')
 
       const inputConfigName = 'release-drafter.yml'
@@ -205,15 +205,52 @@ describe('get config file', () => {
         .get(orgFallbackEndpoint)
         .reply(404)
 
+      const res = await composeConfigGet(inputConfigName, context)
+
+      expect(core.info).toHaveBeenCalledWith(
+        'Config not found in octocat/hello-world or .github, falling back to hybrid preset.',
+      )
+      expect(res.contexts.length).toBe(1)
+      expect(res.contexts[0]).toEqual({
+        scheme: 'preset',
+        filepath: 'hybrid',
+      })
+      expect(res.config).toHaveProperty('categories')
+      expect(scope.isDone()).toBe(true)
+    })
+    it('should error if non-default config not found in current repo and org .github repo', async () => {
+      vi.stubEnv('GITHUB_TOKEN', 'test')
+
+      const inputConfigName = 'custom-release-drafter.yml'
+      const context = {
+        repo: { owner: 'octocat', repo: 'hello-world' },
+        ref: 'main',
+      }
+
+      const currentRepoEndpoint = getContentEndpoint({
+        ...context,
+        path: '.github/custom-release-drafter.yml',
+      })
+      const orgFallbackEndpoint = getContentEndpoint({
+        repo: { owner: 'octocat', repo: '.github' },
+        path: '.github/custom-release-drafter.yml',
+      })
+
+      const scope = nock('https://api.github.com')
+        .get(currentRepoEndpoint)
+        .reply(404)
+        .get(orgFallbackEndpoint)
+        .reply(404)
+
       await expect(
         composeConfigGet(inputConfigName, context),
       ).rejects.toThrowErrorMatchingInlineSnapshot(
-        `[Error: Repo load failed. Config file not found with error 404. (target: octocat/.github:.github/release-drafter.yml)]`,
+        `[Error: Repo load failed. Config file not found with error 404. (target: octocat/.github:.github/custom-release-drafter.yml)]`,
       )
 
       expect(scope.isDone()).toBe(true)
     })
-    it('should not fall back to org .github repo when already running in .github', async () => {
+    it('should fall back to hybrid preset when already running in .github and default config is missing', async () => {
       vi.stubEnv('GITHUB_TOKEN', 'test')
 
       const inputConfigName = 'release-drafter.yml'
@@ -228,13 +265,16 @@ describe('get config file', () => {
       })
       const scope = nock('https://api.github.com').get(endpoint).reply(404)
 
-      await expect(
-        composeConfigGet(inputConfigName, context),
-      ).rejects.toThrowErrorMatchingInlineSnapshot(
-        `[Error: Repo load failed. Config file not found with error 404. (target: octocat/.github:.github/release-drafter.yml@main)]`,
-      )
+      const res = await composeConfigGet(inputConfigName, context)
 
-      // only one request — no fallback attempted
+      expect(core.info).toHaveBeenCalledWith(
+        'Config not found in octocat/.github, falling back to hybrid preset.',
+      )
+      expect(res.contexts.length).toBe(1)
+      expect(res.contexts[0]).toEqual({
+        scheme: 'preset',
+        filepath: 'hybrid',
+      })
       expect(scope.isDone()).toBe(true)
     })
     it('should not fall back to org .github repo when using the file: scheme', async () => {
@@ -297,8 +337,8 @@ describe('get config file', () => {
     it('should error if config not exists using the github: scheme', async () => {
       vi.stubEnv('GITHUB_TOKEN', 'test')
 
-      const inputConfigName = 'release-drafter.yml'
-      const endpointFilepath = '.github/release-drafter.yml'
+      const inputConfigName = 'my-missing-config.yml'
+      const endpointFilepath = '.github/my-missing-config.yml'
       const context = {
         repo: { owner: 'octocat', repo: 'hello-world' },
         ref: 'main',
@@ -321,7 +361,7 @@ describe('get config file', () => {
       await expect(
         composeConfigGet(inputConfigName, context),
       ).rejects.toThrowErrorMatchingInlineSnapshot(
-        `[Error: Repo load failed. Config file not found with error 404. (target: octocat/.github:.github/release-drafter.yml)]`,
+        `[Error: Repo load failed. Config file not found with error 404. (target: octocat/.github:.github/my-missing-config.yml)]`,
       )
 
       expect(mocks.existsSync).not.toHaveBeenCalled()

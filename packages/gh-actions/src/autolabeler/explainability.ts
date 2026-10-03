@@ -1,6 +1,10 @@
 import process from 'node:process'
 import * as core from '@actions/core'
 import type { AutolabelMatch } from '@release-drafter/autolabeler'
+import {
+  GITMOJI_SPEC_DATA,
+  type GitmojiSpecEntry,
+} from '../common/config/presets.generated.ts'
 
 export const isGitHubEnvironment = (): boolean => {
   return Boolean(
@@ -10,27 +14,27 @@ export const isGitHubEnvironment = (): boolean => {
   )
 }
 
-export type IntentionProvider = (label: string) =>
-  | {
-      description: string
-      url?: string
-      semver?: 'major' | 'minor' | 'patch'
-    }
-  | undefined
+const GITMOJI_SPEC_MAP = new Map<string, GitmojiSpecEntry>()
 
-let globalIntentionProvider: IntentionProvider | undefined
+for (const entry of GITMOJI_SPEC_DATA) {
+  GITMOJI_SPEC_MAP.set(entry.name, entry)
+  GITMOJI_SPEC_MAP.set(entry.code, entry)
+  GITMOJI_SPEC_MAP.set(entry.emoji, entry)
+  if (entry.emoji.includes('\ufe0f')) {
+    GITMOJI_SPEC_MAP.set(entry.emoji.replace(/\ufe0f/g, ''), entry)
+  }
+}
 
-export const registerIntentionProvider = (
-  provider: IntentionProvider | undefined,
-) => {
-  globalIntentionProvider = provider
+/** Looks up Gitmoji specification entry for a preset gitmoji label. */
+export const getGitmojiSpec = (label: string): GitmojiSpecEntry | undefined => {
+  return GITMOJI_SPEC_MAP.get(label)
 }
 
 const resolveSemverBump = (
   label: string,
-  intention?: { semver?: 'major' | 'minor' | 'patch' },
+  spec?: GitmojiSpecEntry,
 ): 'major' | 'minor' | 'patch' => {
-  if (intention?.semver) return intention.semver
+  if (spec?.semver) return spec.semver
   if (label === 'major' || label === 'breaking' || label === 'breaking-change')
     return 'major'
   if (label === 'minor' || label === 'feat' || label === 'feature')
@@ -50,23 +54,17 @@ export type ExplainabilityParams = {
   appliedLabels?: readonly string[]
   supersededLabels?: readonly string[]
   categories?: Array<{ title: string; labels: string[] }>
-  intentionProvider?: IntentionProvider
 }
 
 /**
  * Builds a markdown explainability summary of the autolabeler decisions.
+ * Only preset Gitmoji labels receive a linked intention from the Gitmoji specification.
  */
 export const buildExplainabilitySummary = (
   params: ExplainabilityParams,
 ): string => {
-  const {
-    pullRequest,
-    matches,
-    appliedLabels,
-    supersededLabels,
-    categories,
-    intentionProvider = globalIntentionProvider,
-  } = params
+  const { pullRequest, matches, appliedLabels, supersededLabels, categories } =
+    params
 
   if (matches.length === 0) {
     return [
@@ -86,8 +84,8 @@ export const buildExplainabilitySummary = (
   const bodyMatches = new Set<string>()
 
   for (const match of matches) {
-    const intention = intentionProvider?.(match.label)
-    const semver = resolveSemverBump(match.label, intention)
+    const spec = getGitmojiSpec(match.label)
+    const semver = resolveSemverBump(match.label, spec)
     if (PRIORITY[semver] > PRIORITY[highestBump]) {
       highestBump = semver
     }
@@ -128,21 +126,18 @@ export const buildExplainabilitySummary = (
     }
   }
 
-  const hasIntentions = matches.some((m) => intentionProvider?.(m.label))
-
   const rows: string[] = []
   for (const match of matches) {
     if (supersededLabels?.includes(match.label)) {
       continue
     }
 
-    const intention = intentionProvider?.(match.label)
-    const semver = resolveSemverBump(match.label, intention)
+    const spec = getGitmojiSpec(match.label)
+    const semver = resolveSemverBump(match.label, spec)
 
-    const intentionCell = intention
-      ? intention.url
-        ? `[${intention.description}](${intention.url})`
-        : intention.description
+    // Only Preset gitmoji labels have a linked intention
+    const intention = spec
+      ? `[${spec.description}](https://gitmoji.dev/specification)`
       : '-'
 
     const trigger =
@@ -165,15 +160,9 @@ export const buildExplainabilitySummary = (
         ? `Files matched pattern ${patternEscaped}`
         : `${trigger} matched ${patternEscaped}`
 
-    if (hasIntentions) {
-      rows.push(
-        `| \`${match.label}\` | ${intentionCell} | \`${semver}\` | ${trigger} | ${details} |`,
-      )
-    } else {
-      rows.push(
-        `| \`${match.label}\` | \`${semver}\` | ${trigger} | ${details} |`,
-      )
-    }
+    rows.push(
+      `| \`${match.label}\` | ${intention} | \`${semver}\` | ${trigger} | ${details} |`,
+    )
   }
 
   const releaseSectionList: string[] = []
@@ -204,9 +193,8 @@ export const buildExplainabilitySummary = (
     '<details>',
     '<summary>🏷️ Label Decision Details</summary>',
     '',
-    hasIntentions
-      ? '| Label | Gitmoji Intention | Semver Impact | Trigger | Matched Rule |\n| :--- | :--- | :--- | :--- | :--- |'
-      : '| Label | Semver Impact | Trigger | Matched Rule |\n| :--- | :--- | :--- | :--- |',
+    '| Label | Gitmoji Intention | Semver Impact | Trigger | Matched Rule |',
+    '| :--- | :--- | :--- | :--- | :--- |',
     ...rows,
     '',
     '</details>',

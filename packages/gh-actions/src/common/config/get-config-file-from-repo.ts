@@ -5,8 +5,11 @@ import type { ConfigTarget } from './parse-config-target.ts'
 export const getConfigFileFromRepo = async (
   configTarget: ConfigTarget,
   token = process.env.GITHUB_TOKEN ?? '',
-): Promise<string> =>
-  getGitHubAdapter(token).getRepositoryConfig({
+): Promise<string> => {
+  if (!configTarget.repo) {
+    throw new Error('Expected repo in ConfigTarget')
+  }
+  return getGitHubAdapter(token).getRepositoryConfig({
     repository: {
       owner: configTarget.repo.owner,
       name: configTarget.repo.repo,
@@ -15,3 +18,4 @@ export const getConfigFileFromRepo = async (
     path: configTarget.filepath,
     ref: configTarget.ref,
   })
+}

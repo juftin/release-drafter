@@ -1,4 +1,4 @@
-import { C as context, D as warning, E as setFailed, O as summary, S as Minimatch, T as info, a as readActionInputs, b as stringbool, c as getGitHubAdapter, d as escapeStringRegexp, h as boolean, i as defineActionInputNames, m as array, n as sharedInputSchema, o as writeActionOutputs, t as composeConfigGet, v as object, w as core_exports, y as string } from "../../chunks/config.js";
+import { C as Minimatch, D as setFailed, E as info, O as warning, T as core_exports, a as defineActionInputNames, b as string, f as escapeStringRegexp, g as boolean, h as array, k as summary, l as getGitHubAdapter, n as GITMOJI_SPEC_DATA, o as readActionInputs, r as sharedInputSchema, s as writeActionOutputs, t as composeConfigGet, w as context, x as stringbool, y as object } from "../../chunks/config.js";
 import process from "node:process";
 //#region packages/autolabeler/src/config/config.schema.ts
 var labelSchema = string().min(1).describe("Backward-compatible single label. Prefer labels for new rules.");
@@ -244,9 +244,19 @@ var actionOutputNames = ["number", "labels"];
 var isGitHubEnvironment = () => {
 	return Boolean(process.env.GITHUB_ACTIONS === "true" || process.env.GITHUB_STEP_SUMMARY || process.env.GITHUB_REPOSITORY);
 };
-var globalIntentionProvider;
-var resolveSemverBump = (label, intention) => {
-	if (intention?.semver) return intention.semver;
+var GITMOJI_SPEC_MAP = /* @__PURE__ */ new Map();
+for (const entry of GITMOJI_SPEC_DATA) {
+	GITMOJI_SPEC_MAP.set(entry.name, entry);
+	GITMOJI_SPEC_MAP.set(entry.code, entry);
+	GITMOJI_SPEC_MAP.set(entry.emoji, entry);
+	if (entry.emoji.includes("\uFE0F")) GITMOJI_SPEC_MAP.set(entry.emoji.replace(/\ufe0f/g, ""), entry);
+}
+/** Looks up Gitmoji specification entry for a preset gitmoji label. */
+var getGitmojiSpec = (label) => {
+	return GITMOJI_SPEC_MAP.get(label);
+};
+var resolveSemverBump = (label, spec) => {
+	if (spec?.semver) return spec.semver;
 	if (label === "major" || label === "breaking" || label === "breaking-change") return "major";
 	if (label === "minor" || label === "feat" || label === "feature") return "minor";
 	return "patch";
@@ -258,9 +268,10 @@ var PRIORITY = {
 };
 /**
 * Builds a markdown explainability summary of the autolabeler decisions.
+* Only preset Gitmoji labels receive a linked intention from the Gitmoji specification.
 */
 var buildExplainabilitySummary = (params) => {
-	const { pullRequest, matches, appliedLabels, supersededLabels, categories, intentionProvider = globalIntentionProvider } = params;
+	const { pullRequest, matches, appliedLabels, supersededLabels, categories } = params;
 	if (matches.length === 0) return [
 		"## \u{1F3F7}\uFE0F Release Drafter Summary",
 		"",
@@ -274,8 +285,8 @@ var buildExplainabilitySummary = (params) => {
 	const fileMatches = /* @__PURE__ */ new Set();
 	const bodyMatches = /* @__PURE__ */ new Set();
 	for (const match of matches) {
-		const intention = intentionProvider?.(match.label);
-		const semver = resolveSemverBump(match.label, intention);
+		const spec = getGitmojiSpec(match.label);
+		const semver = resolveSemverBump(match.label, spec);
 		if (PRIORITY[semver] > PRIORITY[highestBump]) highestBump = semver;
 		if (match.matchedValue) {
 			if (match.matcher === "title") titleMatches.add(match.matchedValue);
@@ -296,18 +307,16 @@ var buildExplainabilitySummary = (params) => {
 		if (files.length > maxFiles) matchCallouts.push(`  - *(and ${files.length - maxFiles} more)*`);
 	}
 	if (bodyMatches.size > 0) for (const val of bodyMatches) matchCallouts.push(`- **Matched Body:** \`${val}\``);
-	const hasIntentions = matches.some((m) => intentionProvider?.(m.label));
 	const rows = [];
 	for (const match of matches) {
 		if (supersededLabels?.includes(match.label)) continue;
-		const intention = intentionProvider?.(match.label);
-		const semver = resolveSemverBump(match.label, intention);
-		const intentionCell = intention ? intention.url ? `[${intention.description}](${intention.url})` : intention.description : "-";
+		const spec = getGitmojiSpec(match.label);
+		const semver = resolveSemverBump(match.label, spec);
+		const intention = spec ? `[${spec.description}](https://gitmoji.dev/specification)` : "-";
 		const trigger = match.matcher === "files" ? "Files" : match.matcher === "branch" ? "Branch" : match.matcher === "title" ? "Title" : match.matcher === "body" ? "Body" : "Fallback";
 		const patternEscaped = match.pattern ? `\`${match.pattern.replace(/\|/g, "\\|")}\`` : "-";
 		const details = match.matcher === "files" ? `Files matched pattern ${patternEscaped}` : `${trigger} matched ${patternEscaped}`;
-		if (hasIntentions) rows.push(`| \`${match.label}\` | ${intentionCell} | \`${semver}\` | ${trigger} | ${details} |`);
-		else rows.push(`| \`${match.label}\` | \`${semver}\` | ${trigger} | ${details} |`);
+		rows.push(`| \`${match.label}\` | ${intention} | \`${semver}\` | ${trigger} | ${details} |`);
 	}
 	const releaseSectionList = [];
 	if (categories && categories.length > 0) {
@@ -323,7 +332,7 @@ var buildExplainabilitySummary = (params) => {
 		...matchCallouts,
 		...releaseSectionList
 	];
-	lines.push("", "<details>", "<summary>\u{1F3F7}\uFE0F Label Decision Details</summary>", "", hasIntentions ? "| Label | Gitmoji Intention | Semver Impact | Trigger | Matched Rule |\n| :--- | :--- | :--- | :--- | :--- |" : "| Label | Semver Impact | Trigger | Matched Rule |\n| :--- | :--- | :--- | :--- |", ...rows, "", "</details>", "");
+	lines.push("", "<details>", "<summary>\u{1F3F7}\uFE0F Label Decision Details</summary>", "", "| Label | Gitmoji Intention | Semver Impact | Trigger | Matched Rule |", "| :--- | :--- | :--- | :--- | :--- |", ...rows, "", "</details>", "");
 	return lines.join("\n");
 };
 /** Writes the explainability summary table to the GitHub Actions Job Step Summary when GitHub is detected. */
@@ -351,7 +360,8 @@ var getConfig = async (configName, token) => {
 	if (contexts.length > 1) info(`Config was fetched from ${contexts.length} different contexts.`);
 	else if (contexts.length === 1) {
 		const source = contexts[0];
-		info(`Config fetched ${source.scheme === "file" ? "locally" : `on remote "${source.repo.owner}/${source.repo.repo}${source.ref ? `@${source.ref}` : ""}"${source.ref ? "" : " on the default branch"}`}.`);
+		const location = source.scheme === "file" ? "locally" : source.scheme === "preset" ? `from preset "${source.filepath}"` : `on remote "${source.repo?.owner}/${source.repo?.repo}${source.ref ? `@${source.ref}` : ""}"${source.ref ? "" : " on the default branch"}`;
+		info(`Config fetched ${location}.`);
 	}
 	return parseConfig({
 		config: configSchema.parse(config),
@@ -427,8 +437,7 @@ async function run() {
 			},
 			matches: result.matches,
 			appliedLabels: result.labels,
-			supersededLabels: result.supersededLabels,
-			categories: config.categories
+			supersededLabels: result.supersededLabels
 		});
 		if (input.summary) await writeStepSummary(summaryMarkdown);
 		writeActionOutputs(actionOutputNames, {

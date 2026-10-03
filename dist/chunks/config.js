@@ -38641,15 +38641,18 @@ var getConfigFileFromFs = (normalizedFilepath) => {
 };
 //#endregion
 //#region packages/gh-actions/src/common/config/get-config-file-from-repo.ts
-var getConfigFileFromRepo = async (configTarget, token = process$1.env.GITHUB_TOKEN ?? "") => getGitHubAdapter(token).getRepositoryConfig({
-	repository: {
-		owner: configTarget.repo.owner,
-		name: configTarget.repo.repo,
-		serverUrl: process$1.env.GITHUB_SERVER_URL ?? "https://github.com"
-	},
-	path: configTarget.filepath,
-	ref: configTarget.ref
-});
+var getConfigFileFromRepo = async (configTarget, token = process$1.env.GITHUB_TOKEN ?? "") => {
+	if (!configTarget.repo) throw new Error("Expected repo in ConfigTarget");
+	return getGitHubAdapter(token).getRepositoryConfig({
+		repository: {
+			owner: configTarget.repo.owner,
+			name: configTarget.repo.repo,
+			serverUrl: process$1.env.GITHUB_SERVER_URL ?? "https://github.com"
+		},
+		path: configTarget.filepath,
+		ref: configTarget.ref
+	});
+};
 //#endregion
 //#region packages/gh-actions/src/common/config/normalize-filepath.ts
 /**
@@ -38677,7 +38680,7 @@ var normalizeFilepath = (config, parentConfig) => {
 	if (isAbsolute(_filepath)) {
 		if (_filepath.startsWith("/")) return _filepath.slice(1);
 		else throw new Error(`Encountered malformed absolute path ${_filepath}`);
-	} else if (parentConfig && parentConfig.repo.owner === config.repo.owner && parentConfig.repo.repo === config.repo.repo && config.ref === parentConfig.ref) return normalize(join(dirname(parentConfig.filepath), _filepath));
+	} else if (parentConfig?.repo && config.repo && parentConfig.repo.owner === config.repo.owner && parentConfig.repo.repo === config.repo.repo && config.ref === parentConfig.ref) return normalize(join(dirname(parentConfig.filepath), _filepath));
 	else {
 		if (_filepath.startsWith(".github/")) return _filepath;
 		return join(".github", _filepath);
@@ -38685,15 +38688,25 @@ var normalizeFilepath = (config, parentConfig) => {
 };
 //#endregion
 //#region packages/gh-actions/src/common/config/parse-config-target.ts
-var describeConfigTarget = (target) => `${target.scheme}:${target.filepath}${target.repo ? ` (${target.repo.owner}/${target.repo.repo})` : ""}`;
+var describeConfigTarget = (target) => target.scheme === "preset" ? `preset:${target.filepath}` : `${target.scheme}:${target.filepath}${target.repo ? ` (${target.repo.owner}/${target.repo.repo})` : ""}`;
 /**
 * Parses a config target string into its components
-* @param target - Target string in format `[github:][[owner/]repo:]filepath[@ref]` or `file:filepath`
+* @param target - Target string in format `[github:][[owner/]repo:]filepath[@ref]`, `file:filepath`, or `preset:<name>`
 * @param currentContext - Current runtime context (repo owner, name, and ref)
 * @returns Parsed config target with resolved components
 */
 function parseConfigTarget(target, context) {
 	let _target = structuredClone(target).trim();
+	if (_target.startsWith("preset:")) {
+		if (_target.includes(" ")) throw new Error(`invalid format: "${_target}". Expected format [github:][owner/repo:]filepath[@ref], file:filepath, or preset:<name>. Target must not contain spaces.`);
+		const presetName = _target.slice(7).trim();
+		if (!presetName) throw new Error(`invalid format: "${_target}". Expected format [github:][owner/repo:]filepath[@ref], file:filepath, or preset:<name>. Preset name must not be empty.`);
+		if (presetName.includes(":") || presetName.includes("@")) throw new Error(`invalid format: "${_target}". Expected format [github:][owner/repo:]filepath[@ref], file:filepath, or preset:<name>. Preset targets cannot have ":" or "@" specifiers.`);
+		return {
+			scheme: "preset",
+			filepath: presetName.replace(/\.ya?ml$/, "")
+		};
+	}
 	const getErr = (m) => /* @__PURE__ */ new Error(`invalid format: "${_target}". Expected format [github:][owner/repo:]filepath[@ref] or file:filepath. ${m}`);
 	if (_target.includes(" ")) throw getErr("Target must not contain spaces.");
 	const scheme = _target.startsWith("file:") ? "file" : "github";
@@ -38730,14 +38743,17 @@ function parseConfigTarget(target, context) {
 			targetRepoName = repoParts[1];
 		} else {
 			targetRepoName = repoParts[0];
-			targetRepoOwner = context.repo.owner;
+			targetRepoOwner = context.repo?.owner ?? "";
 		}
 		targetRepo = {
 			owner: targetRepoOwner,
 			repo: targetRepoName
 		};
-	} else targetRepo = context.repo;
-	const isCurrentRepo = context.repo.owner === targetRepo.owner && context.repo.repo === targetRepo.repo;
+	} else targetRepo = context.repo ?? {
+		owner: "",
+		repo: ""
+	};
+	const isCurrentRepo = Boolean(context.repo && context.repo.owner === targetRepo.owner && context.repo.repo === targetRepo.repo);
 	if (hasRefSpecifier) {
 		if (parts.length < 2) throw getErr("Too short to contain ref specifier.");
 		const refSpecifier = parts.at(-1);
@@ -38754,6 +38770,632 @@ function parseConfigTarget(target, context) {
 	};
 }
 //#endregion
+//#region node_modules/gitmojis/dist/index.mjs
+var gitmojisJson = { gitmojis: [
+	{
+		emoji: "\u{1F3A8}",
+		entity: "&#x1f3a8;",
+		code: ":art:",
+		description: "Improve structure / format of the code.",
+		name: "art",
+		semver: null
+	},
+	{
+		emoji: "\u26A1\uFE0F",
+		entity: "&#x26a1;",
+		code: ":zap:",
+		description: "Improve performance.",
+		name: "zap",
+		semver: "patch"
+	},
+	{
+		emoji: "\u{1F525}",
+		entity: "&#x1f525;",
+		code: ":fire:",
+		description: "Remove code or files.",
+		name: "fire",
+		semver: null
+	},
+	{
+		emoji: "\u{1F41B}",
+		entity: "&#x1f41b;",
+		code: ":bug:",
+		description: "Fix a bug.",
+		name: "bug",
+		semver: "patch"
+	},
+	{
+		emoji: "\u{1F691}\uFE0F",
+		entity: "&#128657;",
+		code: ":ambulance:",
+		description: "Critical hotfix.",
+		name: "ambulance",
+		semver: "patch"
+	},
+	{
+		emoji: "\u2728",
+		entity: "&#x2728;",
+		code: ":sparkles:",
+		description: "Introduce new features.",
+		name: "sparkles",
+		semver: "minor"
+	},
+	{
+		emoji: "\u{1F4DD}",
+		entity: "&#x1f4dd;",
+		code: ":memo:",
+		description: "Add or update documentation.",
+		name: "memo",
+		semver: null
+	},
+	{
+		emoji: "\u{1F680}",
+		entity: "&#x1f680;",
+		code: ":rocket:",
+		description: "Deploy stuff.",
+		name: "rocket",
+		semver: null
+	},
+	{
+		emoji: "\u{1F484}",
+		entity: "&#ff99cc;",
+		code: ":lipstick:",
+		description: "Add or update the UI and style files.",
+		name: "lipstick",
+		semver: "patch"
+	},
+	{
+		emoji: "\u{1F389}",
+		entity: "&#127881;",
+		code: ":tada:",
+		description: "Begin a project.",
+		name: "tada",
+		semver: null
+	},
+	{
+		emoji: "\u2705",
+		entity: "&#x2705;",
+		code: ":white_check_mark:",
+		description: "Add, update, or pass tests.",
+		name: "white-check-mark",
+		semver: null
+	},
+	{
+		emoji: "\u{1F512}\uFE0F",
+		entity: "&#x1f512;",
+		code: ":lock:",
+		description: "Fix security or privacy issues.",
+		name: "lock",
+		semver: "patch"
+	},
+	{
+		emoji: "\u{1F510}",
+		entity: "&#x1f510;",
+		code: ":closed_lock_with_key:",
+		description: "Add or update secrets.",
+		name: "closed-lock-with-key",
+		semver: null
+	},
+	{
+		emoji: "\u{1F516}",
+		entity: "&#x1f516;",
+		code: ":bookmark:",
+		description: "Release / Version tags.",
+		name: "bookmark",
+		semver: null
+	},
+	{
+		emoji: "\u{1F6A8}",
+		entity: "&#x1f6a8;",
+		code: ":rotating_light:",
+		description: "Fix compiler / linter warnings.",
+		name: "rotating-light",
+		semver: null
+	},
+	{
+		emoji: "\u{1F6A7}",
+		entity: "&#x1f6a7;",
+		code: ":construction:",
+		description: "Work in progress.",
+		name: "construction",
+		semver: null
+	},
+	{
+		emoji: "\u{1F49A}",
+		entity: "&#x1f49a;",
+		code: ":green_heart:",
+		description: "Fix CI Build.",
+		name: "green-heart",
+		semver: null
+	},
+	{
+		emoji: "\u2B07\uFE0F",
+		entity: "\u2B07\uFE0F",
+		code: ":arrow_down:",
+		description: "Downgrade dependencies.",
+		name: "arrow-down",
+		semver: "patch"
+	},
+	{
+		emoji: "\u2B06\uFE0F",
+		entity: "\u2B06\uFE0F",
+		code: ":arrow_up:",
+		description: "Upgrade dependencies.",
+		name: "arrow-up",
+		semver: "patch"
+	},
+	{
+		emoji: "\u{1F4CC}",
+		entity: "&#x1F4CC;",
+		code: ":pushpin:",
+		description: "Pin dependencies to specific versions.",
+		name: "pushpin",
+		semver: "patch"
+	},
+	{
+		emoji: "\u{1F477}",
+		entity: "&#x1f477;",
+		code: ":construction_worker:",
+		description: "Add or update CI build system.",
+		name: "construction-worker",
+		semver: null
+	},
+	{
+		emoji: "\u{1F4C8}",
+		entity: "&#x1F4C8;",
+		code: ":chart_with_upwards_trend:",
+		description: "Add or update analytics or track code.",
+		name: "chart-with-upwards-trend",
+		semver: "patch"
+	},
+	{
+		emoji: "\u267B\uFE0F",
+		entity: "&#x267b;",
+		code: ":recycle:",
+		description: "Refactor code.",
+		name: "recycle",
+		semver: null
+	},
+	{
+		emoji: "\u2795",
+		entity: "&#10133;",
+		code: ":heavy_plus_sign:",
+		description: "Add a dependency.",
+		name: "heavy-plus-sign",
+		semver: "patch"
+	},
+	{
+		emoji: "\u2796",
+		entity: "&#10134;",
+		code: ":heavy_minus_sign:",
+		description: "Remove a dependency.",
+		name: "heavy-minus-sign",
+		semver: "patch"
+	},
+	{
+		emoji: "\u{1F527}",
+		entity: "&#x1f527;",
+		code: ":wrench:",
+		description: "Add or update configuration files.",
+		name: "wrench",
+		semver: "patch"
+	},
+	{
+		emoji: "\u{1F528}",
+		entity: "&#128296;",
+		code: ":hammer:",
+		description: "Add or update development scripts.",
+		name: "hammer",
+		semver: null
+	},
+	{
+		emoji: "\u{1F310}",
+		entity: "&#127760;",
+		code: ":globe_with_meridians:",
+		description: "Internationalization and localization.",
+		name: "globe-with-meridians",
+		semver: "patch"
+	},
+	{
+		emoji: "\u270F\uFE0F",
+		entity: "&#59161;",
+		code: ":pencil2:",
+		description: "Fix typos.",
+		name: "pencil2",
+		semver: "patch"
+	},
+	{
+		emoji: "\u{1F4A9}",
+		entity: "&#58613;",
+		code: ":poop:",
+		description: "Write bad code that needs to be improved.",
+		name: "poop",
+		semver: null
+	},
+	{
+		emoji: "\u23EA\uFE0F",
+		entity: "&#9194;",
+		code: ":rewind:",
+		description: "Revert changes.",
+		name: "rewind",
+		semver: "patch"
+	},
+	{
+		emoji: "\u{1F500}",
+		entity: "&#128256;",
+		code: ":twisted_rightwards_arrows:",
+		description: "Merge branches.",
+		name: "twisted-rightwards-arrows",
+		semver: null
+	},
+	{
+		emoji: "\u{1F4E6}\uFE0F",
+		entity: "&#1F4E6;",
+		code: ":package:",
+		description: "Add or update compiled files or packages.",
+		name: "package",
+		semver: "patch"
+	},
+	{
+		emoji: "\u{1F47D}\uFE0F",
+		entity: "&#1F47D;",
+		code: ":alien:",
+		description: "Update code due to external API changes.",
+		name: "alien",
+		semver: "patch"
+	},
+	{
+		emoji: "\u{1F69A}",
+		entity: "&#1F69A;",
+		code: ":truck:",
+		description: "Move or rename resources (e.g.: files, paths, routes).",
+		name: "truck",
+		semver: null
+	},
+	{
+		emoji: "\u{1F4C4}",
+		entity: "&#1F4C4;",
+		code: ":page_facing_up:",
+		description: "Add or update license.",
+		name: "page-facing-up",
+		semver: null
+	},
+	{
+		emoji: "\u{1F4A5}",
+		entity: "&#x1f4a5;",
+		code: ":boom:",
+		description: "Introduce breaking changes.",
+		name: "boom",
+		semver: "major"
+	},
+	{
+		emoji: "\u{1F371}",
+		entity: "&#1F371",
+		code: ":bento:",
+		description: "Add or update assets.",
+		name: "bento",
+		semver: "patch"
+	},
+	{
+		emoji: "\u267F\uFE0F",
+		entity: "&#9855;",
+		code: ":wheelchair:",
+		description: "Improve accessibility.",
+		name: "wheelchair",
+		semver: "patch"
+	},
+	{
+		emoji: "\u{1F4A1}",
+		entity: "&#128161;",
+		code: ":bulb:",
+		description: "Add or update comments in source code.",
+		name: "bulb",
+		semver: null
+	},
+	{
+		emoji: "\u{1F37B}",
+		entity: "&#x1f37b;",
+		code: ":beers:",
+		description: "Write code drunkenly.",
+		name: "beers",
+		semver: null
+	},
+	{
+		emoji: "\u{1F4AC}",
+		entity: "&#128172;",
+		code: ":speech_balloon:",
+		description: "Add or update text and literals.",
+		name: "speech-balloon",
+		semver: "patch"
+	},
+	{
+		emoji: "\u{1F5C3}\uFE0F",
+		entity: "&#128451;",
+		code: ":card_file_box:",
+		description: "Perform database related changes.",
+		name: "card-file-box",
+		semver: "patch"
+	},
+	{
+		emoji: "\u{1F50A}",
+		entity: "&#128266;",
+		code: ":loud_sound:",
+		description: "Add or update logs.",
+		name: "loud-sound",
+		semver: null
+	},
+	{
+		emoji: "\u{1F507}",
+		entity: "&#128263;",
+		code: ":mute:",
+		description: "Remove logs.",
+		name: "mute",
+		semver: null
+	},
+	{
+		emoji: "\u{1F465}",
+		entity: "&#128101;",
+		code: ":busts_in_silhouette:",
+		description: "Add or update contributor(s).",
+		name: "busts-in-silhouette",
+		semver: null
+	},
+	{
+		emoji: "\u{1F6B8}",
+		entity: "&#128696;",
+		code: ":children_crossing:",
+		description: "Improve user experience / usability.",
+		name: "children-crossing",
+		semver: "patch"
+	},
+	{
+		emoji: "\u{1F3D7}\uFE0F",
+		entity: "&#1f3d7;",
+		code: ":building_construction:",
+		description: "Make architectural changes.",
+		name: "building-construction",
+		semver: null
+	},
+	{
+		emoji: "\u{1F4F1}",
+		entity: "&#128241;",
+		code: ":iphone:",
+		description: "Work on responsive design.",
+		name: "iphone",
+		semver: "patch"
+	},
+	{
+		emoji: "\u{1F921}",
+		entity: "&#129313;",
+		code: ":clown_face:",
+		description: "Mock things.",
+		name: "clown-face",
+		semver: null
+	},
+	{
+		emoji: "\u{1F95A}",
+		entity: "&#129370;",
+		code: ":egg:",
+		description: "Add or update an easter egg.",
+		name: "egg",
+		semver: "patch"
+	},
+	{
+		emoji: "\u{1F648}",
+		entity: "&#8bdfe7;",
+		code: ":see_no_evil:",
+		description: "Add or update a .gitignore file.",
+		name: "see-no-evil",
+		semver: null
+	},
+	{
+		emoji: "\u{1F4F8}",
+		entity: "&#128248;",
+		code: ":camera_flash:",
+		description: "Add or update snapshots.",
+		name: "camera-flash",
+		semver: null
+	},
+	{
+		emoji: "\u2697\uFE0F",
+		entity: "&#x2697;",
+		code: ":alembic:",
+		description: "Perform experiments.",
+		name: "alembic",
+		semver: "patch"
+	},
+	{
+		emoji: "\u{1F50D}\uFE0F",
+		entity: "&#128269;",
+		code: ":mag:",
+		description: "Improve SEO.",
+		name: "mag",
+		semver: "patch"
+	},
+	{
+		emoji: "\u{1F3F7}\uFE0F",
+		entity: "&#127991;",
+		code: ":label:",
+		description: "Add or update types.",
+		name: "label",
+		semver: "patch"
+	},
+	{
+		emoji: "\u{1F331}",
+		entity: "&#127793;",
+		code: ":seedling:",
+		description: "Add or update seed files.",
+		name: "seedling",
+		semver: null
+	},
+	{
+		emoji: "\u{1F6A9}",
+		entity: "&#x1F6A9;",
+		code: ":triangular_flag_on_post:",
+		description: "Add, update, or remove feature flags.",
+		name: "triangular-flag-on-post",
+		semver: "patch"
+	},
+	{
+		emoji: "\u{1F945}",
+		entity: "&#x1F945;",
+		code: ":goal_net:",
+		description: "Catch errors.",
+		name: "goal-net",
+		semver: "patch"
+	},
+	{
+		emoji: "\u{1F4AB}",
+		entity: "&#x1f4ab;",
+		code: ":dizzy:",
+		description: "Add or update animations and transitions.",
+		name: "dizzy",
+		semver: "patch"
+	},
+	{
+		emoji: "\u{1F5D1}\uFE0F",
+		entity: "&#x1F5D1;",
+		code: ":wastebasket:",
+		description: "Deprecate code that needs to be cleaned up.",
+		name: "wastebasket",
+		semver: "patch"
+	},
+	{
+		emoji: "\u{1F6C2}",
+		entity: "&#x1F6C2;",
+		code: ":passport_control:",
+		description: "Work on code related to authorization, roles and permissions.",
+		name: "passport-control",
+		semver: "patch"
+	},
+	{
+		emoji: "\u{1FA79}",
+		entity: "&#x1FA79;",
+		code: ":adhesive_bandage:",
+		description: "Simple fix for a non-critical issue.",
+		name: "adhesive-bandage",
+		semver: "patch"
+	},
+	{
+		emoji: "\u{1F9D0}",
+		entity: "&#x1F9D0;",
+		code: ":monocle_face:",
+		description: "Data exploration/inspection.",
+		name: "monocle-face",
+		semver: null
+	},
+	{
+		emoji: "\u26B0\uFE0F",
+		entity: "&#x26B0;",
+		code: ":coffin:",
+		description: "Remove dead code.",
+		name: "coffin",
+		semver: null
+	},
+	{
+		emoji: "\u{1F9EA}",
+		entity: "&#x1F9EA;",
+		code: ":test_tube:",
+		description: "Add a failing test.",
+		name: "test-tube",
+		semver: null
+	},
+	{
+		emoji: "\u{1F454}",
+		entity: "&#128084;",
+		code: ":necktie:",
+		description: "Add or update business logic.",
+		name: "necktie",
+		semver: "patch"
+	},
+	{
+		emoji: "\u{1FA7A}",
+		entity: "&#x1FA7A;",
+		code: ":stethoscope:",
+		description: "Add or update healthcheck.",
+		name: "stethoscope",
+		semver: null
+	},
+	{
+		emoji: "\u{1F9F1}",
+		entity: "&#x1f9f1;",
+		code: ":bricks:",
+		description: "Infrastructure related changes.",
+		name: "bricks",
+		semver: null
+	},
+	{
+		emoji: "\u{1F9D1}\u200D\u{1F4BB}",
+		entity: "&#129489;&#8205;&#128187;",
+		code: ":technologist:",
+		description: "Improve developer experience.",
+		name: "technologist",
+		semver: null
+	},
+	{
+		emoji: "\u{1F4B8}",
+		entity: "&#x1F4B8;",
+		code: ":money_with_wings:",
+		description: "Add sponsorships or money related infrastructure.",
+		name: "money-with-wings",
+		semver: null
+	},
+	{
+		emoji: "\u{1F9F5}",
+		entity: "&#x1F9F5;",
+		code: ":thread:",
+		description: "Add or update code related to multithreading or concurrency.",
+		name: "thread",
+		semver: null
+	},
+	{
+		emoji: "\u{1F9BA}",
+		entity: "&#x1F9BA;",
+		code: ":safety_vest:",
+		description: "Add or update code related to validation.",
+		name: "safety-vest",
+		semver: null
+	},
+	{
+		emoji: "\u2708\uFE0F",
+		entity: "&#x2708;",
+		code: ":airplane:",
+		description: "Improve offline support.",
+		name: "airplane",
+		semver: null
+	}
+] };
+var gitmojis = gitmojisJson.gitmojis;
+//#endregion
+//#region packages/gh-actions/src/common/config/presets.generated.ts
+var PRESET_CONFIGS = {
+	"conventional-commits": "# yaml-language-server: $schema=https://raw.githubusercontent.com/release-drafter/release-drafter/master/schema.json\n\nname-template: 'v$RESOLVED_VERSION'\ntag-template: 'v$RESOLVED_VERSION'\ninclude-commits: true\nchange-template: '- $CHANGE_TITLE ($CHANGE_REFERENCE) $CHANGE_AUTHORS'\n\ntemplate: |\n  ## What's Changed\n\n  $CHANGES\n\n  **Full Changelog**: $PREVIOUS_TAG...$RESOLVED_TAG\n\nexclude-labels:\n  - 'skip-changelog'\n  - 'skip-release'\n\ncategories:\n  - title: '\u{1F4A5} Breaking Changes'\n    labels:\n      - 'breaking'\n      - 'breaking-change'\n      - 'major'\n  - title: '\u{1F680} Features & Enhancements'\n    labels:\n      - 'feat'\n      - 'feature'\n      - 'enhancement'\n      - 'minor'\n  - title: '\u{1F41B} Bug Fixes'\n    labels:\n      - 'fix'\n      - 'bug'\n      - 'bugfix'\n      - 'security'\n  - title: '\u26A1 Performance Improvements'\n    labels:\n      - 'perf'\n      - 'performance'\n  - title: '\u{1F4DA} Documentation'\n    labels:\n      - 'docs'\n      - 'documentation'\n  - title: '\u{1F4E6} Dependency Updates'\n    labels:\n      - 'dependencies'\n      - 'deps'\n  - title: '\u{1F477} CI/CD'\n    labels:\n      - 'ci'\n      - 'build'\n  - title: '\u{1F9F0} Maintenance & Code Quality'\n    labels:\n      - 'refactor'\n      - 'chore'\n      - 'style'\n      - 'test'\n      - 'tests'\n  - title: '\u{1F504} Reverts'\n    labels:\n      - 'revert'\n\nversion-resolver:\n  major:\n    labels:\n      - 'breaking'\n      - 'breaking-change'\n      - 'major'\n  minor:\n    labels:\n      - 'feat'\n      - 'feature'\n      - 'minor'\n  patch:\n    labels:\n      - 'fix'\n      - 'bug'\n      - 'bugfix'\n      - 'security'\n      - 'patch'\n      - 'perf'\n      - 'performance'\n      - 'docs'\n      - 'documentation'\n      - 'dependencies'\n      - 'deps'\n      - 'refactor'\n      - 'chore'\n      - 'style'\n      - 'build'\n      - 'ci'\n      - 'test'\n      - 'tests'\n      - 'revert'\n  default: patch\n\nautolabeler:\n  # Semver Labels\n  - label: 'major'\n    title:\n      - '/^[a-z]+(\\([^\\\\)]+\\))?!:/i'\n      - '/^BREAKING( CHANGE)?(:|(\\([^\\\\)]+\\))?:)/i'\n      - '/BREAKING CHANGE/i'\n    branch:\n      - '/.*breaking.*/i'\n    body:\n      - '/BREAKING[ -]CHANGE:/i'\n\n  - label: 'minor'\n    title:\n      - '/^feat(ure)?(\\([^\\\\)]+\\))?:/i'\n    branch:\n      - '/^feat(\\/|-)/i'\n      - '/^feature(\\/|-)/i'\n\n  - label: 'patch'\n    title:\n      - '/^(fix|bugfix|hotfix)(\\([^\\\\)]+\\))?:/i'\n      - '/^sec(urity)?(\\([^\\\\)]+\\))?:/i'\n      - '/^perf(ormance)?(\\([^\\\\)]+\\))?:/i'\n      - '/^docs?(\\([^\\\\)]+\\))?:/i'\n      - '/^refactor(\\([^\\\\)]+\\))?:/i'\n      - '/^(deps?|dependencies)(\\([^\\\\)]+\\))?:/i'\n      - '/^chore\\(deps(-[a-z0-9]+)?\\):/i'\n      - '/^(ci|build)(\\([^\\\\)]+\\))?:/i'\n      - '/^chore(\\([^\\\\)]+\\))?:/i'\n      - '/^tests?(\\([^\\\\)]+\\))?:/i'\n      - '/^revert(\\([^\\\\)]+\\))?:/i'\n    branch:\n      - '/^fix(\\/|-)/i'\n      - '/^bugfix(\\/|-)/i'\n      - '/^hotfix(\\/|-)/i'\n      - '/^sec(urity)?(\\/|-)/i'\n      - '/^perf(\\/|-)/i'\n      - '/^docs?(\\/|-)/i'\n      - '/^refactor(\\/|-)/i'\n      - '/^dependabot\\//i'\n      - '/^renovate\\//i'\n      - '/^deps?(\\/|-)/i'\n      - '/^ci(\\/|-)/i'\n      - '/^build(\\/|-)/i'\n      - '/^chore(\\/|-)/i'\n      - '/^tests?(\\/|-)/i'\n      - '/^revert(\\/|-)/i'\n\n  # Breaking Changes\n  - label: 'breaking'\n    title:\n      - '/^[a-z]+(\\([^\\\\)]+\\))?!:/i'\n      - '/^BREAKING( CHANGE)?(:|(\\([^\\\\)]+\\))?:)/i'\n      - '/BREAKING CHANGE/i'\n    branch:\n      - '/.*breaking.*/i'\n    body:\n      - '/BREAKING[ -]CHANGE:/i'\n\n  # Features\n  - label: 'feat'\n    title:\n      - '/^feat(ure)?(\\([^\\\\)]+\\))?:/i'\n    branch:\n      - '/^feat(\\/|-)/i'\n      - '/^feature(\\/|-)/i'\n\n  # Fixes\n  - label: 'fix'\n    title:\n      - '/^(fix|bugfix|hotfix)(\\([^\\\\)]+\\))?:/i'\n    branch:\n      - '/^fix(\\/|-)/i'\n      - '/^bugfix(\\/|-)/i'\n      - '/^hotfix(\\/|-)/i'\n\n  # Performance\n  - label: 'perf'\n    title:\n      - '/^perf(ormance)?(\\([^\\\\)]+\\))?:/i'\n    branch:\n      - '/^perf(\\/|-)/i'\n\n  # Documentation\n  - label: 'docs'\n    files:\n      - '**/*.md'\n      - 'docs/**'\n    title:\n      - '/^docs?(\\([^\\\\)]+\\))?:/i'\n    branch:\n      - '/^docs?(\\/|-)/i'\n\n  # Refactoring\n  - label: 'refactor'\n    title:\n      - '/^refactor(\\([^\\\\)]+\\))?:/i'\n    branch:\n      - '/^refactor(\\/|-)/i'\n\n  # Tests\n  - label: 'test'\n    title:\n      - '/^tests?(\\([^\\\\)]+\\))?:/i'\n    branch:\n      - '/^tests?(\\/|-)/i'\n\n  # Dependencies\n  - label: 'dependencies'\n    title:\n      - '/^(deps?|dependencies)(\\([^\\\\)]+\\))?:/i'\n      - '/^chore\\(deps(-[a-z0-9]+)?\\):/i'\n    branch:\n      - '/^dependabot\\//i'\n      - '/^renovate\\//i'\n      - '/^deps?(\\/|-)/i'\n\n  # Build\n  - label: 'build'\n    title:\n      - '/^build(\\([^\\\\)]+\\))?:/i'\n    branch:\n      - '/^build(\\/|-)/i'\n\n  # CI\n  - label: 'ci'\n    files:\n      - '.github/**'\n    title:\n      - '/^(ci|build)(\\([^\\\\)]+\\))?:/i'\n    branch:\n      - '/^ci(\\/|-)/i'\n\n  # Chores & Maintenance\n  - label: 'chore'\n    title:\n      - '/^chore(\\([^\\\\)]+\\))?:/i'\n    branch:\n      - '/^chore(\\/|-)/i'\n\n  # Code Style\n  - label: 'style'\n    title:\n      - '/^style(\\([^\\\\)]+\\))?:/i'\n    branch:\n      - '/^style(\\/|-)/i'\n\n  # Reverts\n  - label: 'revert'\n    title:\n      - '/^revert(\\([^\\\\)]+\\))?:/i'\n    branch:\n      - '/^revert(\\/|-)/i'\n",
+	gitmoji: "# yaml-language-server: $schema=https://raw.githubusercontent.com/release-drafter/release-drafter/master/schema.json\n\nname-template: 'v$RESOLVED_VERSION'\ntag-template: 'v$RESOLVED_VERSION'\ninclude-commits: true\nchange-template: '- $CHANGE_TITLE ($CHANGE_REFERENCE) $CHANGE_AUTHORS'\n\ntemplate: |\n  ## What's Changed\n\n  $CHANGES\n\n  **Full Changelog**: $PREVIOUS_TAG...$RESOLVED_TAG\n\nexclude-labels:\n  - 'skip-changelog'\n  - 'skip-release'\n\ncategories:\n  - title: '\u{1F4A5} Breaking Changes'\n    labels:\n      - 'major'\n      - '\u{1F4A5}'\n  - title: '\u2728 Features & Improvements'\n    labels:\n      - 'minor'\n      - '\u2728'\n      - '\u{1F389}'\n      - '\u{1F680}'\n      - '\u{1F6B8}'\n      - '\u{1F4F1}'\n      - '\u{1F4AB}'\n      - '\u{1F310}'\n      - '\u{1F371}'\n      - '\u267F\uFE0F'\n      - '\u267F'\n      - '\u{1F95A}'\n      - '\u2697\uFE0F'\n      - '\u2697'\n      - '\u{1F6A9}'\n      - '\u{1F454}'\n      - '\u{1F996}'\n      - '\u2708\uFE0F'\n      - '\u2708'\n  - title: '\u{1F41B} Bug Fixes & Security'\n    labels:\n      - '\u{1F41B}'\n      - '\u{1F691}\uFE0F'\n      - '\u{1F691}'\n      - '\u{1FA79}'\n      - '\u{1F512}\uFE0F'\n      - '\u{1F512}'\n      - '\u{1F510}'\n      - '\u{1F6C2}'\n      - '\u{1F9BA}'\n      - '\u{1F945}'\n      - '\u{1F6A8}'\n      - '\u270F\uFE0F'\n      - '\u270F'\n      - '\u{1F47D}\uFE0F'\n      - '\u{1F47D}'\n  - title: '\u26A1 Performance'\n    labels:\n      - '\u26A1\uFE0F'\n      - '\u26A1'\n      - '\u{1F9F5}'\n      - '\u{1F50D}\uFE0F'\n      - '\u{1F50D}'\n  - title: '\u{1F4DD} Documentation'\n    labels:\n      - '\u{1F4DD}'\n      - '\u{1F4A1}'\n      - '\u{1F4C4}'\n      - '\u{1F465}'\n      - '\u{1F4AC}'\n  - title: '\u267B\uFE0F Code Refactoring & Style'\n    labels:\n      - '\u267B\uFE0F'\n      - '\u267B'\n      - '\u{1F3A8}'\n      - '\u{1F525}'\n      - '\u26B0\uFE0F'\n      - '\u26B0'\n      - '\u{1F3D7}\uFE0F'\n      - '\u{1F3D7}'\n      - '\u{1F5D1}\uFE0F'\n      - '\u{1F5D1}'\n      - '\u{1F69A}'\n      - '\u{1F3F7}\uFE0F'\n      - '\u{1F3F7}'\n      - '\u{1F5C3}\uFE0F'\n      - '\u{1F5C3}'\n      - '\u{1F484}'\n      - '\u{1F4A9}'\n  - title: '\u{1F4E6} Dependency Updates'\n    labels:\n      - '\u2B06\uFE0F'\n      - '\u2B06'\n      - '\u2B07\uFE0F'\n      - '\u2B07'\n      - '\u{1F4CC}'\n      - '\u2795'\n      - '\u2796'\n      - '\u{1F4E6}\uFE0F'\n      - '\u{1F4E6}'\n  - title: '\u{1F477} CI/CD'\n    labels:\n      - '\u{1F477}'\n      - '\u{1F49A}'\n      - '\u{1F527}'\n      - '\u{1F528}'\n      - '\u{1F9F1}'\n      - '\u{1F9D1}\u200D\u{1F4BB}'\n      - '\u{1F648}'\n      - '\u{1F4C8}'\n      - '\u{1FA7A}'\n      - '\u{1F4B8}'\n      - '\u{1F516}'\n      - '\u{1F6A7}'\n      - '\u{1F50A}'\n      - '\u{1F507}'\n  - title: '\u{1F9EA} Tests'\n    labels:\n      - '\u2705'\n      - '\u{1F9EA}'\n      - '\u{1F4F8}'\n      - '\u{1F921}'\n      - '\u{1F331}'\n      - '\u{1F9D0}'\n  - title: '\u23EA\uFE0F Reverts & Branches'\n    labels:\n      - '\u23EA\uFE0F'\n      - '\u23EA'\n      - '\u{1F500}'\n      - '\u{1F37B}'\n\nversion-resolver:\n  major:\n    labels:\n      - 'major'\n      - '\u{1F4A5}'\n  minor:\n    labels:\n      - 'minor'\n      - '\u2728'\n      - '\u{1F389}'\n      - '\u{1F680}'\n      - '\u{1F6B8}'\n      - '\u{1F4F1}'\n      - '\u{1F4AB}'\n      - '\u{1F310}'\n      - '\u{1F371}'\n      - '\u267F\uFE0F'\n      - '\u267F'\n      - '\u{1F95A}'\n      - '\u2697\uFE0F'\n      - '\u2697'\n      - '\u{1F6A9}'\n      - '\u{1F454}'\n      - '\u{1F996}'\n      - '\u2708\uFE0F'\n      - '\u2708'\n  patch:\n    labels:\n      - 'patch'\n      - '\u{1F41B}'\n      - '\u{1F691}\uFE0F'\n      - '\u{1F691}'\n      - '\u{1FA79}'\n      - '\u{1F512}\uFE0F'\n      - '\u{1F512}'\n      - '\u{1F510}'\n      - '\u{1F6C2}'\n      - '\u{1F9BA}'\n      - '\u{1F945}'\n      - '\u{1F6A8}'\n      - '\u270F\uFE0F'\n      - '\u270F'\n      - '\u{1F47D}\uFE0F'\n      - '\u{1F47D}'\n      - '\u26A1\uFE0F'\n      - '\u26A1'\n      - '\u{1F9F5}'\n      - '\u{1F50D}\uFE0F'\n      - '\u{1F50D}'\n      - '\u{1F4DD}'\n      - '\u{1F4A1}'\n      - '\u{1F4C4}'\n      - '\u{1F465}'\n      - '\u{1F4AC}'\n      - '\u267B\uFE0F'\n      - '\u267B'\n      - '\u{1F3A8}'\n      - '\u{1F525}'\n      - '\u26B0\uFE0F'\n      - '\u26B0'\n      - '\u{1F3D7}\uFE0F'\n      - '\u{1F3D7}'\n      - '\u{1F5D1}\uFE0F'\n      - '\u{1F5D1}'\n      - '\u{1F69A}'\n      - '\u{1F3F7}\uFE0F'\n      - '\u{1F3F7}'\n      - '\u{1F5C3}\uFE0F'\n      - '\u{1F5C3}'\n      - '\u{1F484}'\n      - '\u{1F4A9}'\n      - '\u2B06\uFE0F'\n      - '\u2B06'\n      - '\u2B07\uFE0F'\n      - '\u2B07'\n      - '\u{1F4CC}'\n      - '\u2795'\n      - '\u2796'\n      - '\u{1F4E6}\uFE0F'\n      - '\u{1F4E6}'\n      - '\u{1F477}'\n      - '\u{1F49A}'\n      - '\u{1F527}'\n      - '\u{1F528}'\n      - '\u{1F9F1}'\n      - '\u{1F9D1}\u200D\u{1F4BB}'\n      - '\u{1F648}'\n      - '\u{1F4C8}'\n      - '\u{1FA7A}'\n      - '\u{1F4B8}'\n      - '\u{1F516}'\n      - '\u{1F6A7}'\n      - '\u{1F50A}'\n      - '\u{1F507}'\n      - '\u2705'\n      - '\u{1F9EA}'\n      - '\u{1F4F8}'\n      - '\u{1F921}'\n      - '\u{1F331}'\n      - '\u{1F9D0}'\n      - '\u23EA\uFE0F'\n      - '\u23EA'\n      - '\u{1F500}'\n      - '\u{1F37B}'\n  default: patch\n\nautolabeler:\n  # Semver: Major\n  - label: 'major'\n    title:\n      - '/^(:boom:|\u{1F4A5})/'\n      - '/^([a-z]+(\\([^\\)]+\\))?!:|.*BREAKING CHANGE:?)/i'\n      - '/BREAKING[ -]CHANGE/i'\n    branch:\n      - '/.*breaking.*/i'\n    body:\n      - '/BREAKING[ -]CHANGE:/i'\n\n  # Semver: Minor\n  - label: 'minor'\n    title:\n      - '/^(:sparkles:|\u2728)/'\n      - '/^(:tada:|\u{1F389})/'\n      - '/^(:rocket:|\u{1F680})/'\n      - '/^(:children_crossing:|\u{1F6B8})/'\n      - '/^(:iphone:|\u{1F4F1})/'\n      - '/^(:dizzy:|\u{1F4AB})/'\n      - '/^(:globe_with_meridians:|\u{1F310})/'\n      - '/^(:bento:|\u{1F371})/'\n      - '/^(:wheelchair:|\u267F\\ufe0f?)/'\n      - '/^(:egg:|\u{1F95A})/'\n      - '/^(:alembic:|\u2697\\ufe0f?)/'\n      - '/^(:triangular_flag_on_post:|\u{1F6A9})/'\n      - '/^(:necktie:|\u{1F454})/'\n      - '/^(:t-rex:|\u{1F996})/'\n      - '/^(:airplane:|\u2708\\ufe0f?)/'\n      - '/^feat(ure)?(\\([^\\)]+\\))?:/i'\n    branch:\n      - '/^feat(\\/|-)/i'\n      - '/^feature(\\/|-)/i'\n\n  # Semver: Patch\n  - label: 'patch'\n    title:\n      - '/^(:bug:|\u{1F41B})/'\n      - '/^(:ambulance:|\u{1F691}\\ufe0f?)/'\n      - '/^(:adhesive_bandage:|\u{1FA79})/'\n      - '/^(:lock:|\u{1F512}\\ufe0f?)/'\n      - '/^(:closed_lock_with_key:|\u{1F510})/'\n      - '/^(:passport_control:|\u{1F6C2})/'\n      - '/^(:safety_vest:|\u{1F9BA})/'\n      - '/^(:goal_net:|\u{1F945})/'\n      - '/^(:rotating_light:|\u{1F6A8})/'\n      - '/^(:pencil2:|\u270F\\ufe0f?)/'\n      - '/^(:alien:|\u{1F47D}\\ufe0f?)/'\n      - '/^(:zap:|\u26A1\\ufe0f?)/'\n      - '/^(:thread:|\u{1F9F5})/'\n      - '/^(:mag:|\u{1F50D}\\ufe0f?)/'\n      - '/^(:memo:|\u{1F4DD})/'\n      - '/^(:bulb:|\u{1F4A1})/'\n      - '/^(:page_facing_up:|\u{1F4C4})/'\n      - '/^(:busts_in_silhouette:|\u{1F465})/'\n      - '/^(:speech_balloon:|\u{1F4AC})/'\n      - '/^(:recycle:|\u267B\\ufe0f?)/'\n      - '/^(:art:|\u{1F3A8})/'\n      - '/^(:fire:|\u{1F525})/'\n      - '/^(:coffin:|\u26B0\\ufe0f?)/'\n      - '/^(:building_construction:|\u{1F3D7}\\ufe0f?)/'\n      - '/^(:wastebasket:|\u{1F5D1}\\ufe0f?)/'\n      - '/^(:truck:|\u{1F69A})/'\n      - '/^(:label:|\u{1F3F7}\\ufe0f?)/'\n      - '/^(:card_file_box:|\u{1F5C3}\\ufe0f?)/'\n      - '/^(:lipstick:|\u{1F484})/'\n      - '/^(:poop:|\u{1F4A9})/'\n      - '/^(:arrow_up:|\u2B06\\ufe0f?)/'\n      - '/^(:arrow_down:|\u2B07\\ufe0f?)/'\n      - '/^(:pushpin:|\u{1F4CC})/'\n      - '/^(:heavy_plus_sign:|\u2795)/'\n      - '/^(:heavy_minus_sign:|\u2796)/'\n      - '/^(:package:|\u{1F4E6}\\ufe0f?)/'\n      - '/^(:construction_worker:|\u{1F477})/'\n      - '/^(:green_heart:|\u{1F49A})/'\n      - '/^(:wrench:|\u{1F527})/'\n      - '/^(:hammer:|\u{1F528})/'\n      - '/^(:bricks:|\u{1F9F1})/'\n      - '/^(:technologist:|\u{1F9D1}\u200D\u{1F4BB})/'\n      - '/^(:see_no_evil:|\u{1F648})/'\n      - '/^(:chart_with_upwards_trend:|\u{1F4C8})/'\n      - '/^(:stethoscope:|\u{1FA7A})/'\n      - '/^(:money_with_wings:|\u{1F4B8})/'\n      - '/^(:bookmark:|\u{1F516})/'\n      - '/^(:construction:|\u{1F6A7})/'\n      - '/^(:loud_sound:|\u{1F50A})/'\n      - '/^(:mute:|\u{1F507})/'\n      - '/^(:white_check_mark:|\u2705)/'\n      - '/^(:test_tube:|\u{1F9EA})/'\n      - '/^(:camera_flash:|\u{1F4F8})/'\n      - '/^(:clown_face:|\u{1F921})/'\n      - '/^(:seedling:|\u{1F331})/'\n      - '/^(:monocle_face:|\u{1F9D0})/'\n      - '/^(:rewind:|\u23EA\\ufe0f?)/'\n      - '/^(:twisted_rightwards_arrows:|\u{1F500})/'\n      - '/^(:beers:|\u{1F37B})/'\n      - '/^(fix|bugfix|hotfix)(\\([^\\)]+\\))?:/i'\n      - '/^sec(urity)?(\\([^\\)]+\\))?:/i'\n      - '/^perf(ormance)?(\\([^\\)]+\\))?:/i'\n      - '/^docs?(\\([^\\)]+\\))?:/i'\n      - '/^refactor(\\([^\\)]+\\))?:/i'\n      - '/^(deps?|dependencies)(\\([^\\)]+\\))?:/i'\n      - '/^chore\\(deps(-[a-z0-9]+)?\\):/i'\n      - '/^(ci|build)(\\([^\\)]+\\))?:/i'\n      - '/^chore(\\([^\\)]+\\))?:/i'\n      - '/^tests?(\\([^\\)]+\\))?:/i'\n      - '/^revert(\\([^\\)]+\\))?:/i'\n    branch:\n      - '/^fix(\\/|-)/i'\n      - '/^bugfix(\\/|-)/i'\n      - '/^hotfix(\\/|-)/i'\n      - '/^sec(urity)?(\\/|-)/i'\n      - '/^perf(\\/|-)/i'\n      - '/^docs?(\\/|-)/i'\n      - '/^refactor(\\/|-)/i'\n      - '/^dependabot\\//i'\n      - '/^renovate\\//i'\n      - '/^deps?(\\/|-)/i'\n      - '/^ci(\\/|-)/i'\n      - '/^build(\\/|-)/i'\n      - '/^chore(\\/|-)/i'\n      - '/^tests?(\\/|-)/i'\n      - '/^revert(\\/|-)/i'\n\n  - label: '\u{1F4A5}'\n    title:\n      - '/^(:boom:|\u{1F4A5})/'\n      - '/^([a-z]+(\\([^\\)]+\\))?!:|.*BREAKING CHANGE:?)/i'\n      - '/BREAKING[ -]CHANGE/i'\n    branch:\n      - '/.*breaking.*/i'\n    body:\n      - '/BREAKING[ -]CHANGE:/i'\n\n  - label: '\u2728'\n    title:\n      - '/^(:sparkles:|\u2728)/'\n    branch:\n      - '/^feat(\\/|-)/i'\n      - '/^feature(\\/|-)/i'\n\n  - label: '\u{1F389}'\n    title:\n      - '/^(:tada:|\u{1F389})/'\n\n  - label: '\u{1F680}'\n    title:\n      - '/^(:rocket:|\u{1F680})/'\n\n  - label: '\u{1F6B8}'\n    title:\n      - '/^(:children_crossing:|\u{1F6B8})/'\n\n  - label: '\u{1F4F1}'\n    title:\n      - '/^(:iphone:|\u{1F4F1})/'\n\n  - label: '\u{1F4AB}'\n    title:\n      - '/^(:dizzy:|\u{1F4AB})/'\n\n  - label: '\u{1F310}'\n    title:\n      - '/^(:globe_with_meridians:|\u{1F310})/'\n\n  - label: '\u{1F371}'\n    title:\n      - '/^(:bento:|\u{1F371})/'\n\n  - label: '\u267F\uFE0F'\n    title:\n      - '/^(:wheelchair:|\u267F\\ufe0f?)/'\n\n  - label: '\u{1F95A}'\n    title:\n      - '/^(:egg:|\u{1F95A})/'\n\n  - label: '\u2697\uFE0F'\n    title:\n      - '/^(:alembic:|\u2697\\ufe0f?)/'\n\n  - label: '\u{1F6A9}'\n    title:\n      - '/^(:triangular_flag_on_post:|\u{1F6A9})/'\n\n  - label: '\u{1F454}'\n    title:\n      - '/^(:necktie:|\u{1F454})/'\n\n  - label: '\u{1F996}'\n    title:\n      - '/^(:t-rex:|\u{1F996})/'\n\n  - label: '\u2708\uFE0F'\n    title:\n      - '/^(:airplane:|\u2708\\ufe0f?)/'\n\n  - label: '\u{1F41B}'\n    title:\n      - '/^(:bug:|\u{1F41B})/'\n    branch:\n      - '/^fix(\\/|-)/i'\n      - '/^bugfix(\\/|-)/i'\n      - '/^hotfix(\\/|-)/i'\n      - '/^sec(urity)?(\\/|-)/i'\n\n  - label: '\u{1F691}\uFE0F'\n    title:\n      - '/^(:ambulance:|\u{1F691}\\ufe0f?)/'\n\n  - label: '\u{1FA79}'\n    title:\n      - '/^(:adhesive_bandage:|\u{1FA79})/'\n\n  - label: '\u{1F512}\uFE0F'\n    title:\n      - '/^(:lock:|\u{1F512}\\ufe0f?)/'\n\n  - label: '\u{1F510}'\n    title:\n      - '/^(:closed_lock_with_key:|\u{1F510})/'\n\n  - label: '\u{1F6C2}'\n    title:\n      - '/^(:passport_control:|\u{1F6C2})/'\n\n  - label: '\u{1F9BA}'\n    title:\n      - '/^(:safety_vest:|\u{1F9BA})/'\n\n  - label: '\u{1F945}'\n    title:\n      - '/^(:goal_net:|\u{1F945})/'\n\n  - label: '\u{1F6A8}'\n    title:\n      - '/^(:rotating_light:|\u{1F6A8})/'\n\n  - label: '\u270F\uFE0F'\n    title:\n      - '/^(:pencil2:|\u270F\\ufe0f?)/'\n\n  - label: '\u{1F47D}\uFE0F'\n    title:\n      - '/^(:alien:|\u{1F47D}\\ufe0f?)/'\n\n  - label: '\u26A1\uFE0F'\n    title:\n      - '/^(:zap:|\u26A1\\ufe0f?)/'\n    branch:\n      - '/^perf(\\/|-)/i'\n\n  - label: '\u{1F9F5}'\n    title:\n      - '/^(:thread:|\u{1F9F5})/'\n\n  - label: '\u{1F50D}\uFE0F'\n    title:\n      - '/^(:mag:|\u{1F50D}\\ufe0f?)/'\n\n  - label: '\u{1F4DD}'\n    files:\n      - '**/*.md'\n      - 'docs/**'\n    title:\n      - '/^(:memo:|\u{1F4DD})/'\n      - '/^docs?(\\([^\\)]+\\))?:/i'\n    branch:\n      - '/^docs?(\\/|-)/i'\n\n  - label: '\u{1F4A1}'\n    title:\n      - '/^(:bulb:|\u{1F4A1})/'\n\n  - label: '\u{1F4C4}'\n    title:\n      - '/^(:page_facing_up:|\u{1F4C4})/'\n\n  - label: '\u{1F465}'\n    title:\n      - '/^(:busts_in_silhouette:|\u{1F465})/'\n\n  - label: '\u{1F4AC}'\n    title:\n      - '/^(:speech_balloon:|\u{1F4AC})/'\n\n  - label: '\u267B\uFE0F'\n    title:\n      - '/^(:recycle:|\u267B\\ufe0f?)/'\n    branch:\n      - '/^refactor(\\/|-)/i'\n      - '/^style(\\/|-)/i'\n\n  - label: '\u{1F3A8}'\n    title:\n      - '/^(:art:|\u{1F3A8})/'\n\n  - label: '\u{1F525}'\n    title:\n      - '/^(:fire:|\u{1F525})/'\n\n  - label: '\u26B0\uFE0F'\n    title:\n      - '/^(:coffin:|\u26B0\\ufe0f?)/'\n\n  - label: '\u{1F3D7}\uFE0F'\n    title:\n      - '/^(:building_construction:|\u{1F3D7}\\ufe0f?)/'\n\n  - label: '\u{1F5D1}\uFE0F'\n    title:\n      - '/^(:wastebasket:|\u{1F5D1}\\ufe0f?)/'\n\n  - label: '\u{1F69A}'\n    title:\n      - '/^(:truck:|\u{1F69A})/'\n\n  - label: '\u{1F3F7}\uFE0F'\n    title:\n      - '/^(:label:|\u{1F3F7}\\ufe0f?)/'\n\n  - label: '\u{1F5C3}\uFE0F'\n    title:\n      - '/^(:card_file_box:|\u{1F5C3}\\ufe0f?)/'\n\n  - label: '\u{1F484}'\n    title:\n      - '/^(:lipstick:|\u{1F484})/'\n\n  - label: '\u{1F4A9}'\n    title:\n      - '/^(:poop:|\u{1F4A9})/'\n\n  - label: '\u2B06\uFE0F'\n    title:\n      - '/^(:arrow_up:|\u2B06\\ufe0f?)/'\n    branch:\n      - '/^dependabot\\//i'\n      - '/^renovate\\//i'\n      - '/^deps?(\\/|-)/i'\n\n  - label: '\u2B07\uFE0F'\n    title:\n      - '/^(:arrow_down:|\u2B07\\ufe0f?)/'\n\n  - label: '\u{1F4CC}'\n    title:\n      - '/^(:pushpin:|\u{1F4CC})/'\n\n  - label: '\u2795'\n    title:\n      - '/^(:heavy_plus_sign:|\u2795)/'\n\n  - label: '\u2796'\n    title:\n      - '/^(:heavy_minus_sign:|\u2796)/'\n\n  - label: '\u{1F4E6}\uFE0F'\n    title:\n      - '/^(:package:|\u{1F4E6}\\ufe0f?)/'\n\n  - label: '\u{1F477}'\n    files:\n      - '.github/**'\n    title:\n      - '/^(:construction_worker:|\u{1F477})/'\n      - '/^(ci|build)(\\([^\\)]+\\))?:/i'\n    branch:\n      - '/^ci(\\/|-)/i'\n      - '/^build(\\/|-)/i'\n      - '/^chore(\\/|-)/i'\n\n  - label: '\u{1F49A}'\n    title:\n      - '/^(:green_heart:|\u{1F49A})/'\n\n  - label: '\u{1F527}'\n    title:\n      - '/^(:wrench:|\u{1F527})/'\n\n  - label: '\u{1F528}'\n    title:\n      - '/^(:hammer:|\u{1F528})/'\n\n  - label: '\u{1F9F1}'\n    title:\n      - '/^(:bricks:|\u{1F9F1})/'\n\n  - label: '\u{1F9D1}\u200D\u{1F4BB}'\n    title:\n      - '/^(:technologist:|\u{1F9D1}\u200D\u{1F4BB})/'\n\n  - label: '\u{1F648}'\n    title:\n      - '/^(:see_no_evil:|\u{1F648})/'\n\n  - label: '\u{1F4C8}'\n    title:\n      - '/^(:chart_with_upwards_trend:|\u{1F4C8})/'\n\n  - label: '\u{1FA7A}'\n    title:\n      - '/^(:stethoscope:|\u{1FA7A})/'\n\n  - label: '\u{1F4B8}'\n    title:\n      - '/^(:money_with_wings:|\u{1F4B8})/'\n\n  - label: '\u{1F516}'\n    title:\n      - '/^(:bookmark:|\u{1F516})/'\n\n  - label: '\u{1F6A7}'\n    title:\n      - '/^(:construction:|\u{1F6A7})/'\n\n  - label: '\u{1F50A}'\n    title:\n      - '/^(:loud_sound:|\u{1F50A})/'\n\n  - label: '\u{1F507}'\n    title:\n      - '/^(:mute:|\u{1F507})/'\n\n  - label: '\u2705'\n    title:\n      - '/^(:white_check_mark:|\u2705)/'\n    branch:\n      - '/^tests?(\\/|-)/i'\n\n  - label: '\u{1F9EA}'\n    title:\n      - '/^(:test_tube:|\u{1F9EA})/'\n\n  - label: '\u{1F4F8}'\n    title:\n      - '/^(:camera_flash:|\u{1F4F8})/'\n\n  - label: '\u{1F921}'\n    title:\n      - '/^(:clown_face:|\u{1F921})/'\n\n  - label: '\u{1F331}'\n    title:\n      - '/^(:seedling:|\u{1F331})/'\n\n  - label: '\u{1F9D0}'\n    title:\n      - '/^(:monocle_face:|\u{1F9D0})/'\n\n  - label: '\u23EA\uFE0F'\n    title:\n      - '/^(:rewind:|\u23EA\\ufe0f?)/'\n    branch:\n      - '/^revert(\\/|-)/i'\n\n  - label: '\u{1F500}'\n    title:\n      - '/^(:twisted_rightwards_arrows:|\u{1F500})/'\n\n  - label: '\u{1F37B}'\n    title:\n      - '/^(:beers:|\u{1F37B})/'\n",
+	hybrid: "# yaml-language-server: $schema=https://raw.githubusercontent.com/release-drafter/release-drafter/master/schema.json\n\nname-template: 'v$RESOLVED_VERSION'\ntag-template: 'v$RESOLVED_VERSION'\ninclude-commits: true\nchange-template: '- $CHANGE_TITLE ($CHANGE_REFERENCE) $CHANGE_AUTHORS'\n\ntemplate: |\n  ## What's Changed\n\n  $CHANGES\n\n  **Full Changelog**: $PREVIOUS_TAG...$RESOLVED_TAG\n\nexclude-labels:\n  - 'skip-changelog'\n  - 'skip-release'\n\ncategories:\n  - title: '\u{1F4A5} Breaking Changes'\n    labels:\n      - 'major'\n      - '\u{1F4A5}'\n      - 'boom'\n      - 'breaking'\n      - 'breaking-change'\n  - title: '\u2728 Features & Improvements'\n    labels:\n      - 'minor'\n      - '\u2728'\n      - '\u{1F389}'\n      - '\u{1F680}'\n      - '\u{1F6B8}'\n      - '\u{1F4F1}'\n      - '\u{1F4AB}'\n      - '\u{1F310}'\n      - '\u{1F371}'\n      - '\u267F\uFE0F'\n      - '\u267F'\n      - '\u{1F95A}'\n      - '\u2697\uFE0F'\n      - '\u2697'\n      - '\u{1F6A9}'\n      - '\u{1F454}'\n      - '\u{1F996}'\n      - '\u2708\uFE0F'\n      - '\u2708'\n      - 'sparkles'\n      - 'tada'\n      - 'rocket'\n      - 'children-crossing'\n      - 'iphone'\n      - 'dizzy'\n      - 'globe-with-meridians'\n      - 'bento'\n      - 'wheelchair'\n      - 'egg'\n      - 'alembic'\n      - 'triangular-flag-on-post'\n      - 'necktie'\n      - 't-rex'\n      - 'airplane'\n      - 'feature'\n      - 'enhancement'\n      - 'feat'\n  - title: '\u{1F41B} Bug Fixes & Security'\n    labels:\n      - '\u{1F41B}'\n      - '\u{1F691}\uFE0F'\n      - '\u{1F691}'\n      - '\u{1FA79}'\n      - '\u{1F512}\uFE0F'\n      - '\u{1F512}'\n      - '\u{1F510}'\n      - '\u{1F6C2}'\n      - '\u{1F9BA}'\n      - '\u{1F945}'\n      - '\u{1F6A8}'\n      - '\u270F\uFE0F'\n      - '\u270F'\n      - '\u{1F47D}\uFE0F'\n      - '\u{1F47D}'\n      - 'bug'\n      - 'ambulance'\n      - 'adhesive-bandage'\n      - 'lock'\n      - 'closed-lock-with-key'\n      - 'passport-control'\n      - 'safety-vest'\n      - 'goal-net'\n      - 'rotating-light'\n      - 'pencil2'\n      - 'alien'\n      - 'fix'\n      - 'bugfix'\n      - 'security'\n  - title: '\u26A1 Performance'\n    labels:\n      - '\u26A1\uFE0F'\n      - '\u26A1'\n      - '\u{1F9F5}'\n      - '\u{1F50D}\uFE0F'\n      - '\u{1F50D}'\n      - 'zap'\n      - 'thread'\n      - 'mag'\n      - 'perf'\n      - 'performance'\n  - title: '\u{1F4DD} Documentation'\n    labels:\n      - '\u{1F4DD}'\n      - '\u{1F4A1}'\n      - '\u{1F4C4}'\n      - '\u{1F465}'\n      - '\u{1F4AC}'\n      - 'memo'\n      - 'bulb'\n      - 'page-facing-up'\n      - 'busts-in-silhouette'\n      - 'speech-balloon'\n      - 'docs'\n      - 'documentation'\n  - title: '\u267B\uFE0F Code Refactoring & Style'\n    labels:\n      - '\u267B\uFE0F'\n      - '\u267B'\n      - '\u{1F3A8}'\n      - '\u{1F525}'\n      - '\u26B0\uFE0F'\n      - '\u26B0'\n      - '\u{1F3D7}\uFE0F'\n      - '\u{1F3D7}'\n      - '\u{1F5D1}\uFE0F'\n      - '\u{1F5D1}'\n      - '\u{1F69A}'\n      - '\u{1F3F7}\uFE0F'\n      - '\u{1F3F7}'\n      - '\u{1F5C3}\uFE0F'\n      - '\u{1F5C3}'\n      - '\u{1F484}'\n      - '\u{1F4A9}'\n      - 'recycle'\n      - 'art'\n      - 'fire'\n      - 'coffin'\n      - 'building-construction'\n      - 'wastebasket'\n      - 'truck'\n      - 'label'\n      - 'card-file-box'\n      - 'lipstick'\n      - 'poop'\n      - 'refactor'\n      - 'style'\n  - title: '\u{1F4E6} Dependency Updates'\n    labels:\n      - '\u2B06\uFE0F'\n      - '\u2B06'\n      - '\u2B07\uFE0F'\n      - '\u2B07'\n      - '\u{1F4CC}'\n      - '\u2795'\n      - '\u2796'\n      - '\u{1F4E6}\uFE0F'\n      - '\u{1F4E6}'\n      - 'arrow-up'\n      - 'arrow-down'\n      - 'pushpin'\n      - 'heavy-plus-sign'\n      - 'heavy-minus-sign'\n      - 'package'\n      - 'dependencies'\n      - 'deps'\n  - title: '\u{1F477} CI/CD'\n    labels:\n      - '\u{1F477}'\n      - '\u{1F49A}'\n      - '\u{1F527}'\n      - '\u{1F528}'\n      - '\u{1F9F1}'\n      - '\u{1F9D1}\u200D\u{1F4BB}'\n      - '\u{1F648}'\n      - '\u{1F4C8}'\n      - '\u{1FA7A}'\n      - '\u{1F4B8}'\n      - '\u{1F516}'\n      - '\u{1F6A7}'\n      - '\u{1F50A}'\n      - '\u{1F507}'\n      - 'construction-worker'\n      - 'green-heart'\n      - 'wrench'\n      - 'hammer'\n      - 'bricks'\n      - 'technologist'\n      - 'see-no-evil'\n      - 'chart-with-upwards-trend'\n      - 'stethoscope'\n      - 'money-with-wings'\n      - 'bookmark'\n      - 'construction'\n      - 'loud-sound'\n      - 'mute'\n      - 'ci'\n      - 'build'\n      - 'chore'\n  - title: '\u{1F9EA} Tests'\n    labels:\n      - '\u2705'\n      - '\u{1F9EA}'\n      - '\u{1F4F8}'\n      - '\u{1F921}'\n      - '\u{1F331}'\n      - '\u{1F9D0}'\n      - 'white-check-mark'\n      - 'test-tube'\n      - 'camera-flash'\n      - 'clown-face'\n      - 'seedling'\n      - 'monocle-face'\n      - 'test'\n  - title: '\u23EA\uFE0F Reverts & Branches'\n    labels:\n      - '\u23EA\uFE0F'\n      - '\u23EA'\n      - '\u{1F500}'\n      - '\u{1F37B}'\n      - 'rewind'\n      - 'twisted-rightwards-arrows'\n      - 'beers'\n      - 'revert'\n\nversion-resolver:\n  major:\n    labels:\n      - 'major'\n      - '\u{1F4A5}'\n      - 'boom'\n      - 'breaking'\n      - 'breaking-change'\n  minor:\n    labels:\n      - 'minor'\n      - '\u2728'\n      - '\u{1F389}'\n      - '\u{1F680}'\n      - '\u{1F6B8}'\n      - '\u{1F4F1}'\n      - '\u{1F4AB}'\n      - '\u{1F310}'\n      - '\u{1F371}'\n      - '\u267F\uFE0F'\n      - '\u267F'\n      - '\u{1F95A}'\n      - '\u2697\uFE0F'\n      - '\u2697'\n      - '\u{1F6A9}'\n      - '\u{1F454}'\n      - '\u{1F996}'\n      - '\u2708\uFE0F'\n      - '\u2708'\n      - 'sparkles'\n      - 'tada'\n      - 'rocket'\n      - 'children-crossing'\n      - 'iphone'\n      - 'dizzy'\n      - 'globe-with-meridians'\n      - 'bento'\n      - 'wheelchair'\n      - 'egg'\n      - 'alembic'\n      - 'triangular-flag-on-post'\n      - 'necktie'\n      - 't-rex'\n      - 'airplane'\n      - 'feature'\n      - 'enhancement'\n      - 'feat'\n  patch:\n    labels:\n      - 'patch'\n      - '\u{1F41B}'\n      - '\u{1F691}\uFE0F'\n      - '\u{1F691}'\n      - '\u{1FA79}'\n      - '\u{1F512}\uFE0F'\n      - '\u{1F512}'\n      - '\u{1F510}'\n      - '\u{1F6C2}'\n      - '\u{1F9BA}'\n      - '\u{1F945}'\n      - '\u{1F6A8}'\n      - '\u270F\uFE0F'\n      - '\u270F'\n      - '\u{1F47D}\uFE0F'\n      - '\u{1F47D}'\n      - 'bug'\n      - 'ambulance'\n      - 'adhesive-bandage'\n      - 'lock'\n      - 'closed-lock-with-key'\n      - 'passport-control'\n      - 'safety-vest'\n      - 'goal-net'\n      - 'rotating-light'\n      - 'pencil2'\n      - 'alien'\n      - 'fix'\n      - 'bugfix'\n      - 'security'\n      - '\u26A1\uFE0F'\n      - '\u26A1'\n      - '\u{1F9F5}'\n      - '\u{1F50D}\uFE0F'\n      - '\u{1F50D}'\n      - 'zap'\n      - 'thread'\n      - 'mag'\n      - 'perf'\n      - 'performance'\n      - '\u{1F4DD}'\n      - '\u{1F4A1}'\n      - '\u{1F4C4}'\n      - '\u{1F465}'\n      - '\u{1F4AC}'\n      - 'memo'\n      - 'bulb'\n      - 'page-facing-up'\n      - 'busts-in-silhouette'\n      - 'speech-balloon'\n      - 'docs'\n      - 'documentation'\n      - '\u267B\uFE0F'\n      - '\u267B'\n      - '\u{1F3A8}'\n      - '\u{1F525}'\n      - '\u26B0\uFE0F'\n      - '\u26B0'\n      - '\u{1F3D7}\uFE0F'\n      - '\u{1F3D7}'\n      - '\u{1F5D1}\uFE0F'\n      - '\u{1F5D1}'\n      - '\u{1F69A}'\n      - '\u{1F3F7}\uFE0F'\n      - '\u{1F3F7}'\n      - '\u{1F5C3}\uFE0F'\n      - '\u{1F5C3}'\n      - '\u{1F484}'\n      - '\u{1F4A9}'\n      - 'recycle'\n      - 'art'\n      - 'fire'\n      - 'coffin'\n      - 'building-construction'\n      - 'wastebasket'\n      - 'truck'\n      - 'label'\n      - 'card-file-box'\n      - 'lipstick'\n      - 'poop'\n      - 'refactor'\n      - 'style'\n      - '\u2B06\uFE0F'\n      - '\u2B06'\n      - '\u2B07\uFE0F'\n      - '\u2B07'\n      - '\u{1F4CC}'\n      - '\u2795'\n      - '\u2796'\n      - '\u{1F4E6}\uFE0F'\n      - '\u{1F4E6}'\n      - 'arrow-up'\n      - 'arrow-down'\n      - 'pushpin'\n      - 'heavy-plus-sign'\n      - 'heavy-minus-sign'\n      - 'package'\n      - 'dependencies'\n      - 'deps'\n      - '\u{1F477}'\n      - '\u{1F49A}'\n      - '\u{1F527}'\n      - '\u{1F528}'\n      - '\u{1F9F1}'\n      - '\u{1F9D1}\u200D\u{1F4BB}'\n      - '\u{1F648}'\n      - '\u{1F4C8}'\n      - '\u{1FA7A}'\n      - '\u{1F4B8}'\n      - '\u{1F516}'\n      - '\u{1F6A7}'\n      - '\u{1F50A}'\n      - '\u{1F507}'\n      - 'construction-worker'\n      - 'green-heart'\n      - 'wrench'\n      - 'hammer'\n      - 'bricks'\n      - 'technologist'\n      - 'see-no-evil'\n      - 'chart-with-upwards-trend'\n      - 'stethoscope'\n      - 'money-with-wings'\n      - 'bookmark'\n      - 'construction'\n      - 'loud-sound'\n      - 'mute'\n      - 'ci'\n      - 'build'\n      - 'chore'\n      - '\u2705'\n      - '\u{1F9EA}'\n      - '\u{1F4F8}'\n      - '\u{1F921}'\n      - '\u{1F331}'\n      - '\u{1F9D0}'\n      - 'white-check-mark'\n      - 'test-tube'\n      - 'camera-flash'\n      - 'clown-face'\n      - 'seedling'\n      - 'monocle-face'\n      - 'test'\n      - '\u23EA\uFE0F'\n      - '\u23EA'\n      - '\u{1F500}'\n      - '\u{1F37B}'\n      - 'rewind'\n      - 'twisted-rightwards-arrows'\n      - 'beers'\n      - 'revert'\n  default: patch\n\nautolabeler:\n  # Semver: Major\n  - label: 'major'\n    title:\n      - '/^(:boom:|\u{1F4A5})/'\n      - '/^([a-z]+(\\([^\\)]+\\))?!:|.*BREAKING CHANGE:?)/i'\n      - '/BREAKING[ -]CHANGE/i'\n    branch:\n      - '/.*breaking.*/i'\n    body:\n      - '/BREAKING[ -]CHANGE:/i'\n\n  # Semver: Minor\n  - label: 'minor'\n    title:\n      - '/^(:sparkles:|\u2728)/'\n      - '/^(:tada:|\u{1F389})/'\n      - '/^(:rocket:|\u{1F680})/'\n      - '/^(:children_crossing:|\u{1F6B8})/'\n      - '/^(:iphone:|\u{1F4F1})/'\n      - '/^(:dizzy:|\u{1F4AB})/'\n      - '/^(:globe_with_meridians:|\u{1F310})/'\n      - '/^(:bento:|\u{1F371})/'\n      - '/^(:wheelchair:|\u267F\\ufe0f?)/'\n      - '/^(:egg:|\u{1F95A})/'\n      - '/^(:alembic:|\u2697\\ufe0f?)/'\n      - '/^(:triangular_flag_on_post:|\u{1F6A9})/'\n      - '/^(:necktie:|\u{1F454})/'\n      - '/^(:t-rex:|\u{1F996})/'\n      - '/^(:airplane:|\u2708\\ufe0f?)/'\n      - '/^feat(ure)?(\\([^\\)]+\\))?:/i'\n    branch:\n      - '/^feat(\\/|-)/i'\n      - '/^feature(\\/|-)/i'\n\n  # Semver: Patch\n  - label: 'patch'\n    title:\n      - '/^(:bug:|\u{1F41B})/'\n      - '/^(:ambulance:|\u{1F691}\\ufe0f?)/'\n      - '/^(:adhesive_bandage:|\u{1FA79})/'\n      - '/^(:lock:|\u{1F512}\\ufe0f?)/'\n      - '/^(:closed_lock_with_key:|\u{1F510})/'\n      - '/^(:passport_control:|\u{1F6C2})/'\n      - '/^(:safety_vest:|\u{1F9BA})/'\n      - '/^(:goal_net:|\u{1F945})/'\n      - '/^(:rotating_light:|\u{1F6A8})/'\n      - '/^(:pencil2:|\u270F\\ufe0f?)/'\n      - '/^(:alien:|\u{1F47D}\\ufe0f?)/'\n      - '/^(:zap:|\u26A1\\ufe0f?)/'\n      - '/^(:thread:|\u{1F9F5})/'\n      - '/^(:mag:|\u{1F50D}\\ufe0f?)/'\n      - '/^(:memo:|\u{1F4DD})/'\n      - '/^(:bulb:|\u{1F4A1})/'\n      - '/^(:page_facing_up:|\u{1F4C4})/'\n      - '/^(:busts_in_silhouette:|\u{1F465})/'\n      - '/^(:speech_balloon:|\u{1F4AC})/'\n      - '/^(:recycle:|\u267B\\ufe0f?)/'\n      - '/^(:art:|\u{1F3A8})/'\n      - '/^(:fire:|\u{1F525})/'\n      - '/^(:coffin:|\u26B0\\ufe0f?)/'\n      - '/^(:building_construction:|\u{1F3D7}\\ufe0f?)/'\n      - '/^(:wastebasket:|\u{1F5D1}\\ufe0f?)/'\n      - '/^(:truck:|\u{1F69A})/'\n      - '/^(:label:|\u{1F3F7}\\ufe0f?)/'\n      - '/^(:card_file_box:|\u{1F5C3}\\ufe0f?)/'\n      - '/^(:lipstick:|\u{1F484})/'\n      - '/^(:poop:|\u{1F4A9})/'\n      - '/^(:arrow_up:|\u2B06\\ufe0f?)/'\n      - '/^(:arrow_down:|\u2B07\\ufe0f?)/'\n      - '/^(:pushpin:|\u{1F4CC})/'\n      - '/^(:heavy_plus_sign:|\u2795)/'\n      - '/^(:heavy_minus_sign:|\u2796)/'\n      - '/^(:package:|\u{1F4E6}\\ufe0f?)/'\n      - '/^(:construction_worker:|\u{1F477})/'\n      - '/^(:green_heart:|\u{1F49A})/'\n      - '/^(:wrench:|\u{1F527})/'\n      - '/^(:hammer:|\u{1F528})/'\n      - '/^(:bricks:|\u{1F9F1})/'\n      - '/^(:technologist:|\u{1F9D1}\u200D\u{1F4BB})/'\n      - '/^(:see_no_evil:|\u{1F648})/'\n      - '/^(:chart_with_upwards_trend:|\u{1F4C8})/'\n      - '/^(:stethoscope:|\u{1FA7A})/'\n      - '/^(:money_with_wings:|\u{1F4B8})/'\n      - '/^(:bookmark:|\u{1F516})/'\n      - '/^(:construction:|\u{1F6A7})/'\n      - '/^(:loud_sound:|\u{1F50A})/'\n      - '/^(:mute:|\u{1F507})/'\n      - '/^(:white_check_mark:|\u2705)/'\n      - '/^(:test_tube:|\u{1F9EA})/'\n      - '/^(:camera_flash:|\u{1F4F8})/'\n      - '/^(:clown_face:|\u{1F921})/'\n      - '/^(:seedling:|\u{1F331})/'\n      - '/^(:monocle_face:|\u{1F9D0})/'\n      - '/^(:rewind:|\u23EA\\ufe0f?)/'\n      - '/^(:twisted_rightwards_arrows:|\u{1F500})/'\n      - '/^(:beers:|\u{1F37B})/'\n      - '/^(fix|bugfix|hotfix)(\\([^\\)]+\\))?:/i'\n      - '/^sec(urity)?(\\([^\\)]+\\))?:/i'\n      - '/^perf(ormance)?(\\([^\\)]+\\))?:/i'\n      - '/^docs?(\\([^\\)]+\\))?:/i'\n      - '/^refactor(\\([^\\)]+\\))?:/i'\n      - '/^(deps?|dependencies)(\\([^\\)]+\\))?:/i'\n      - '/^chore\\(deps(-[a-z0-9]+)?\\):/i'\n      - '/^(ci|build)(\\([^\\)]+\\))?:/i'\n      - '/^chore(\\([^\\)]+\\))?:/i'\n      - '/^tests?(\\([^\\)]+\\))?:/i'\n      - '/^revert(\\([^\\)]+\\))?:/i'\n    branch:\n      - '/^fix(\\/|-)/i'\n      - '/^bugfix(\\/|-)/i'\n      - '/^hotfix(\\/|-)/i'\n      - '/^sec(urity)?(\\/|-)/i'\n      - '/^perf(\\/|-)/i'\n      - '/^docs?(\\/|-)/i'\n      - '/^refactor(\\/|-)/i'\n      - '/^dependabot\\//i'\n      - '/^renovate\\//i'\n      - '/^deps?(\\/|-)/i'\n      - '/^ci(\\/|-)/i'\n      - '/^build(\\/|-)/i'\n      - '/^chore(\\/|-)/i'\n      - '/^tests?(\\/|-)/i'\n      - '/^revert(\\/|-)/i'\n\n  - label: 'breaking'\n    title:\n      - '/^([a-z]+(\\([^\\)]+\\))?!:|.*BREAKING CHANGE:?)/i'\n      - '/BREAKING[ -]CHANGE/i'\n    branch:\n      - '/.*breaking.*/i'\n    body:\n      - '/BREAKING[ -]CHANGE:/i'\n\n  - label: '\u{1F4A5}'\n    title:\n      - '/^(:boom:|\u{1F4A5})/'\n      - '/^([a-z]+(\\([^\\)]+\\))?!:|.*BREAKING CHANGE:?)/i'\n      - '/BREAKING[ -]CHANGE/i'\n    branch:\n      - '/.*breaking.*/i'\n    body:\n      - '/BREAKING[ -]CHANGE:/i'\n\n  - label: 'feat'\n    title:\n      - '/^feat(ure)?(\\([^\\)]+\\))?:/i'\n    branch:\n      - '/^feat(\\/|-)/i'\n      - '/^feature(\\/|-)/i'\n\n  - label: 'fix'\n    title:\n      - '/^(fix|bugfix|hotfix)(\\([^\\)]+\\))?:/i'\n    branch:\n      - '/^fix(\\/|-)/i'\n      - '/^bugfix(\\/|-)/i'\n      - '/^hotfix(\\/|-)/i'\n\n  - label: 'security'\n    title:\n      - '/^sec(urity)?(\\([^\\)]+\\))?:/i'\n    branch:\n      - '/^sec(urity)?(\\/|-)/i'\n\n  - label: 'perf'\n    title:\n      - '/^perf(ormance)?(\\([^\\)]+\\))?:/i'\n    branch:\n      - '/^perf(\\/|-)/i'\n\n  - label: 'docs'\n    files:\n      - '**/*.md'\n      - 'docs/**'\n    title:\n      - '/^docs?(\\([^\\)]+\\))?:/i'\n    branch:\n      - '/^docs?(\\/|-)/i'\n\n  - label: 'refactor'\n    title:\n      - '/^refactor(\\([^\\)]+\\))?:/i'\n    branch:\n      - '/^refactor(\\/|-)/i'\n\n  - label: 'dependencies'\n    title:\n      - '/^(deps?|dependencies)(\\([^\\)]+\\))?:/i'\n      - '/^chore\\(deps(-[a-z0-9]+)?\\):/i'\n    branch:\n      - '/^dependabot\\//i'\n      - '/^renovate\\//i'\n      - '/^deps?(\\/|-)/i'\n\n  - label: 'ci'\n    files:\n      - '.github/**'\n    title:\n      - '/^(ci|build)(\\([^\\)]+\\))?:/i'\n    branch:\n      - '/^ci(\\/|-)/i'\n      - '/^build(\\/|-)/i'\n\n  - label: 'chore'\n    title:\n      - '/^chore(\\([^\\)]+\\))?:/i'\n    branch:\n      - '/^chore(\\/|-)/i'\n\n  - label: 'test'\n    title:\n      - '/^tests?(\\([^\\)]+\\))?:/i'\n    branch:\n      - '/^tests?(\\/|-)/i'\n\n  - label: 'revert'\n    title:\n      - '/^revert(\\([^\\)]+\\))?:/i'\n    branch:\n      - '/^revert(\\/|-)/i'\n\n  - label: '\u2728'\n    title:\n      - '/^(:sparkles:|\u2728)/'\n\n  - label: '\u{1F389}'\n    title:\n      - '/^(:tada:|\u{1F389})/'\n\n  - label: '\u{1F680}'\n    title:\n      - '/^(:rocket:|\u{1F680})/'\n\n  - label: '\u{1F6B8}'\n    title:\n      - '/^(:children_crossing:|\u{1F6B8})/'\n\n  - label: '\u{1F4F1}'\n    title:\n      - '/^(:iphone:|\u{1F4F1})/'\n\n  - label: '\u{1F4AB}'\n    title:\n      - '/^(:dizzy:|\u{1F4AB})/'\n\n  - label: '\u{1F310}'\n    title:\n      - '/^(:globe_with_meridians:|\u{1F310})/'\n\n  - label: '\u{1F371}'\n    title:\n      - '/^(:bento:|\u{1F371})/'\n\n  - label: '\u267F\uFE0F'\n    title:\n      - '/^(:wheelchair:|\u267F\\ufe0f?)/'\n\n  - label: '\u{1F95A}'\n    title:\n      - '/^(:egg:|\u{1F95A})/'\n\n  - label: '\u2697\uFE0F'\n    title:\n      - '/^(:alembic:|\u2697\\ufe0f?)/'\n\n  - label: '\u{1F6A9}'\n    title:\n      - '/^(:triangular_flag_on_post:|\u{1F6A9})/'\n\n  - label: '\u{1F454}'\n    title:\n      - '/^(:necktie:|\u{1F454})/'\n\n  - label: '\u{1F996}'\n    title:\n      - '/^(:t-rex:|\u{1F996})/'\n\n  - label: '\u2708\uFE0F'\n    title:\n      - '/^(:airplane:|\u2708\\ufe0f?)/'\n\n  - label: '\u{1F41B}'\n    title:\n      - '/^(:bug:|\u{1F41B})/'\n\n  - label: '\u{1F691}\uFE0F'\n    title:\n      - '/^(:ambulance:|\u{1F691}\\ufe0f?)/'\n\n  - label: '\u{1FA79}'\n    title:\n      - '/^(:adhesive_bandage:|\u{1FA79})/'\n\n  - label: '\u{1F512}\uFE0F'\n    title:\n      - '/^(:lock:|\u{1F512}\\ufe0f?)/'\n\n  - label: '\u{1F510}'\n    title:\n      - '/^(:closed_lock_with_key:|\u{1F510})/'\n\n  - label: '\u{1F6C2}'\n    title:\n      - '/^(:passport_control:|\u{1F6C2})/'\n\n  - label: '\u{1F9BA}'\n    title:\n      - '/^(:safety_vest:|\u{1F9BA})/'\n\n  - label: '\u{1F945}'\n    title:\n      - '/^(:goal_net:|\u{1F945})/'\n\n  - label: '\u{1F6A8}'\n    title:\n      - '/^(:rotating_light:|\u{1F6A8})/'\n\n  - label: '\u270F\uFE0F'\n    title:\n      - '/^(:pencil2:|\u270F\\ufe0f?)/'\n\n  - label: '\u{1F47D}\uFE0F'\n    title:\n      - '/^(:alien:|\u{1F47D}\\ufe0f?)/'\n\n  - label: '\u26A1\uFE0F'\n    title:\n      - '/^(:zap:|\u26A1\\ufe0f?)/'\n\n  - label: '\u{1F9F5}'\n    title:\n      - '/^(:thread:|\u{1F9F5})/'\n\n  - label: '\u{1F50D}\uFE0F'\n    title:\n      - '/^(:mag:|\u{1F50D}\\ufe0f?)/'\n\n  - label: '\u{1F4DD}'\n    files:\n      - '**/*.md'\n      - 'docs/**'\n    title:\n      - '/^(:memo:|\u{1F4DD})/'\n\n  - label: '\u{1F4A1}'\n    title:\n      - '/^(:bulb:|\u{1F4A1})/'\n\n  - label: '\u{1F4C4}'\n    title:\n      - '/^(:page_facing_up:|\u{1F4C4})/'\n\n  - label: '\u{1F465}'\n    title:\n      - '/^(:busts_in_silhouette:|\u{1F465})/'\n\n  - label: '\u{1F4AC}'\n    title:\n      - '/^(:speech_balloon:|\u{1F4AC})/'\n\n  - label: '\u267B\uFE0F'\n    title:\n      - '/^(:recycle:|\u267B\\ufe0f?)/'\n\n  - label: '\u{1F3A8}'\n    title:\n      - '/^(:art:|\u{1F3A8})/'\n\n  - label: '\u{1F525}'\n    title:\n      - '/^(:fire:|\u{1F525})/'\n\n  - label: '\u26B0\uFE0F'\n    title:\n      - '/^(:coffin:|\u26B0\\ufe0f?)/'\n\n  - label: '\u{1F3D7}\uFE0F'\n    title:\n      - '/^(:building_construction:|\u{1F3D7}\\ufe0f?)/'\n\n  - label: '\u{1F5D1}\uFE0F'\n    title:\n      - '/^(:wastebasket:|\u{1F5D1}\\ufe0f?)/'\n\n  - label: '\u{1F69A}'\n    title:\n      - '/^(:truck:|\u{1F69A})/'\n\n  - label: '\u{1F3F7}\uFE0F'\n    title:\n      - '/^(:label:|\u{1F3F7}\\ufe0f?)/'\n\n  - label: '\u{1F5C3}\uFE0F'\n    title:\n      - '/^(:card_file_box:|\u{1F5C3}\\ufe0f?)/'\n\n  - label: '\u{1F484}'\n    title:\n      - '/^(:lipstick:|\u{1F484})/'\n\n  - label: '\u{1F4A9}'\n    title:\n      - '/^(:poop:|\u{1F4A9})/'\n\n  - label: '\u2B06\uFE0F'\n    title:\n      - '/^(:arrow_up:|\u2B06\\ufe0f?)/'\n\n  - label: '\u2B07\uFE0F'\n    title:\n      - '/^(:arrow_down:|\u2B07\\ufe0f?)/'\n\n  - label: '\u{1F4CC}'\n    title:\n      - '/^(:pushpin:|\u{1F4CC})/'\n\n  - label: '\u2795'\n    title:\n      - '/^(:heavy_plus_sign:|\u2795)/'\n\n  - label: '\u2796'\n    title:\n      - '/^(:heavy_minus_sign:|\u2796)/'\n\n  - label: '\u{1F4E6}\uFE0F'\n    title:\n      - '/^(:package:|\u{1F4E6}\\ufe0f?)/'\n\n  - label: '\u{1F477}'\n    files:\n      - '.github/**'\n    title:\n      - '/^(:construction_worker:|\u{1F477})/'\n\n  - label: '\u{1F49A}'\n    title:\n      - '/^(:green_heart:|\u{1F49A})/'\n\n  - label: '\u{1F527}'\n    title:\n      - '/^(:wrench:|\u{1F527})/'\n\n  - label: '\u{1F528}'\n    title:\n      - '/^(:hammer:|\u{1F528})/'\n\n  - label: '\u{1F9F1}'\n    title:\n      - '/^(:bricks:|\u{1F9F1})/'\n\n  - label: '\u{1F9D1}\u200D\u{1F4BB}'\n    title:\n      - '/^(:technologist:|\u{1F9D1}\u200D\u{1F4BB})/'\n\n  - label: '\u{1F648}'\n    title:\n      - '/^(:see_no_evil:|\u{1F648})/'\n\n  - label: '\u{1F4C8}'\n    title:\n      - '/^(:chart_with_upwards_trend:|\u{1F4C8})/'\n\n  - label: '\u{1FA7A}'\n    title:\n      - '/^(:stethoscope:|\u{1FA7A})/'\n\n  - label: '\u{1F4B8}'\n    title:\n      - '/^(:money_with_wings:|\u{1F4B8})/'\n\n  - label: '\u{1F516}'\n    title:\n      - '/^(:bookmark:|\u{1F516})/'\n\n  - label: '\u{1F6A7}'\n    title:\n      - '/^(:construction:|\u{1F6A7})/'\n\n  - label: '\u{1F50A}'\n    title:\n      - '/^(:loud_sound:|\u{1F50A})/'\n\n  - label: '\u{1F507}'\n    title:\n      - '/^(:mute:|\u{1F507})/'\n\n  - label: '\u2705'\n    title:\n      - '/^(:white_check_mark:|\u2705)/'\n\n  - label: '\u{1F9EA}'\n    title:\n      - '/^(:test_tube:|\u{1F9EA})/'\n\n  - label: '\u{1F4F8}'\n    title:\n      - '/^(:camera_flash:|\u{1F4F8})/'\n\n  - label: '\u{1F921}'\n    title:\n      - '/^(:clown_face:|\u{1F921})/'\n\n  - label: '\u{1F331}'\n    title:\n      - '/^(:seedling:|\u{1F331})/'\n\n  - label: '\u{1F9D0}'\n    title:\n      - '/^(:monocle_face:|\u{1F9D0})/'\n\n  - label: '\u23EA\uFE0F'\n    title:\n      - '/^(:rewind:|\u23EA\\ufe0f?)/'\n\n  - label: '\u{1F500}'\n    title:\n      - '/^(:twisted_rightwards_arrows:|\u{1F500})/'\n\n  - label: '\u{1F37B}'\n    title:\n      - '/^(:beers:|\u{1F37B})/'\n"
+};
+var BUILTIN_PRESETS = [
+	"conventional-commits",
+	"gitmoji",
+	"hybrid"
+];
+var getPresetConfig = (name) => {
+	const normalized = name.replace(/\.ya?ml$/, "");
+	return PRESET_CONFIGS[normalized];
+};
+var UNRELEASED_GITMOJIS = [{
+	"emoji": "\u{1F996}",
+	"entity": "&#x1f996;",
+	"code": ":t-rex:",
+	"description": "Code that adds backwards compatibility.",
+	"name": "t-rex",
+	"semver": null
+}];
+var GITMOJI_SPEC_DATA = (() => {
+	const list = [...gitmojis];
+	for (const extra of UNRELEASED_GITMOJIS) if (!list.some((g) => g.name === extra.name)) list.push(extra);
+	return list;
+})();
+//#endregion
 //#region packages/gh-actions/src/common/config/get-config-file.ts
 var SUPPORTED_FILE_EXTENSIONS = [
 	"json",
@@ -38762,10 +39404,31 @@ var SUPPORTED_FILE_EXTENSIONS = [
 ];
 var getConfigFile = async (configTarget, parentTarget, token) => {
 	const _configTarget = structuredClone(configTarget);
+	if (_configTarget.scheme === "preset") {
+		const presetRaw = getPresetConfig(_configTarget.filepath);
+		if (!presetRaw) throw new Error(`Unknown preset "${_configTarget.filepath}". Available presets are: ${BUILTIN_PRESETS.join(", ")}`);
+		let rawConfig;
+		try {
+			rawConfig = parse(presetRaw);
+		} catch {
+			throw new Error(`Could not parse preset syntax in ${describeConfigTarget(_configTarget)}.`);
+		}
+		let config;
+		try {
+			config = configFileSchema.parse(rawConfig);
+		} catch (error) {
+			if (error instanceof ZodError) throw new Error(`Invalid config in ${describeConfigTarget(_configTarget)}:\n${prettifyError$1(error)}`, { cause: error });
+			throw error;
+		}
+		return {
+			config,
+			fetchedFrom: _configTarget
+		};
+	}
 	const fileExtension = _configTarget.filepath.split(".").pop().toLowerCase();
 	if (!SUPPORTED_FILE_EXTENSIONS.includes(fileExtension)) throw new Error(`Unsupported file extension: .${fileExtension}. Supported extensions are: ${SUPPORTED_FILE_EXTENSIONS.join(", ")}`);
 	if (parentTarget?.scheme) {
-		if (parentTarget?.scheme === "github" && _configTarget.scheme === "file") throw new Error(`The '_extends' import-chain cannot contain github: to file: scheme transitions. Please change '_extends: ${configTarget.scheme}:${configTarget.filepath}' to use the github: scheme. ex: '_extends: ${parentTarget.repo.owner}/${parentTarget.repo.repo}:${configTarget.filepath}'`);
+		if (parentTarget?.scheme === "github" && _configTarget.scheme === "file") throw new Error(`The '_extends' import-chain cannot contain github: to file: scheme transitions. Please change '_extends: ${configTarget.scheme}:${configTarget.filepath}' to use the github: scheme. ex: '_extends: ${parentTarget.repo?.owner}/${parentTarget.repo?.repo}:${configTarget.filepath}'`);
 	}
 	_configTarget.filepath = normalizeFilepath(_configTarget, parentTarget);
 	const loadFromFs = _configTarget.scheme === "file";
@@ -38799,12 +39462,15 @@ var getConfigFiles = async (configFilename, currentContext, token) => {
 	debug(`getConfigFiles: Starting with filename: ${configFilename}`);
 	let configTarget = parseConfigTarget(configFilename, currentContext);
 	debug(`getConfigFiles: Parsed config target - scheme: ${configTarget.scheme}, filepath: ${configTarget.filepath}`);
-	const canFallBackToOrgRepo = configTarget.scheme === "github" && configTarget.repo.owner === currentContext.repo.owner && configTarget.repo.repo === currentContext.repo.repo && currentContext.repo.repo !== ".github";
+	const isCurrentRepoGithubScheme = configTarget.scheme === "github" && configTarget.repo?.owner === currentContext.repo.owner && configTarget.repo?.repo === currentContext.repo.repo;
+	const canFallBackToOrgRepo = isCurrentRepoGithubScheme && currentContext.repo.repo !== ".github";
+	const isDefaultConfig = configTarget.scheme === "github" && ["release-drafter.yml", "release-drafter.yaml"].includes(basename(configTarget.filepath).toLowerCase()) && isCurrentRepoGithubScheme;
 	let requestedRepoConfig;
 	try {
 		requestedRepoConfig = await getConfigFile(configTarget, void 0, token);
 	} catch (error) {
-		if (canFallBackToOrgRepo && error instanceof Error && error.message.includes("Config file not found") && configTarget.scheme === "github") {
+		const isNotFound = error instanceof Error && error.message.includes("Config file not found");
+		if (canFallBackToOrgRepo && isNotFound && configTarget.scheme === "github") {
 			info(`Config not found in ${currentContext.repo.owner}/${currentContext.repo.repo}, falling back to ${currentContext.repo.owner}/.github`);
 			const orgFallbackTarget = {
 				...configTarget,
@@ -38814,7 +39480,24 @@ var getConfigFiles = async (configFilename, currentContext, token) => {
 				},
 				ref: void 0
 			};
-			requestedRepoConfig = await getConfigFile(orgFallbackTarget, void 0, token);
+			try {
+				requestedRepoConfig = await getConfigFile(orgFallbackTarget, void 0, token);
+			} catch (orgError) {
+				const isOrgNotFound = orgError instanceof Error && orgError.message.includes("Config file not found");
+				if (isDefaultConfig && isOrgNotFound) {
+					info(`Config not found in ${currentContext.repo.owner}/${currentContext.repo.repo} or .github, falling back to hybrid preset.`);
+					requestedRepoConfig = await getConfigFile({
+						scheme: "preset",
+						filepath: "hybrid"
+					}, void 0, token);
+				} else throw orgError;
+			}
+		} else if (isDefaultConfig && isNotFound) {
+			info(`Config not found in ${currentContext.repo.owner}/${currentContext.repo.repo}, falling back to hybrid preset.`);
+			requestedRepoConfig = await getConfigFile({
+				scheme: "preset",
+				filepath: "hybrid"
+			}, void 0, token);
 		} else throw error;
 	}
 	debug(`getConfigFiles: Fetched initial config from ${requestedRepoConfig.fetchedFrom.scheme}:${requestedRepoConfig.fetchedFrom.filepath}`);
@@ -38846,7 +39529,7 @@ var getConfigFiles = async (configFilename, currentContext, token) => {
 		};
 		if (files.find(({ fetchedFrom: loadedFrom }) => {
 			const sameFilepath = loadedFrom.filepath === preCheckTarget.filepath;
-			const sameRepo = loadedFrom.repo.owner === preCheckTarget.repo.owner && loadedFrom.repo.repo === preCheckTarget.repo.repo;
+			const sameRepo = loadedFrom.repo?.owner === preCheckTarget.repo?.owner && loadedFrom.repo?.repo === preCheckTarget.repo?.repo;
 			const crossScheme = loadedFrom.scheme === "file" && preCheckTarget.scheme === "github";
 			return sameFilepath && sameRepo && (crossScheme || loadedFrom.ref === preCheckTarget.ref);
 		})) {
@@ -38928,4 +39611,4 @@ async function composeConfigGet(configFilename, currentContext, token) {
 	return result;
 }
 //#endregion
-export { context as C, warning as D, setFailed as E, summary as O, Minimatch as S, info as T, number as _, readActionInputs as a, stringbool as b, getGitHubAdapter as c, escapeStringRegexp as d, ZodDefault as f, literal as g, boolean as h, defineActionInputNames as i, getRepository as l, array as m, sharedInputSchema as n, writeActionOutputs as o, _enum as p, tokenInputSchema as r, actionLogger as s, composeConfigGet as t, noopLogger as u, object as v, core_exports as w, union as x, string$1 as y };
+export { Minimatch as C, setFailed as D, info as E, warning as O, union as S, core_exports as T, literal as _, defineActionInputNames as a, string$1 as b, actionLogger as c, noopLogger as d, escapeStringRegexp as f, boolean as g, array as h, tokenInputSchema as i, summary as k, getGitHubAdapter as l, _enum as m, GITMOJI_SPEC_DATA as n, readActionInputs as o, ZodDefault as p, sharedInputSchema as r, writeActionOutputs as s, composeConfigGet as t, getRepository as u, number as v, context as w, stringbool as x, object as y };
