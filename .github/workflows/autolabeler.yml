@@ -1,0 +1,20 @@
+name: Auto Labeler
+
+on:
+  pull_request_target:
+    types: [opened, edited, synchronize, reopened]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  autolabeler:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - name: Run Autolabeler
+        uses: ./autolabeler
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

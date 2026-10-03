@@ -23,13 +23,11 @@ jobs:
 
       - uses: ./
         with:
-          config-name: file:release-drafter.tests.yml
           dry-run: true
 
       - uses: ./autolabeler
         if: github.event_name == 'pull_request'
         with:
-          config-name: file:release-drafter.autolabeler.tests.yml
           dry-run: true
 
   tests:
