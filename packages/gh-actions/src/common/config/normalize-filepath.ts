@@ -36,7 +36,8 @@ export const normalizeFilepath = (
     }
   } else {
     if (
-      parentConfig &&
+      parentConfig?.repo &&
+      config.repo &&
       // repo & refs are identical
       parentConfig.repo.owner === config.repo.owner &&
       parentConfig.repo.repo === config.repo.repo &&

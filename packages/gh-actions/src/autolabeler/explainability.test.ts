@@ -2,25 +2,61 @@ import * as core from '@actions/core'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   buildExplainabilitySummary,
+  getGitmojiSpec,
   isGitHubEnvironment,
   writeStepSummary,
 } from './explainability.ts'
 
 describe('explainability', () => {
+  describe('getGitmojiSpec', () => {
+    it('finds preset gitmoji specs by emoji, code, or name', () => {
+      const byEmoji = getGitmojiSpec('✨')
+      expect(byEmoji?.name).toBe('sparkles')
+      expect(byEmoji?.description).toBe('Introduce new features.')
+      expect(byEmoji?.semver).toBe('minor')
+
+      const byCode = getGitmojiSpec(':boom:')
+      expect(byCode?.name).toBe('boom')
+      expect(byCode?.semver).toBe('major')
+
+      const byName = getGitmojiSpec('memo')
+      expect(byName?.emoji).toBe('📝')
+    })
+
+    it('returns undefined for non-gitmoji labels', () => {
+      expect(getGitmojiSpec('minor')).toBeUndefined()
+      expect(getGitmojiSpec('major')).toBeUndefined()
+      expect(getGitmojiSpec('feat')).toBeUndefined()
+      expect(getGitmojiSpec('custom')).toBeUndefined()
+    })
+  })
+
   describe('buildExplainabilitySummary', () => {
-    it('formats a detailed markdown table with labels, semver impact, and triggers', () => {
+    it('formats a detailed markdown table with linked intentions only for preset gitmojis', () => {
       const summary = buildExplainabilitySummary({
         pullRequest: {
           number: 42,
-          title: 'feat: add OAuth login',
+          title: '✨ Add OAuth login',
           branch: 'feat/auth',
         },
         matches: [
           {
+            label: '✨',
+            matcher: 'title',
+            pattern: '/^(:sparkles:|✨)/',
+            matchedValue: '✨ Add OAuth login',
+          },
+          {
             label: 'minor',
             matcher: 'title',
-            pattern: '/^feat:/',
-            matchedValue: 'feat: add OAuth login',
+            pattern: '/^(:sparkles:|✨)/',
+            matchedValue: '✨ Add OAuth login',
+          },
+          {
+            label: '👷',
+            matcher: 'files',
+            pattern: '.github/**',
+            matchedValue: '.github/workflows/ci.yml',
           },
           {
             label: 'patch',
@@ -30,20 +66,20 @@ describe('explainability', () => {
           },
         ],
         categories: [
-          { title: 'Features & Improvements', labels: ['minor'] },
-          { title: 'CI/CD', labels: ['patch'] },
+          { title: '✨ Features & Improvements', labels: ['minor', '✨'] },
+          { title: '👷 CI/CD', labels: ['patch', '👷'] },
         ],
       })
 
       // Matches callouts
-      expect(summary).toContain('- **Matched Title:** `feat: add OAuth login`')
+      expect(summary).toContain('- **Matched Title:** `✨ Add OAuth login`')
       expect(summary).toContain('- **Matched Files:**')
       expect(summary).toContain('  - `.github/workflows/ci.yml`')
 
       // Header & PR info
       expect(summary).toContain('## 🏷️ Release Drafter Summary')
       expect(summary).toContain(
-        'Applied **2** label(s) to PR **#42** (`feat/auth`) with **`minor`** version increment.',
+        'Applied **4** label(s) to PR **#42** (`feat/auth`) with **`minor`** version increment.',
       )
 
       // Collapsed details section
@@ -52,20 +88,29 @@ describe('explainability', () => {
 
       // Table headers
       expect(summary).toContain(
-        '| Label | Semver Impact | Trigger | Matched Rule |',
+        '| Label | Gitmoji Intention | Semver Impact | Trigger | Matched Rule |',
       )
 
+      // Preset gitmoji has linked intention
       expect(summary).toContain(
-        '| `minor` | `minor` | Title | Title matched `/^feat:/` |',
+        '| `✨` | [Introduce new features.](https://gitmoji.dev/specification) | `minor` | Title | Title matched `/^(:sparkles:\\|✨)/` |',
       )
       expect(summary).toContain(
-        '| `patch` | `patch` | Files | Files matched pattern `.github/**` |',
+        '| `👷` | [Add or update CI build system.](https://gitmoji.dev/specification) | `patch` | Files | Files matched pattern `.github/**` |',
+      )
+
+      // Non-preset labels have no linked intention (marked with '-')
+      expect(summary).toContain(
+        '| `minor` | - | `minor` | Title | Title matched `/^(:sparkles:\\|✨)/` |',
+      )
+      expect(summary).toContain(
+        '| `patch` | - | `patch` | Files | Files matched pattern `.github/**` |',
       )
 
       // Release Sections list
       expect(summary).toContain('- **Release Sections:**')
-      expect(summary).toContain('  - Features & Improvements')
-      expect(summary).toContain('  - CI/CD')
+      expect(summary).toContain('  - ✨ Features & Improvements')
+      expect(summary).toContain('  - 👷 CI/CD')
     })
 
     it('always outputs Matched Files: as a bulleted list even for a single file', () => {
@@ -128,15 +173,27 @@ describe('explainability', () => {
       const summary = buildExplainabilitySummary({
         pullRequest: {
           number: 1,
-          title: 'feat: new feature and docs',
+          title: '✨ docs and feature',
           branch: 'test/pr',
         },
         matches: [
           {
+            label: '✨',
+            matcher: 'title',
+            pattern: '/^(:sparkles:|✨)/',
+            matchedValue: '✨ docs and feature',
+          },
+          {
             label: 'minor',
             matcher: 'title',
-            pattern: '/^feat:/',
-            matchedValue: 'feat: new feature and docs',
+            pattern: '/^(:sparkles:|✨)/',
+            matchedValue: '✨ docs and feature',
+          },
+          {
+            label: '📝',
+            matcher: 'files',
+            pattern: 'docs/**',
+            matchedValue: 'docs/test.md',
           },
           {
             label: 'patch',
@@ -145,12 +202,12 @@ describe('explainability', () => {
             matchedValue: 'docs/test.md',
           },
         ],
-        appliedLabels: ['minor'],
+        appliedLabels: ['✨', 'minor', '📝'],
         supersededLabels: ['patch'],
       })
 
       expect(summary).toContain(
-        'Applied **1** label(s) to PR **#1** (`test/pr`) with **`minor`** version increment.',
+        'Applied **3** label(s) to PR **#1** (`test/pr`) with **`minor`** version increment.',
       )
       expect(summary).not.toMatch(/^\| `patch` \|/m)
     })

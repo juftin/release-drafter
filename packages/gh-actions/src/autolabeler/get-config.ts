@@ -20,9 +20,13 @@ export const getConfig = async (
     core.info(`Config was fetched from ${contexts.length} different contexts.`)
   } else if (contexts.length === 1) {
     const source = contexts[0]
-    core.info(
-      `Config fetched ${source.scheme === 'file' ? 'locally' : `on remote "${source.repo.owner}/${source.repo.repo}${source.ref ? `@${source.ref}` : ''}"${source.ref ? '' : ' on the default branch'}`}.`,
-    )
+    const location =
+      source.scheme === 'file'
+        ? 'locally'
+        : source.scheme === 'preset'
+          ? `from preset "${source.filepath}"`
+          : `on remote "${source.repo?.owner}/${source.repo?.repo}${source.ref ? `@${source.ref}` : ''}"${source.ref ? '' : ' on the default branch'}`
+    core.info(`Config fetched ${location}.`)
   }
   return parseConfig({ config: configSchema.parse(config), logger: core })
 }

@@ -1,16 +1,18 @@
 export type ConfigTarget = {
-  scheme: 'file' | 'github'
-  repo: { owner: string; repo: string }
+  scheme: 'file' | 'github' | 'preset'
+  repo?: { owner: string; repo: string }
   ref?: string
   filepath: string
 }
 
 export const describeConfigTarget = (target: ConfigTarget) =>
-  `${target.scheme}:${target.filepath}${target.repo ? ` (${target.repo.owner}/${target.repo.repo})` : ''}`
+  target.scheme === 'preset'
+    ? `preset:${target.filepath}`
+    : `${target.scheme}:${target.filepath}${target.repo ? ` (${target.repo.owner}/${target.repo.repo})` : ''}`
 
 /**
  * Parses a config target string into its components
- * @param target - Target string in format `[github:][[owner/]repo:]filepath[@ref]` or `file:filepath`
+ * @param target - Target string in format `[github:][[owner/]repo:]filepath[@ref]`, `file:filepath`, or `preset:<name>`
  * @param currentContext - Current runtime context (repo owner, name, and ref)
  * @returns Parsed config target with resolved components
  */
@@ -19,6 +21,30 @@ export function parseConfigTarget(
   context: Pick<ConfigTarget, 'ref' | 'repo'>,
 ): ConfigTarget {
   let _target = structuredClone(target).trim()
+
+  // Parse preset scheme
+  if (_target.startsWith('preset:')) {
+    if (_target.includes(' ')) {
+      throw new Error(
+        `invalid format: "${_target}". Expected format [github:][owner/repo:]filepath[@ref], file:filepath, or preset:<name>. Target must not contain spaces.`,
+      )
+    }
+    const presetName = _target.slice(7).trim()
+    if (!presetName) {
+      throw new Error(
+        `invalid format: "${_target}". Expected format [github:][owner/repo:]filepath[@ref], file:filepath, or preset:<name>. Preset name must not be empty.`,
+      )
+    }
+    if (presetName.includes(':') || presetName.includes('@')) {
+      throw new Error(
+        `invalid format: "${_target}". Expected format [github:][owner/repo:]filepath[@ref], file:filepath, or preset:<name>. Preset targets cannot have ":" or "@" specifiers.`,
+      )
+    }
+    return {
+      scheme: 'preset',
+      filepath: presetName.replace(/\.ya?ml$/, ''),
+    }
+  }
 
   const getErr = (m: string) =>
     new Error(
@@ -92,17 +118,19 @@ export function parseConfigTarget(
     } else {
       // ex: release-drafter:.github/release-drafter.yml@main
       targetRepoName = repoParts[0]
-      targetRepoOwner = context.repo.owner
+      targetRepoOwner = context.repo?.owner ?? ''
     }
     targetRepo = { owner: targetRepoOwner, repo: targetRepoName }
   } else {
     // ex: .github/release-drafter.yml@main
-    targetRepo = context.repo
+    targetRepo = context.repo ?? { owner: '', repo: '' }
   }
 
-  const isCurrentRepo =
-    context.repo.owner === targetRepo.owner &&
-    context.repo.repo === targetRepo.repo
+  const isCurrentRepo = Boolean(
+    context.repo &&
+      context.repo.owner === targetRepo.owner &&
+      context.repo.repo === targetRepo.repo,
+  )
 
   if (hasRefSpecifier) {
     if (parts.length < 2) throw getErr('Too short to contain ref specifier.')
