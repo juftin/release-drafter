@@ -8,6 +8,7 @@ export {
 export { parseConfigFile } from './config/parse-config-file.ts'
 export {
   type AutolabelMatch,
+  type MatchLabelsResult,
   matchLabels,
   type PullRequestFacts,
 } from './match-labels.ts'

@@ -107,6 +107,52 @@ describe('explainability', () => {
       })
       expect(summary).toContain('No autolabeler rules matched Pull Request')
     })
+
+    it('displays superseded status in table and release impact section', () => {
+      const summary = buildExplainabilitySummary({
+        pullRequest: {
+          number: 1,
+          title: '✨ docs and feature',
+          branch: 'test/pr',
+        },
+        matches: [
+          {
+            label: '✨',
+            matcher: 'title',
+            pattern: '/^(:sparkles:|✨)/',
+            matchedValue: '✨ docs and feature',
+          },
+          {
+            label: 'minor',
+            matcher: 'title',
+            pattern: '/^(:sparkles:|✨)/',
+            matchedValue: '✨ docs and feature',
+          },
+          {
+            label: '📝',
+            matcher: 'files',
+            pattern: 'docs/**',
+            matchedValue: 'docs/test.md',
+          },
+          {
+            label: 'patch',
+            matcher: 'files',
+            pattern: 'docs/**',
+            matchedValue: 'docs/test.md',
+          },
+        ],
+        appliedLabels: ['✨', 'minor', '📝'],
+        supersededLabels: ['patch'],
+      })
+
+      expect(summary).toContain('Applied **3** label(s) to Pull Request')
+      expect(summary).toContain(
+        '| `patch` | - | `patch` *(superseded by `minor`)* | Files |',
+      )
+      expect(summary).toContain(
+        '- **Superseded Bump Label(s):** `patch` (superseded by `minor`)',
+      )
+    })
   })
 
   describe('writeStepSummary', () => {

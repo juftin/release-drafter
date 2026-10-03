@@ -98,6 +98,29 @@ export async function run(): Promise<void> {
       }
     }
 
+    if (result.supersededLabels && result.supersededLabels.length > 0) {
+      for (const superseded of result.supersededLabels) {
+        if (input['dry-run']) {
+          core.info(
+            `[dry-run] Would remove superseded label '${superseded}' from PR #${payload.number}`,
+          )
+        } else {
+          try {
+            await adapter.octokit.rest.issues.removeLabel({
+              ...context.repo,
+              issue_number: payload.number,
+              name: superseded,
+            })
+            core.info(
+              `Removed superseded label '${superseded}' from PR #${payload.number}`,
+            )
+          } catch {
+            // Ignore if label not present on PR
+          }
+        }
+      }
+    }
+
     const summaryMarkdown = buildExplainabilitySummary({
       pullRequest: {
         number: payload.number,
@@ -105,6 +128,8 @@ export async function run(): Promise<void> {
         branch: payload.pull_request.head.ref,
       },
       matches: result.matches,
+      appliedLabels: result.labels,
+      supersededLabels: result.supersededLabels,
       categories: config.categories,
     })
 

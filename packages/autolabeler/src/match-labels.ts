@@ -15,6 +15,18 @@ export type AutolabelMatch = {
   matchedValue?: string
 }
 
+export type MatchLabelsResult = {
+  labels: string[]
+  matches: AutolabelMatch[]
+  supersededLabels: string[]
+}
+
+const SEMVER_PRECEDENCE: Record<string, number> = {
+  major: 3,
+  minor: 2,
+  patch: 1,
+}
+
 const test = (matcher: RegExp, value: string) => {
   matcher.lastIndex = 0
   return matcher.test(value)
@@ -86,5 +98,13 @@ export const matchLabels = (params: {
     }
   }
 
-  return { labels: [...labels], matches }
+  const rawLabels = [...labels]
+  const matchedSemverBumps = rawLabels
+    .filter((l) => l in SEMVER_PRECEDENCE)
+    .sort((a, b) => SEMVER_PRECEDENCE[b] - SEMVER_PRECEDENCE[a])
+
+  const supersededLabels = matchedSemverBumps.slice(1)
+  const resolvedLabels = rawLabels.filter((l) => !supersededLabels.includes(l))
+
+  return { labels: resolvedLabels, matches, supersededLabels }
 }

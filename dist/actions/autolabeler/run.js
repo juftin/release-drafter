@@ -112,6 +112,11 @@ var createPathMatcher = (patterns) => {
 };
 //#endregion
 //#region packages/autolabeler/src/match-labels.ts
+var SEMVER_PRECEDENCE = {
+	major: 3,
+	minor: 2,
+	patch: 1
+};
 var test = (matcher, value) => {
 	matcher.lastIndex = 0;
 	return matcher.test(value);
@@ -170,9 +175,12 @@ var matchLabels = (params) => {
 			});
 		}
 	}
+	const rawLabels = [...labels];
+	const supersededLabels = rawLabels.filter((l) => l in SEMVER_PRECEDENCE).sort((a, b) => SEMVER_PRECEDENCE[b] - SEMVER_PRECEDENCE[a]).slice(1);
 	return {
-		labels: [...labels],
-		matches
+		labels: rawLabels.filter((l) => !supersededLabels.includes(l)),
+		matches,
+		supersededLabels
 	};
 };
 //#endregion
@@ -215,26 +223,32 @@ var PRIORITY = {
 * Only preset Gitmoji labels receive a linked intention from the Gitmoji specification.
 */
 var buildExplainabilitySummary = (params) => {
-	const { pullRequest, matches, categories } = params;
+	const { pullRequest, matches, appliedLabels, supersededLabels, categories } = params;
 	if (matches.length === 0) return [
 		"## 🏷️ Autolabeler & Semver Summary",
 		"",
 		`No autolabeler rules matched Pull Request **#${pullRequest.number}** (\`${pullRequest.branch}\`).`,
 		""
 	].join("\n");
-	const rows = [];
 	let highestBump = "patch";
 	const matchedLabels = new Set(matches.map((m) => m.label));
 	for (const match of matches) {
 		const spec = getGitmojiSpec(match.label);
 		const semver = resolveSemverBump(match.label, spec);
 		if (PRIORITY[semver] > PRIORITY[highestBump]) highestBump = semver;
+	}
+	const rows = [];
+	for (const match of matches) {
+		const spec = getGitmojiSpec(match.label);
+		const semver = resolveSemverBump(match.label, spec);
+		const isSuperseded = supersededLabels?.includes(match.label);
 		const intention = spec ? `[${spec.description}](https://gitmoji.dev/specification)` : "-";
 		const trigger = match.matcher === "files" ? "Files" : match.matcher === "branch" ? "Branch" : match.matcher === "title" ? "Title" : "Body";
 		const patternEscaped = match.pattern ? `\`${match.pattern.replace(/\|/g, "\\|")}\`` : "-";
 		const valueEscaped = match.matchedValue ? `\`${match.matchedValue.replace(/\|/g, "\\|")}\`` : "-";
 		const details = match.matcher === "files" ? `Pattern ${patternEscaped} matched file ${valueEscaped}` : `${trigger} ${valueEscaped} matched ${patternEscaped}`;
-		rows.push(`| \`${match.label}\` | ${intention} | \`${semver}\` | ${trigger} | ${details} |`);
+		const semverDisplay = isSuperseded ? `\`${semver}\` *(superseded by \`${highestBump}\`)*` : `\`${semver}\``;
+		rows.push(`| \`${match.label}\` | ${intention} | ${semverDisplay} | ${trigger} | ${details} |`);
 	}
 	const sections = [];
 	if (categories && categories.length > 0) {
@@ -243,7 +257,7 @@ var buildExplainabilitySummary = (params) => {
 	const lines = [
 		"## 🏷️ Autolabeler & Semver Summary",
 		"",
-		`Applied **${matches.length}** label(s) to Pull Request **#${pullRequest.number}** (\`${pullRequest.branch}\`):`,
+		`Applied **${appliedLabels ? appliedLabels.length : matches.length}** label(s) to Pull Request **#${pullRequest.number}** (\`${pullRequest.branch}\`):`,
 		"",
 		"| Label | Gitmoji Intention | Semver Impact | Trigger | Matched Details |",
 		"| :--- | :--- | :--- | :--- | :--- |",
@@ -252,6 +266,7 @@ var buildExplainabilitySummary = (params) => {
 		"### 🚀 Release Impact",
 		`- **Calculated Version Increment:** \`${highestBump}\``
 	];
+	if (supersededLabels && supersededLabels.length > 0) lines.push(`- **Superseded Bump Label(s):** ${supersededLabels.map((l) => `\`${l}\``).join(", ")} (superseded by \`${highestBump}\`)`);
 	if (sections.length > 0) lines.push("- **Target Changelog Section(s):**", ...sections);
 	lines.push("");
 	return lines.join("\n");
@@ -389,6 +404,15 @@ async function run() {
 				}
 			}
 		}
+		if (result.supersededLabels && result.supersededLabels.length > 0) for (const superseded of result.supersededLabels) if (input["dry-run"]) info(`[dry-run] Would remove superseded label '${superseded}' from PR #${payload.number}`);
+		else try {
+			await adapter.octokit.rest.issues.removeLabel({
+				...context.repo,
+				issue_number: payload.number,
+				name: superseded
+			});
+			info(`Removed superseded label '${superseded}' from PR #${payload.number}`);
+		} catch {}
 		const summaryMarkdown = buildExplainabilitySummary({
 			pullRequest: {
 				number: payload.number,
@@ -396,6 +420,8 @@ async function run() {
 				branch: payload.pull_request.head.ref
 			},
 			matches: result.matches,
+			appliedLabels: result.labels,
+			supersededLabels: result.supersededLabels,
 			categories: config.categories
 		});
 		if (input.summary) await writeStepSummary(summaryMarkdown);
