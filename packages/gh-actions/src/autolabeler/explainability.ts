@@ -1,12 +1,17 @@
 import * as core from '@actions/core'
 import type { AutolabelMatch } from '@release-drafter/autolabeler'
-import type { GitHubAdapter } from '@release-drafter/github-adapter'
 import {
   GITMOJI_SPEC_DATA,
   type GitmojiSpecEntry,
 } from '../common/config/presets.generated.ts'
 
-export const COMMENT_MARKER = '<!-- release-drafter-autolabeler-summary -->'
+export const isGitHubEnvironment = (): boolean => {
+  return Boolean(
+    process.env.GITHUB_ACTIONS === 'true' ||
+      process.env.GITHUB_STEP_SUMMARY ||
+      process.env.GITHUB_REPOSITORY,
+  )
+}
 
 const GITMOJI_SPEC_MAP = new Map<string, GitmojiSpecEntry>()
 
@@ -196,60 +201,16 @@ export const buildExplainabilitySummary = (
   return lines.join('\n')
 }
 
-/** Writes the explainability summary table to the GitHub Actions Job Step Summary. */
+/** Writes the explainability summary table to the GitHub Actions Job Step Summary when GitHub is detected. */
 export const writeStepSummary = async (markdown: string): Promise<void> => {
+  if (!isGitHubEnvironment()) {
+    return
+  }
   try {
     await core.summary.addRaw(markdown).write()
   } catch (error) {
     core.warning(
       `Failed to write GitHub Actions Step Summary: ${error instanceof Error ? error.message : String(error)}`,
-    )
-  }
-}
-
-/** Posts or updates an explainability comment on the pull request. */
-export const postOrUpdatePRComment = async (params: {
-  adapter: GitHubAdapter
-  repo: { owner: string; repo: string }
-  issueNumber: number
-  markdown: string
-}): Promise<void> => {
-  const { adapter, repo, issueNumber, markdown } = params
-  const fullBody = `${COMMENT_MARKER}\n${markdown}`
-
-  try {
-    const comments = await adapter.octokit.rest.issues.listComments({
-      owner: repo.owner,
-      repo: repo.repo,
-      issue_number: issueNumber,
-    })
-
-    const existing = comments.data.find((c) => c.body?.includes(COMMENT_MARKER))
-
-    if (existing) {
-      await adapter.octokit.rest.issues.updateComment({
-        owner: repo.owner,
-        repo: repo.repo,
-        comment_id: existing.id,
-        body: fullBody,
-      })
-      core.info(
-        `Updated existing explainability comment #${existing.id} on PR #${issueNumber}.`,
-      )
-    } else {
-      const created = await adapter.octokit.rest.issues.createComment({
-        owner: repo.owner,
-        repo: repo.repo,
-        issue_number: issueNumber,
-        body: fullBody,
-      })
-      core.info(
-        `Posted new explainability comment #${created.data.id} on PR #${issueNumber}.`,
-      )
-    }
-  } catch (error) {
-    core.warning(
-      `Failed to post or update pull request explainability comment: ${error instanceof Error ? error.message : String(error)}`,
     )
   }
 }

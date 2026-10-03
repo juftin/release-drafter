@@ -9,7 +9,6 @@ import { actionOutputNames } from './action-metadata.ts'
 import {
   buildExplainabilitySummary,
   getGitmojiSpec,
-  postOrUpdatePRComment,
   writeStepSummary,
 } from './explainability.ts'
 import { getActionInput } from './get-action-inputs.ts'
@@ -135,21 +134,6 @@ export async function run(): Promise<void> {
 
     if (input.summary) {
       await writeStepSummary(summaryMarkdown)
-    }
-
-    if (input['pr-comment']) {
-      if (input['dry-run']) {
-        core.info(
-          `[dry-run] Would post/update PR comment on #${payload.number} with explainability summary`,
-        )
-      } else {
-        await postOrUpdatePRComment({
-          adapter,
-          repo: context.repo,
-          issueNumber: payload.number,
-          markdown: summaryMarkdown,
-        })
-      }
     }
 
     writeActionOutputs(actionOutputNames, {

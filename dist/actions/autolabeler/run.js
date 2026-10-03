@@ -1,5 +1,5 @@
 import { C as context, D as warning, E as setFailed, O as summary, S as Minimatch, T as info, a as defineActionInputNames, b as stringbool, d as escapeStringRegexp, h as boolean, l as getGitHubAdapter, m as array, n as GITMOJI_SPEC_DATA, o as readActionInputs, r as sharedInputSchema, s as writeActionOutputs, t as composeConfigGet, v as object, w as core_exports, y as string } from "../../chunks/config.js";
-import process from "node:process";
+import process$1 from "node:process";
 //#region packages/autolabeler/src/config/config.schema.ts
 var configSchema = object({ 
 /**
@@ -189,13 +189,14 @@ var actionInputNames = defineActionInputNames()([
 	"token",
 	"config-name",
 	"dry-run",
-	"summary",
-	"pr-comment"
+	"summary"
 ]);
 var actionOutputNames = ["number", "labels"];
 //#endregion
 //#region packages/gh-actions/src/autolabeler/explainability.ts
-var COMMENT_MARKER = "<!-- release-drafter-autolabeler-summary -->";
+var isGitHubEnvironment = () => {
+	return Boolean(process.env.GITHUB_ACTIONS === "true" || process.env.GITHUB_STEP_SUMMARY || process.env.GITHUB_REPOSITORY);
+};
 var GITMOJI_SPEC_MAP = /* @__PURE__ */ new Map();
 for (const entry of GITMOJI_SPEC_DATA) {
 	GITMOJI_SPEC_MAP.set(entry.name, entry);
@@ -287,51 +288,20 @@ var buildExplainabilitySummary = (params) => {
 	lines.push("", "<details>", "<summary>🏷️ Label Decision Details</summary>", "", "| Label | Gitmoji Intention | Semver Impact | Trigger | Matched Rule |", "| :--- | :--- | :--- | :--- | :--- |", ...rows, "", "</details>", "");
 	return lines.join("\n");
 };
-/** Writes the explainability summary table to the GitHub Actions Job Step Summary. */
+/** Writes the explainability summary table to the GitHub Actions Job Step Summary when GitHub is detected. */
 var writeStepSummary = async (markdown) => {
+	if (!isGitHubEnvironment()) return;
 	try {
 		await summary.addRaw(markdown).write();
 	} catch (error) {
 		warning(`Failed to write GitHub Actions Step Summary: ${error instanceof Error ? error.message : String(error)}`);
 	}
 };
-/** Posts or updates an explainability comment on the pull request. */
-var postOrUpdatePRComment = async (params) => {
-	const { adapter, repo, issueNumber, markdown } = params;
-	const fullBody = `${COMMENT_MARKER}\n${markdown}`;
-	try {
-		const existing = (await adapter.octokit.rest.issues.listComments({
-			owner: repo.owner,
-			repo: repo.repo,
-			issue_number: issueNumber
-		})).data.find((c) => c.body?.includes(COMMENT_MARKER));
-		if (existing) {
-			await adapter.octokit.rest.issues.updateComment({
-				owner: repo.owner,
-				repo: repo.repo,
-				comment_id: existing.id,
-				body: fullBody
-			});
-			info(`Updated existing explainability comment #${existing.id} on PR #${issueNumber}.`);
-		} else {
-			const created = await adapter.octokit.rest.issues.createComment({
-				owner: repo.owner,
-				repo: repo.repo,
-				issue_number: issueNumber,
-				body: fullBody
-			});
-			info(`Posted new explainability comment #${created.data.id} on PR #${issueNumber}.`);
-		}
-	} catch (error) {
-		warning(`Failed to post or update pull request explainability comment: ${error instanceof Error ? error.message : String(error)}`);
-	}
-};
 //#endregion
 //#region packages/gh-actions/src/autolabeler/action-input.schema.ts
 var actionInputSchema = object({
 	"config-name": string().optional().default("release-drafter.yml"),
-	summary: stringbool().or(boolean()).optional().default(true),
-	"pr-comment": stringbool().or(boolean()).optional().default(false)
+	summary: stringbool().or(boolean()).optional().default(true)
 }).and(sharedInputSchema);
 //#endregion
 //#region packages/gh-actions/src/autolabeler/get-action-inputs.ts
@@ -381,7 +351,7 @@ async function run() {
 					repository: {
 						owner: context.repo.owner,
 						name: context.repo.repo,
-						serverUrl: process.env.GITHUB_SERVER_URL ?? "https://github.com"
+						serverUrl: process$1.env.GITHUB_SERVER_URL ?? "https://github.com"
 					},
 					number: payload.number
 				}),
@@ -441,15 +411,6 @@ async function run() {
 			categories: config.categories
 		});
 		if (input.summary) await writeStepSummary(summaryMarkdown);
-		if (input["pr-comment"]) {
-			if (input["dry-run"]) info(`[dry-run] Would post/update PR comment on #${payload.number} with explainability summary`);
-			else await postOrUpdatePRComment({
-				adapter,
-				repo: context.repo,
-				issueNumber: payload.number,
-				markdown: summaryMarkdown
-			});
-		}
 		writeActionOutputs(actionOutputNames, {
 			number: payload.number.toString(),
 			labels: result.labels.length > 0 ? result.labels.join(",") : void 0
