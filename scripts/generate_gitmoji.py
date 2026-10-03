@@ -170,6 +170,24 @@ def make_emoji_regex(emoji: str, code: str) -> str:
     return f"/{pattern}/"
 
 
+def get_category_labels(cat, gitmojis):
+    labels = []
+    for name in cat["names"]:
+        if name not in labels:
+            labels.append(name)
+        g = gitmojis[name]
+        raw_emoji = g["emoji"]
+        if raw_emoji not in labels:
+            labels.append(raw_emoji)
+        code = g["code"]
+        if code not in labels:
+            labels.append(code)
+    for extra in cat.get("extra_labels", []):
+        if extra not in labels:
+            labels.append(extra)
+    return labels
+
+
 def generate_gitmoji_yaml(gitmojis):
     lines = [
         "name-template: 'v$RESOLVED_VERSION'",
@@ -190,7 +208,7 @@ def generate_gitmoji_yaml(gitmojis):
     for cat in CATEGORIES:
         lines.append(f"  - title: '{cat['title']}'")
         lines.append("    labels:")
-        all_labels = cat["names"] + cat.get("extra_labels", [])
+        all_labels = get_category_labels(cat, gitmojis)
         for label in all_labels:
             lines.append(f"      - '{label}'")
 
@@ -203,7 +221,7 @@ def generate_gitmoji_yaml(gitmojis):
     patch_labels = []
 
     for cat in CATEGORIES:
-        labels = cat["names"] + cat.get("extra_labels", [])
+        labels = get_category_labels(cat, gitmojis)
         if cat["semver"] == "major":
             major_labels.extend(labels)
         elif cat["semver"] == "minor":
@@ -238,6 +256,8 @@ def generate_gitmoji_yaml(gitmojis):
     lines.append("      - '/BREAKING[ -]CHANGE/i'")
     lines.append("    branch:")
     lines.append("      - '/.*breaking.*/i'")
+    lines.append("    body:")
+    lines.append("      - '/BREAKING[ -]CHANGE:/i'")
     lines.append("")
 
     # Conventional commit types mappings
@@ -302,7 +322,7 @@ def generate_hybrid_yaml(gitmojis):
     for cat in CATEGORIES:
         lines.append(f"  - title: '{cat['title']}'")
         lines.append("    labels:")
-        all_labels = cat["names"] + cat.get("extra_labels", [])
+        all_labels = get_category_labels(cat, gitmojis)
         for label in all_labels:
             lines.append(f"      - '{label}'")
 
@@ -314,7 +334,7 @@ def generate_hybrid_yaml(gitmojis):
     patch_labels = []
 
     for cat in CATEGORIES:
-        labels = cat["names"] + cat.get("extra_labels", [])
+        labels = get_category_labels(cat, gitmojis)
         if cat["semver"] == "major":
             major_labels.extend(labels)
         elif cat["semver"] == "minor":
@@ -349,6 +369,8 @@ def generate_hybrid_yaml(gitmojis):
     lines.append("      - '/BREAKING[ -]CHANGE/i'")
     lines.append("    branch:")
     lines.append("      - '/.*breaking.*/i'")
+    lines.append("    body:")
+    lines.append("      - '/BREAKING[ -]CHANGE:/i'")
     lines.append("")
 
     # Conventional commit types mappings

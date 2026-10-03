@@ -78,13 +78,35 @@ supported events, and matching behavior.
 
 ## Configuration
 
-The action requires a configuration file. By default, it loads
-`.github/release-drafter.yml` through the GitHub API. You do not need to check
-out the repository.
+Release Drafter works out of the box with zero configuration! If no configuration file is provided, Release Drafter looks for `.github/release-drafter.yml` (or `.yaml`), and if not found, automatically falls back to the built-in **`preset:hybrid`**.
+
+### Presets & Commit Specifications
+
+You can select a built-in preset using `config-name`:
+
+```yaml
+- uses: release-drafter/release-drafter@v8
+  with:
+    config-name: preset:hybrid # or preset:gitmoji, preset:conventional-commits
+```
+
+- **`preset:hybrid`** (Default Fallback): Intelligent hybrid combining both [Gitmoji Specification](https://gitmoji.dev/specification) and [Conventional Commits Specification](https://www.conventionalcommits.org/en/v1.0.0/).
+- **`preset:gitmoji`**: Pure Gitmoji mapping supporting unicode emojis (`✨`), shortcodes (`:sparkles:`), scopes (`✨ (ui): ...`), and colon variations.
+- **`preset:conventional-commits`**: Pure Conventional Commits v1.0.0 mapping supporting standard types (`feat`, `fix`, `perf`, `docs`, etc.), scopes, bang breaking changes (`feat!:`), and `BREAKING CHANGE:` body footers.
+
+### Emoji Labels Support
+
+GitHub labels and Release Drafter category rules are not limited to words—**labels can be emojis**!
+All presets natively recognize:
+- Unicode emoji labels (e.g. `✨`, `🐛`, `💥`, `⚡`, `📝`, `📦`, `♻️`, `⏪`)
+- Emoji shortcode labels (e.g. `:sparkles:`, `:bug:`, `:boom:`, `:zap:`, `:memo:`, `:package:`, `:recycle:`)
+- Standard text labels (e.g. `feat`, `fix`, `breaking`, `sparkles`, `bug`, `docs`)
+
+Whether your team labels PRs with words, emoji icons, or shortcodes, Release Drafter will categorize changes and calculate SemVer increments accurately.
 
 > [!note]
 > See [Configuration loading](./docs/configuration-loading.md) to load a
-> generated file, extend another configuration, or load from another
+> generated file, extend another configuration, use presets, or load from another
 > repository.
 
 ### Example

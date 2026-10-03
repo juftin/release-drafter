@@ -9,16 +9,29 @@ Drafter can load the file from a GitHub repository or the runner file system.
 
 Use one of these forms:
 
+- `preset:name`
 - `[github:][[owner/]repo:]filepath[@ref]`
 - `file:filepath`
 
-The optional scheme is `github:` or `file:`. The default is `github:`.
+The supported schemes are `preset:`, `github:`, and `file:`. The default is `github:`.
+
+When no `config-name` is provided (or the default `release-drafter.yml` / `release-drafter.yaml` is not found in either your repository or your organization's `.github` repository), Release Drafter automatically falls back to `preset:hybrid`.
 
 <p align="center">
   <img width="767" height="150" alt="Configuration target syntax diagram" src="design/config-name-syntax.png" />
 <br /><sup>Grammar diagram generated with the
 <a href="https://www.bottlecaps.de/rr/ui" target="_blank">Railroad Diagram Generator</a>.</sup>
 </p>
+
+### Built-in presets (`preset:`)
+
+The `preset:` scheme loads an embedded, zero-configuration preset directly without requiring a checked-out repository or API calls:
+
+- `preset:hybrid` (**Default Fallback**): Combines the Gitmoji specification and Conventional Commits v1.0.0 specification with intelligent auto-categorization and SemVer resolution.
+- `preset:gitmoji`: Complete Gitmoji specification mapping based on the official gitmoji database. Supports `<intention> [scope?][:?] <message>` using shortcodes (`:sparkles:`) and Unicode emojis (`✨`).
+- `preset:conventional-commits`: Full Conventional Commits v1.0.0 specification mapping for standard types (`feat`, `fix`, `docs`, `perf`, etc.), scopes, bang breaking changes (`feat!:`), and `BREAKING CHANGE:` footer matching.
+
+### GitHub and local file syntax
 
 For `config-name`, only `filepath` is required. Release Drafter resolves it as
 follows:
@@ -47,6 +60,24 @@ the repository, run `actions/checkout@v6` before Release Drafter.
 > ```
 
 ## Recipes
+
+### Use built-in presets
+
+- `config-name: preset:hybrid`
+  - Loads the built-in hybrid preset supporting both Conventional Commits and Gitmoji.
+- `config-name: preset:gitmoji`
+  - Loads the built-in Gitmoji preset.
+- `config-name: preset:conventional-commits`
+  - Loads the built-in Conventional Commits preset.
+
+### Load from a remote repository
+
+- `config-name: juftin/release-drafter:configs/hybrid.yaml@main`
+  - Loads a shared config directly from another repository and branch/tag.
+- `config-name: .github:release-drafter.yaml@v2`
+  - Loads `.github/release-drafter.yaml` from your organization's `.github` repository at tag `v2`.
+- `config-name: my_configs:release-drafter.yaml`
+  - Loads `.github/release-drafter.yaml` from your `my_configs` repository on its default branch.
 
 ### Load from another directory
 
