@@ -125,4 +125,44 @@ describe('matchLabels', () => {
     expect(matchLabels({ config, pullRequest }).labels).toEqual(['repeatable'])
     expect(matchLabels({ config, pullRequest }).labels).toEqual(['repeatable'])
   })
+
+  it('resolves mutually exclusive semver bump labels to the highest precedence', () => {
+    const { config } = compile([
+      { label: '✨', title: ['/feat/'] },
+      { label: 'minor', title: ['/feat/'] },
+      { label: '📝', files: ['docs/**'] },
+      { label: 'patch', files: ['docs/**'] },
+    ])
+    const result = matchLabels({
+      config,
+      pullRequest: {
+        files: ['docs/readme.md'],
+        branch: 'main',
+        title: 'feat: add docs',
+        body: null,
+      },
+    })
+    // minor supersedes patch
+    expect(result.labels).toEqual(['✨', 'minor', '📝'])
+    expect(result.supersededLabels).toEqual(['patch'])
+    expect(result.matches).toHaveLength(4)
+
+    // major supersedes minor and patch
+    const { config: majorConfig } = compile([
+      { label: 'major', title: ['/break/'] },
+      { label: 'minor', title: ['/feat/'] },
+      { label: 'patch', files: ['docs/**'] },
+    ])
+    const majorResult = matchLabels({
+      config: majorConfig,
+      pullRequest: {
+        files: ['docs/readme.md'],
+        branch: 'main',
+        title: 'feat: break something',
+        body: null,
+      },
+    })
+    expect(majorResult.labels).toEqual(['major'])
+    expect(majorResult.supersededLabels).toEqual(['minor', 'patch'])
+  })
 })

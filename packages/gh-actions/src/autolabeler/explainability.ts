@@ -45,6 +45,8 @@ export type ExplainabilityParams = {
     branch: string
   }
   matches: readonly AutolabelMatch[]
+  appliedLabels?: readonly string[]
+  supersededLabels?: readonly string[]
   categories?: Array<{ title: string; labels: string[] }>
 }
 
@@ -55,7 +57,8 @@ export type ExplainabilityParams = {
 export const buildExplainabilitySummary = (
   params: ExplainabilityParams,
 ): string => {
-  const { pullRequest, matches, categories } = params
+  const { pullRequest, matches, appliedLabels, supersededLabels, categories } =
+    params
 
   if (matches.length === 0) {
     return [
@@ -66,17 +69,22 @@ export const buildExplainabilitySummary = (
     ].join('\n')
   }
 
-  const rows: string[] = []
   let highestBump: 'patch' | 'minor' | 'major' = 'patch'
   const matchedLabels = new Set(matches.map((m) => m.label))
 
   for (const match of matches) {
     const spec = getGitmojiSpec(match.label)
     const semver = resolveSemverBump(match.label, spec)
-
     if (PRIORITY[semver] > PRIORITY[highestBump]) {
       highestBump = semver
     }
+  }
+
+  const rows: string[] = []
+  for (const match of matches) {
+    const spec = getGitmojiSpec(match.label)
+    const semver = resolveSemverBump(match.label, spec)
+    const isSuperseded = supersededLabels?.includes(match.label)
 
     // Only Preset gitmoji labels have a linked intention
     const intention = spec
@@ -104,8 +112,12 @@ export const buildExplainabilitySummary = (
         ? `Pattern ${patternEscaped} matched file ${valueEscaped}`
         : `${trigger} ${valueEscaped} matched ${patternEscaped}`
 
+    const semverDisplay = isSuperseded
+      ? `\`${semver}\` *(superseded by \`${highestBump}\`)*`
+      : `\`${semver}\``
+
     rows.push(
-      `| \`${match.label}\` | ${intention} | \`${semver}\` | ${trigger} | ${details} |`,
+      `| \`${match.label}\` | ${intention} | ${semverDisplay} | ${trigger} | ${details} |`,
     )
   }
 
@@ -118,10 +130,11 @@ export const buildExplainabilitySummary = (
     }
   }
 
+  const appliedCount = appliedLabels ? appliedLabels.length : matches.length
   const lines = [
     '## 🏷️ Autolabeler & Semver Summary',
     '',
-    `Applied **${matches.length}** label(s) to Pull Request **#${pullRequest.number}** (\`${pullRequest.branch}\`):`,
+    `Applied **${appliedCount}** label(s) to Pull Request **#${pullRequest.number}** (\`${pullRequest.branch}\`):`,
     '',
     '| Label | Gitmoji Intention | Semver Impact | Trigger | Matched Details |',
     '| :--- | :--- | :--- | :--- | :--- |',
@@ -130,6 +143,12 @@ export const buildExplainabilitySummary = (
     '### 🚀 Release Impact',
     `- **Calculated Version Increment:** \`${highestBump}\``,
   ]
+
+  if (supersededLabels && supersededLabels.length > 0) {
+    lines.push(
+      `- **Superseded Bump Label(s):** ${supersededLabels.map((l) => `\`${l}\``).join(', ')} (superseded by \`${highestBump}\`)`,
+    )
+  }
 
   if (sections.length > 0) {
     lines.push('- **Target Changelog Section(s):**', ...sections)
