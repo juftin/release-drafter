@@ -17,6 +17,7 @@ import {
   LocalConfigFileBoundaryError,
   type LocalConfigFileReader,
 } from './local-config-file.ts'
+import { BUILTIN_PRESETS, getPresetConfig } from './presets.generated.ts'
 
 const SUPPORTED_EXTENSIONS = ['json', 'yml', 'yaml'] as const
 const MAX_EXTENDS_DEPTH = 33
@@ -56,7 +57,7 @@ export interface LoadConfigOptions {
 }
 
 type MergeStrategy = (typeof MERGE_STRATEGIES)[number]
-type Scheme = 'file' | 'github'
+type Scheme = 'file' | 'github' | 'preset'
 
 type ConfigTarget = {
   scheme: Scheme
@@ -117,6 +118,9 @@ const normalizedServerUrl = (serverUrl: string): string =>
   serverUrl.replace(/\/+$/, '')
 
 const describeTarget = (target: ConfigTarget): string => {
+  if (target.scheme === 'preset') {
+    return `preset:${target.path}`
+  }
   const repository = `${target.repository.owner}/${target.repository.name}`
   const ref = target.ref ? `@${target.ref}` : ''
   return `${target.scheme}:${repository}:${target.path}${ref}`
@@ -129,7 +133,7 @@ const safeTargetText = (target: string): string => {
 
 const targetError = (target: string, detail: string): Error =>
   new Error(
-    `Invalid config target "${safeTargetText(target)}": ${detail} Expected [github:][[owner/]repo:]filepath[@ref], file:relative/path, or a matching repository blob URL.`,
+    `Invalid config target "${safeTargetText(target)}": ${detail} Expected [github:][[owner/]repo:]filepath[@ref], file:relative/path, preset:<name>, or a matching repository blob URL.`,
   )
 
 const parseBlobUrl = (
@@ -210,6 +214,25 @@ const parseTarget = (
 
   const blobTarget = parseBlobUrl(target, context.repository)
   if (blobTarget) return blobTarget
+
+  if (target.startsWith('preset:') || target.startsWith('presets:')) {
+    const colonIndex = target.indexOf(':')
+    const presetName = target.slice(colonIndex + 1).trim()
+    if (!presetName) throw targetError(target, 'The preset name is missing.')
+    if (presetName.includes(':') || presetName.includes('@')) {
+      throw targetError(
+        target,
+        'Preset targets cannot have ":" or "@" specifiers.',
+      )
+    }
+    return {
+      scheme: 'preset',
+      repository: context.repository,
+      path: presetName.replace(/\.ya?ml$/, ''),
+      ref: undefined,
+      hasExplicitRepository: false,
+    }
+  }
 
   const scheme: Scheme = target.startsWith('file:') ? 'file' : 'github'
   let body = target
@@ -466,6 +489,19 @@ const loadSingleConfigFile = async (
     )
   }
 
+  if (target.scheme === 'preset') {
+    const presetRaw = getPresetConfig(target.path)
+    if (!presetRaw) {
+      throw new Error(
+        `Unknown preset "${target.path}". Available presets are: ${BUILTIN_PRESETS.join(', ')}.`,
+      )
+    }
+    return {
+      config: parseConfigFile(presetRaw, target),
+      target,
+    }
+  }
+
   if (target.scheme === 'file') {
     const lexicalPath = normalizeLocalPathLexically(target, parent, options.cwd)
     const fetchedTarget = { ...target, path: lexicalPath.relativePath }
@@ -555,14 +591,16 @@ const loadConfigFile = async (
 }
 
 const recursionKey = (target: ConfigTarget): string =>
-  [
-    target.scheme,
-    normalizedServerUrl(target.repository.serverUrl),
-    target.repository.owner,
-    target.repository.name,
-    target.ref ?? '',
-    target.path,
-  ].join('\u0000')
+  target.scheme === 'preset'
+    ? `preset\u0000${target.path}`
+    : [
+        target.scheme,
+        normalizedServerUrl(target.repository.serverUrl),
+        target.repository.owner,
+        target.repository.name,
+        target.ref ?? '',
+        target.path,
+      ].join('\u0000')
 
 const localFileAlreadyLoaded = (
   files: LoadedConfig[],
@@ -666,7 +704,30 @@ export async function loadConfig(options: LoadConfigOptions): Promise<Config> {
     options.logger.info(
       `Config not found in ${options.repository.owner}/${options.repository.name}; falling back to ${options.repository.owner}/.github.`,
     )
-    initial = await loadConfigFile(fallbackTarget, options)
+    try {
+      initial = await loadConfigFile(fallbackTarget, options)
+    } catch (fallbackError) {
+      const fallbackNotFound =
+        fallbackError instanceof Error &&
+        (fallbackError as Error & { configNotFound?: boolean })
+          .configNotFound === true
+      if (fallbackNotFound) {
+        options.logger.info(
+          `Config not found in ${options.repository.owner}/${options.repository.name} or .github; falling back to conventional-commits preset.`,
+        )
+        initial = await loadConfigFile(
+          {
+            scheme: 'preset',
+            repository: options.repository,
+            path: 'conventional-commits',
+            hasExplicitRepository: false,
+          },
+          options,
+        )
+      } else {
+        throw fallbackError
+      }
+    }
   }
 
   const files: LoadedConfig[] = [initial]
@@ -692,19 +753,21 @@ export async function loadConfig(options: LoadConfigOptions): Promise<Config> {
     }
 
     const normalizedParent: ConfigTarget =
-      parsedParent.scheme === 'file'
-        ? {
-            ...parsedParent,
-            path: normalizeLocalPathLexically(
-              parsedParent,
-              current.target,
-              options.cwd,
-            ).relativePath,
-          }
-        : {
-            ...parsedParent,
-            path: normalizeRepositoryPath(parsedParent, current.target),
-          }
+      parsedParent.scheme === 'preset'
+        ? parsedParent
+        : parsedParent.scheme === 'file'
+          ? {
+              ...parsedParent,
+              path: normalizeLocalPathLexically(
+                parsedParent,
+                current.target,
+                options.cwd,
+              ).relativePath,
+            }
+          : {
+              ...parsedParent,
+              path: normalizeRepositoryPath(parsedParent, current.target),
+            }
     const key = recursionKey(normalizedParent)
     if (
       loadedTargets.has(key) ||

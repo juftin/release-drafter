@@ -12,88 +12,86 @@ template: |
 
   **Full Changelog**: https://github.com/$OWNER/$REPOSITORY/compare/$PREVIOUS_TAG...$RESOLVED_TAG
 
-exclude-labels:
-  - 'skip-changelog'
-  - 'skip-release'
-
 categories:
-  - title: '💥 Breaking Changes'
-    labels:
-      - 'breaking'
-      - 'breaking-change'
-      - 'major'
-  - title: '🚀 Features & Enhancements'
-    labels:
-      - 'feat'
-      - 'feature'
-      - 'enhancement'
-      - 'minor'
-  - title: '🐛 Bug Fixes'
-    labels:
-      - 'fix'
-      - 'bug'
-      - 'bugfix'
-      - 'security'
-  - title: '⚡ Performance Improvements'
-    labels:
-      - 'perf'
-      - 'performance'
-  - title: '📚 Documentation'
-    labels:
-      - 'docs'
-      - 'documentation'
-  - title: '📦 Dependency Updates'
-    labels:
-      - 'dependencies'
-      - 'deps'
-  - title: '👷 CI/CD'
-    labels:
-      - 'ci'
-      - 'build'
-  - title: '🧰 Maintenance & Code Quality'
-    labels:
-      - 'refactor'
-      - 'chore'
-      - 'style'
-      - 'test'
-      - 'tests'
-  - title: '🔄 Reverts'
-    labels:
-      - 'revert'
+  - type: 'pre-exclude'
+    when:
+      labels:
+        - 'skip-changelog'
+        - 'skip-release'
 
-version-resolver:
-  major:
-    labels:
-      - 'breaking'
-      - 'breaking-change'
-      - 'major'
-  minor:
-    labels:
-      - 'feat'
-      - 'feature'
-      - 'minor'
-  patch:
-    labels:
-      - 'fix'
-      - 'bug'
-      - 'bugfix'
-      - 'security'
-      - 'patch'
-      - 'perf'
-      - 'performance'
-      - 'docs'
-      - 'documentation'
-      - 'dependencies'
-      - 'deps'
-      - 'refactor'
-      - 'chore'
-      - 'style'
-      - 'build'
-      - 'ci'
-      - 'test'
-      - 'tests'
-      - 'revert'
-  default: patch
+  - title: '💥 Breaking Changes'
+    semver-increment: major
+    when:
+      labels:
+        - 'breaking'
+        - 'breaking-change'
+        - 'major'
+
+  - title: '🚀 Features & Enhancements'
+    semver-increment: minor
+    when:
+      labels:
+        - 'feat'
+        - 'feature'
+        - 'enhancement'
+        - 'minor'
+
+  - title: '🐛 Bug Fixes'
+    semver-increment: patch
+    when:
+      labels:
+        - 'fix'
+        - 'bug'
+        - 'bugfix'
+        - 'security'
+        - 'patch'
+
+  - title: '⚡ Performance Improvements'
+    semver-increment: patch
+    when:
+      labels:
+        - 'perf'
+        - 'performance'
+
+  - title: '📚 Documentation'
+    semver-increment: patch
+    when:
+      labels:
+        - 'docs'
+        - 'documentation'
+
+  - title: '📦 Dependency Updates'
+    semver-increment: patch
+    when:
+      labels:
+        - 'dependencies'
+        - 'deps'
+
+  - title: '👷 CI/CD'
+    semver-increment: patch
+    when:
+      labels:
+        - 'ci'
+        - 'build'
+
+  - title: '🧹 Maintenance & Code Quality'
+    semver-increment: patch
+    when:
+      labels:
+        - 'refactor'
+        - 'chore'
+        - 'style'
+        - 'test'
+        - 'tests'
+
+  - title: '🔄 Reverts'
+    semver-increment: patch
+    when:
+      labels:
+        - 'revert'
+
+  - type: 'version-resolver'
+    semver-increment: patch
 
 autolabeler:
   # Semver Labels
@@ -181,9 +179,6 @@ autolabeler:
 
   # Documentation
   - label: 'docs'
-    files:
-      - '**/*.md'
-      - 'docs/**'
     title:
       - '/^docs?(\([^\\)]+\))?:/i'
     branch:
@@ -222,8 +217,6 @@ autolabeler:
 
   # CI
   - label: 'ci'
-    files:
-      - '.github/**'
     title:
       - '/^(ci|build)(\([^\\)]+\))?:/i'
     branch:

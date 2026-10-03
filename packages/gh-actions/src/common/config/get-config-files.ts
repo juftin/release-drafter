@@ -66,10 +66,10 @@ export const getConfigFiles = async (
           orgError.message.includes('Config file not found')
         if (isDefaultConfig && isOrgNotFound) {
           core.info(
-            `Config not found in ${currentContext.repo.owner}/${currentContext.repo.repo} or .github, falling back to hybrid preset.`,
+            `Config not found in ${currentContext.repo.owner}/${currentContext.repo.repo} or .github, falling back to conventional-commits preset.`,
           )
           requestedRepoConfig = await getConfigFile(
-            { scheme: 'preset', filepath: 'hybrid' },
+            { scheme: 'preset', filepath: 'conventional-commits' },
             undefined,
             token,
           )
@@ -79,10 +79,10 @@ export const getConfigFiles = async (
       }
     } else if (isDefaultConfig && isNotFound) {
       core.info(
-        `Config not found in ${currentContext.repo.owner}/${currentContext.repo.repo}, falling back to hybrid preset.`,
+        `Config not found in ${currentContext.repo.owner}/${currentContext.repo.repo}, falling back to conventional-commits preset.`,
       )
       requestedRepoConfig = await getConfigFile(
-        { scheme: 'preset', filepath: 'hybrid' },
+        { scheme: 'preset', filepath: 'conventional-commits' },
         undefined,
         token,
       )

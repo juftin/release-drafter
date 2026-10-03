@@ -1,4 +1,4 @@
-import { C as Minimatch, E as info, S as union, _ as literal, b as string, f as escapeStringRegexp, g as boolean, h as array, m as _enum, p as ZodDefault, t as composeConfigGet, v as number, x as stringbool, y as object } from "./config.js";
+import { C as Minimatch, E as info, S as union, _ as literal, b as string, d as escapeStringRegexp, g as boolean, h as array, m as _enum, p as ZodDefault, t as composeConfigGet, v as number, x as stringbool, y as object } from "./config.js";
 //#region node_modules/conventional-commits-parser/dist/regex.js
 var nomatchRegex = /(?!.*)/;
 function escape(string) {

@@ -269,6 +269,47 @@ const testSuites: Array<{
     },
   },
   {
+    suiteName: 'preset scheme with preset: prefix',
+    input: [
+      'preset:gitmoji',
+      {
+        repo: { owner: 'acme', repo: 'widgets' },
+        ref: 'main',
+      },
+    ],
+    expected: {
+      scheme: 'preset',
+      filepath: 'gitmoji',
+    },
+  },
+  {
+    suiteName: 'preset scheme with presets: prefix',
+    input: [
+      'presets:conventional-commits.yml',
+      {
+        repo: { owner: 'acme', repo: 'widgets' },
+        ref: 'main',
+      },
+    ],
+    expected: {
+      scheme: 'preset',
+      filepath: 'conventional-commits',
+    },
+  },
+  {
+    suiteName: 'preset scheme with spaces (invalid)',
+    input: [
+      'preset:invalid name',
+      {
+        repo: { owner: 'acme', repo: 'widgets' },
+        ref: 'main',
+      },
+    ],
+    expected: new Error(
+      'invalid format: "preset:invalid name". Expected format [github:][owner/repo:]filepath[@ref], file:filepath, or preset:<name>. Target must not contain spaces.',
+    ),
+  },
+  {
     suiteName: 'repo-only owner/.github special repo',
     input: [
       'jenkinsci/.github',

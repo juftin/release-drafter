@@ -23,13 +23,14 @@ export function parseConfigTarget(
   let _target = structuredClone(target).trim()
 
   // Parse preset scheme
-  if (_target.startsWith('preset:')) {
+  if (_target.startsWith('preset:') || _target.startsWith('presets:')) {
     if (_target.includes(' ')) {
       throw new Error(
         `invalid format: "${_target}". Expected format [github:][owner/repo:]filepath[@ref], file:filepath, or preset:<name>. Target must not contain spaces.`,
       )
     }
-    const presetName = _target.slice(7).trim()
+    const colonIndex = _target.indexOf(':')
+    const presetName = _target.slice(colonIndex + 1).trim()
     if (!presetName) {
       throw new Error(
         `invalid format: "${_target}". Expected format [github:][owner/repo:]filepath[@ref], file:filepath, or preset:<name>. Preset name must not be empty.`,

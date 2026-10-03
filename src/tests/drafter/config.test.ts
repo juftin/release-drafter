@@ -208,12 +208,12 @@ describe('get config file', () => {
       const res = await composeConfigGet(inputConfigName, context)
 
       expect(core.info).toHaveBeenCalledWith(
-        'Config not found in octocat/hello-world or .github, falling back to hybrid preset.',
+        'Config not found in octocat/hello-world or .github, falling back to conventional-commits preset.',
       )
       expect(res.contexts.length).toBe(1)
       expect(res.contexts[0]).toEqual({
         scheme: 'preset',
-        filepath: 'hybrid',
+        filepath: 'conventional-commits',
       })
       expect(res.config).toHaveProperty('categories')
       expect(scope.isDone()).toBe(true)
@@ -250,7 +250,7 @@ describe('get config file', () => {
 
       expect(scope.isDone()).toBe(true)
     })
-    it('should fall back to hybrid preset when already running in .github and default config is missing', async () => {
+    it('should fall back to conventional-commits preset when already running in .github and default config is missing', async () => {
       vi.stubEnv('GITHUB_TOKEN', 'test')
 
       const inputConfigName = 'release-drafter.yml'
@@ -268,12 +268,12 @@ describe('get config file', () => {
       const res = await composeConfigGet(inputConfigName, context)
 
       expect(core.info).toHaveBeenCalledWith(
-        'Config not found in octocat/.github, falling back to hybrid preset.',
+        'Config not found in octocat/.github, falling back to conventional-commits preset.',
       )
       expect(res.contexts.length).toBe(1)
       expect(res.contexts[0]).toEqual({
         scheme: 'preset',
-        filepath: 'hybrid',
+        filepath: 'conventional-commits',
       })
       expect(scope.isDone()).toBe(true)
     })

@@ -90,7 +90,7 @@ const CATEGORIES: CategoryDef[] = [
       'pencil2',
       'alien',
     ],
-    extra_labels: ['fix', 'bugfix', 'security'],
+    extra_labels: ['fix', 'bugfix', 'security', 'patch'],
     branch_patterns: [
       '/^fix(\\/|-)/i',
       '/^bugfix(\\/|-)/i',
@@ -220,6 +220,8 @@ function getCategoryLabels(
     labels.push('major')
   } else if (cat.semver === 'minor' && !labels.includes('minor')) {
     labels.push('minor')
+  } else if (cat.title.includes('Bug Fixes') && !labels.includes('patch')) {
+    labels.push('patch')
   }
 
   for (const name of cat.names) {
@@ -263,7 +265,6 @@ interface ConvRule {
   label: string
   titlePatterns: string[]
   branchPatterns: string[]
-  filesPatterns: string[]
 }
 
 const CONV_RULES: ConvRule[] = [
@@ -271,7 +272,6 @@ const CONV_RULES: ConvRule[] = [
     label: 'feat',
     titlePatterns: ['/^feat(ure)?(\\([^\\)]+\\))?:/i'],
     branchPatterns: ['/^feat(\\/|-)/i', '/^feature(\\/|-)/i'],
-    filesPatterns: [],
   },
   {
     label: 'fix',
@@ -281,31 +281,26 @@ const CONV_RULES: ConvRule[] = [
       '/^bugfix(\\/|-)/i',
       '/^hotfix(\\/|-)/i',
     ],
-    filesPatterns: [],
   },
   {
     label: 'security',
     titlePatterns: ['/^sec(urity)?(\\([^\\)]+\\))?:/i'],
     branchPatterns: ['/^sec(urity)?(\\/|-)/i'],
-    filesPatterns: [],
   },
   {
     label: 'perf',
     titlePatterns: ['/^perf(ormance)?(\\([^\\)]+\\))?:/i'],
     branchPatterns: ['/^perf(\\/|-)/i'],
-    filesPatterns: [],
   },
   {
     label: 'docs',
     titlePatterns: ['/^docs?(\\([^\\)]+\\))?:/i'],
     branchPatterns: ['/^docs?(\\/|-)/i'],
-    filesPatterns: ['**/*.md', 'docs/**'],
   },
   {
     label: 'refactor',
     titlePatterns: ['/^refactor(\\([^\\)]+\\))?:/i'],
     branchPatterns: ['/^refactor(\\/|-)/i'],
-    filesPatterns: [],
   },
   {
     label: 'dependencies',
@@ -318,31 +313,26 @@ const CONV_RULES: ConvRule[] = [
       '/^renovate\\//i',
       '/^deps?(\\/|-)/i',
     ],
-    filesPatterns: [],
   },
   {
     label: 'ci',
     titlePatterns: ['/^(ci|build)(\\([^\\)]+\\))?:/i'],
     branchPatterns: ['/^ci(\\/|-)/i', '/^build(\\/|-)/i'],
-    filesPatterns: ['.github/**'],
   },
   {
     label: 'chore',
     titlePatterns: ['/^chore(\\([^\\)]+\\))?:/i'],
     branchPatterns: ['/^chore(\\/|-)/i'],
-    filesPatterns: [],
   },
   {
     label: 'test',
     titlePatterns: ['/^tests?(\\([^\\)]+\\))?:/i'],
     branchPatterns: ['/^tests?(\\/|-)/i'],
-    filesPatterns: [],
   },
   {
     label: 'revert',
     titlePatterns: ['/^revert(\\([^\\)]+\\))?:/i'],
     branchPatterns: ['/^revert(\\/|-)/i'],
-    filesPatterns: [],
   },
 ]
 
@@ -453,65 +443,29 @@ function generateGitmojiYaml(gitmojisMap: Map<string, Gitmoji>): string {
     '',
     '  **Full Changelog**: https://github.com/$OWNER/$REPOSITORY/compare/$PREVIOUS_TAG...$RESOLVED_TAG',
     '',
-    'exclude-labels:',
-    "  - 'skip-changelog'",
-    "  - 'skip-release'",
-    '',
     'categories:',
+    "  - type: 'pre-exclude'",
+    '    when:',
+    '      labels:',
+    "        - 'skip-changelog'",
+    "        - 'skip-release'",
+    '',
   ]
 
   for (const cat of CATEGORIES) {
     lines.push(`  - title: '${cat.title}'`)
-    lines.push('    labels:')
+    lines.push(`    semver-increment: ${cat.semver}`)
+    lines.push('    when:')
+    lines.push('      labels:')
     const allLabels = getCategoryLabels(cat, gitmojisMap, 'gitmoji')
     for (const label of allLabels) {
-      lines.push(`      - '${label}'`)
+      lines.push(`        - '${label}'`)
     }
+    lines.push('')
   }
 
-  lines.push('')
-  lines.push('version-resolver:')
-
-  const majorLabels = ['major']
-  const minorLabels = ['minor']
-  const patchLabels = ['patch']
-
-  for (const cat of CATEGORIES) {
-    const labels = getCategoryLabels(cat, gitmojisMap, 'gitmoji')
-    if (cat.semver === 'major') {
-      for (const l of labels) {
-        if (!majorLabels.includes(l)) majorLabels.push(l)
-      }
-    } else if (cat.semver === 'minor') {
-      for (const l of labels) {
-        if (!minorLabels.includes(l)) minorLabels.push(l)
-      }
-    } else {
-      for (const l of labels) {
-        if (!patchLabels.includes(l)) patchLabels.push(l)
-      }
-    }
-  }
-
-  lines.push('  major:')
-  lines.push('    labels:')
-  for (const l of majorLabels) {
-    lines.push(`      - '${l}'`)
-  }
-
-  lines.push('  minor:')
-  lines.push('    labels:')
-  for (const l of minorLabels) {
-    lines.push(`      - '${l}'`)
-  }
-
-  lines.push('  patch:')
-  lines.push('    labels:')
-  for (const l of patchLabels) {
-    lines.push(`      - '${l}'`)
-  }
-
-  lines.push('  default: patch')
+  lines.push("  - type: 'version-resolver'")
+  lines.push('    semver-increment: patch')
   lines.push('')
   lines.push('autolabeler:')
 
@@ -538,22 +492,12 @@ function generateGitmojiYaml(gitmojisMap: Map<string, Gitmoji>): string {
       const g = gitmojisMap.get(name)
       if (!g) continue
       lines.push(`  - label: '${g.code}'`)
+      lines.push('    title:')
+      lines.push(`      - '${makeEmojiRegex(g.emoji, g.code)}'`)
       if (name === 'construction-worker') {
-        lines.push('    files:')
-        lines.push("      - '.github/**'")
-        lines.push('    title:')
-        lines.push(`      - '${makeEmojiRegex(g.emoji, g.code)}'`)
         lines.push("      - '/^(ci|build)(\\([^\\)]+\\))?:/i'")
       } else if (name === 'memo') {
-        lines.push('    files:')
-        lines.push("      - '**/*.md'")
-        lines.push("      - 'docs/**'")
-        lines.push('    title:')
-        lines.push(`      - '${makeEmojiRegex(g.emoji, g.code)}'`)
         lines.push("      - '/^docs?(\\([^\\)]+\\))?:/i'")
-      } else {
-        lines.push('    title:')
-        lines.push(`      - '${makeEmojiRegex(g.emoji, g.code)}'`)
       }
       if (cat.branch_patterns && name === cat.names[0]) {
         lines.push('    branch:')
@@ -584,65 +528,29 @@ function generateHybridYaml(gitmojisMap: Map<string, Gitmoji>): string {
     '',
     '  **Full Changelog**: https://github.com/$OWNER/$REPOSITORY/compare/$PREVIOUS_TAG...$RESOLVED_TAG',
     '',
-    'exclude-labels:',
-    "  - 'skip-changelog'",
-    "  - 'skip-release'",
-    '',
     'categories:',
+    "  - type: 'pre-exclude'",
+    '    when:',
+    '      labels:',
+    "        - 'skip-changelog'",
+    "        - 'skip-release'",
+    '',
   ]
 
   for (const cat of CATEGORIES) {
     lines.push(`  - title: '${cat.title}'`)
-    lines.push('    labels:')
+    lines.push(`    semver-increment: ${cat.semver}`)
+    lines.push('    when:')
+    lines.push('      labels:')
     const allLabels = getCategoryLabels(cat, gitmojisMap, 'hybrid')
     for (const label of allLabels) {
-      lines.push(`      - '${label}'`)
+      lines.push(`        - '${label}'`)
     }
+    lines.push('')
   }
 
-  lines.push('')
-  lines.push('version-resolver:')
-
-  const majorLabels = ['major']
-  const minorLabels = ['minor']
-  const patchLabels = ['patch']
-
-  for (const cat of CATEGORIES) {
-    const labels = getCategoryLabels(cat, gitmojisMap, 'hybrid')
-    if (cat.semver === 'major') {
-      for (const l of labels) {
-        if (!majorLabels.includes(l)) majorLabels.push(l)
-      }
-    } else if (cat.semver === 'minor') {
-      for (const l of labels) {
-        if (!minorLabels.includes(l)) minorLabels.push(l)
-      }
-    } else {
-      for (const l of labels) {
-        if (!patchLabels.includes(l)) patchLabels.push(l)
-      }
-    }
-  }
-
-  lines.push('  major:')
-  lines.push('    labels:')
-  for (const l of majorLabels) {
-    lines.push(`      - '${l}'`)
-  }
-
-  lines.push('  minor:')
-  lines.push('    labels:')
-  for (const l of minorLabels) {
-    lines.push(`      - '${l}'`)
-  }
-
-  lines.push('  patch:')
-  lines.push('    labels:')
-  for (const l of patchLabels) {
-    lines.push(`      - '${l}'`)
-  }
-
-  lines.push('  default: patch')
+  lines.push("  - type: 'version-resolver'")
+  lines.push('    semver-increment: patch')
   lines.push('')
   lines.push('autolabeler:')
 
@@ -675,12 +583,6 @@ function generateHybridYaml(gitmojisMap: Map<string, Gitmoji>): string {
 
   for (const item of CONV_RULES) {
     lines.push(`  - label: '${item.label}'`)
-    if (item.filesPatterns.length > 0) {
-      lines.push('    files:')
-      for (const fp of item.filesPatterns) {
-        lines.push(`      - '${fp}'`)
-      }
-    }
     lines.push('    title:')
     for (const tp of item.titlePatterns) {
       lines.push(`      - '${tp}'`)
@@ -698,14 +600,6 @@ function generateHybridYaml(gitmojisMap: Map<string, Gitmoji>): string {
       const g = gitmojisMap.get(name)
       if (!g) continue
       lines.push(`  - label: '${g.code}'`)
-      if (name === 'construction-worker') {
-        lines.push('    files:')
-        lines.push("      - '.github/**'")
-      } else if (name === 'memo') {
-        lines.push('    files:')
-        lines.push("      - '**/*.md'")
-        lines.push("      - 'docs/**'")
-      }
       lines.push('    title:')
       lines.push(`      - '${makeEmojiRegex(g.emoji, g.code)}'`)
       lines.push('')

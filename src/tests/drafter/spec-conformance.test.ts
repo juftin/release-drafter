@@ -138,22 +138,48 @@ describe('GitMoji & Conventional Commits Spec Conformance', () => {
       }
 
       // Check specific categories and version resolvers have both semver words and emojis
-      expect(gitmojiConfig['version-resolver'].major.labels).toContain('major')
-      expect(gitmojiConfig['version-resolver'].major.labels).toContain('💥')
-      expect(gitmojiConfig['version-resolver'].minor.labels).toContain('minor')
-      expect(gitmojiConfig['version-resolver'].minor.labels).toContain('✨')
-      expect(gitmojiConfig['version-resolver'].patch.labels).toContain('patch')
-      expect(gitmojiConfig['version-resolver'].patch.labels).toContain('🐛')
+      const majorLabels = gitmojiConfig.categories
+        .filter((c) => c['semver-increment'] === 'major')
+        .flatMap((c) =>
+          Array.isArray(c.when)
+            ? c.when.flatMap((w) => w.labels || [])
+            : c.when?.labels || [],
+        )
+      const minorLabels = gitmojiConfig.categories
+        .filter((c) => c['semver-increment'] === 'minor')
+        .flatMap((c) =>
+          Array.isArray(c.when)
+            ? c.when.flatMap((w) => w.labels || [])
+            : c.when?.labels || [],
+        )
+      const patchLabels = gitmojiConfig.categories
+        .filter(
+          (c) => c['semver-increment'] === 'patch' && c.type === 'changelog',
+        )
+        .flatMap((c) =>
+          Array.isArray(c.when)
+            ? c.when.flatMap((w) => w.labels || [])
+            : c.when?.labels || [],
+        )
+
+      expect(majorLabels).toContain('major')
+      expect(majorLabels).toContain('💥')
+      expect(minorLabels).toContain('minor')
+      expect(minorLabels).toContain('✨')
+      expect(patchLabels).toContain('patch')
+      expect(patchLabels).toContain('🐛')
     })
 
     it('conventional preset uses word labels and does NOT give emoji labels', () => {
       // Categories in conventional preset must only have word labels
       for (const cat of convConfig.categories) {
-        if (cat.labels) {
-          for (const l of cat.labels) {
-            expect(l).not.toMatch(/^:[a-z0-9_]+:$/)
-            expect(l).toMatch(/^[a-z0-9_-]+$/i) // strictly words/slugs
-          }
+        if (cat.type !== 'changelog') continue
+        const catLabels = Array.isArray(cat.when)
+          ? cat.when.flatMap((w) => w.labels || [])
+          : cat.when?.labels || []
+        for (const l of catLabels) {
+          expect(l).not.toMatch(/^:[a-z0-9_]+:$/)
+          expect(l).toMatch(/^[a-z0-9_-]+$/i) // strictly words/slugs
         }
       }
 
@@ -162,27 +188,72 @@ describe('GitMoji & Conventional Commits Spec Conformance', () => {
         expect(rule.label).toMatch(/^[a-z0-9_-]+$/i) // strictly words/slugs
       }
 
-      // Version resolver must only have words
-      expect(convConfig['version-resolver'].major.labels).toContain('major')
-      expect(convConfig['version-resolver'].major.labels).toContain('breaking')
-      expect(convConfig['version-resolver'].minor.labels).toContain('minor')
-      expect(convConfig['version-resolver'].minor.labels).toContain('feat')
-      expect(convConfig['version-resolver'].patch.labels).toContain('patch')
-      expect(convConfig['version-resolver'].patch.labels).toContain('fix')
+      const majorLabels = convConfig.categories
+        .filter((c) => c['semver-increment'] === 'major')
+        .flatMap((c) =>
+          Array.isArray(c.when)
+            ? c.when.flatMap((w) => w.labels || [])
+            : c.when?.labels || [],
+        )
+      const minorLabels = convConfig.categories
+        .filter((c) => c['semver-increment'] === 'minor')
+        .flatMap((c) =>
+          Array.isArray(c.when)
+            ? c.when.flatMap((w) => w.labels || [])
+            : c.when?.labels || [],
+        )
+      const patchLabels = convConfig.categories
+        .filter(
+          (c) => c['semver-increment'] === 'patch' && c.type === 'changelog',
+        )
+        .flatMap((c) =>
+          Array.isArray(c.when)
+            ? c.when.flatMap((w) => w.labels || [])
+            : c.when?.labels || [],
+        )
+
+      expect(majorLabels).toContain('major')
+      expect(majorLabels).toContain('breaking')
+      expect(minorLabels).toContain('minor')
+      expect(minorLabels).toContain('feat')
+      expect(patchLabels).toContain('patch')
+      expect(patchLabels).toContain('fix')
     })
 
     it('hybrid preset accepts both word and emoji labels', () => {
-      expect(hybridConfig['version-resolver'].major.labels).toContain('major')
-      expect(hybridConfig['version-resolver'].major.labels).toContain(
-        'breaking',
-      )
-      expect(hybridConfig['version-resolver'].major.labels).toContain('💥')
-      expect(hybridConfig['version-resolver'].minor.labels).toContain('minor')
-      expect(hybridConfig['version-resolver'].minor.labels).toContain('feat')
-      expect(hybridConfig['version-resolver'].minor.labels).toContain('✨')
-      expect(hybridConfig['version-resolver'].patch.labels).toContain('patch')
-      expect(hybridConfig['version-resolver'].patch.labels).toContain('fix')
-      expect(hybridConfig['version-resolver'].patch.labels).toContain('🐛')
+      const majorLabels = hybridConfig.categories
+        .filter((c) => c['semver-increment'] === 'major')
+        .flatMap((c) =>
+          Array.isArray(c.when)
+            ? c.when.flatMap((w) => w.labels || [])
+            : c.when?.labels || [],
+        )
+      const minorLabels = hybridConfig.categories
+        .filter((c) => c['semver-increment'] === 'minor')
+        .flatMap((c) =>
+          Array.isArray(c.when)
+            ? c.when.flatMap((w) => w.labels || [])
+            : c.when?.labels || [],
+        )
+      const patchLabels = hybridConfig.categories
+        .filter(
+          (c) => c['semver-increment'] === 'patch' && c.type === 'changelog',
+        )
+        .flatMap((c) =>
+          Array.isArray(c.when)
+            ? c.when.flatMap((w) => w.labels || [])
+            : c.when?.labels || [],
+        )
+
+      expect(majorLabels).toContain('major')
+      expect(majorLabels).toContain('breaking')
+      expect(majorLabels).toContain('💥')
+      expect(minorLabels).toContain('minor')
+      expect(minorLabels).toContain('feat')
+      expect(minorLabels).toContain('✨')
+      expect(patchLabels).toContain('patch')
+      expect(patchLabels).toContain('fix')
+      expect(patchLabels).toContain('🐛')
     })
 
     it('gitmoji autolabeler produces emoji labels and semver label', () => {
@@ -215,101 +286,62 @@ describe('GitMoji & Conventional Commits Spec Conformance', () => {
   })
 
   describe('File-Based Autolabeling & Exclusions', () => {
-    it('contains exclude-labels across all presets', () => {
+    it('contains pre-exclude category across all presets', () => {
       for (const [name, cfg] of [
         ['gitmoji', gitmojiConfig],
         ['conventional-commits', convConfig],
         ['hybrid', hybridConfig],
       ] as const) {
-        expect(
-          cfg['exclude-labels'],
-          `${name} missing exclude-labels`,
-        ).toContain('skip-changelog')
-        expect(
-          cfg['exclude-labels'],
-          `${name} missing exclude-labels`,
-        ).toContain('skip-release')
+        const preExclude = cfg.categories.find((c) => c.type === 'pre-exclude')
+        expect(preExclude, `${name} missing pre-exclude category`).toBeDefined()
+        const excludedLabels = Array.isArray(preExclude?.when)
+          ? preExclude?.when.flatMap((w) => w.labels || [])
+          : preExclude?.when?.labels || []
+        expect(excludedLabels, `${name} missing exclude-labels`).toContain(
+          'skip-changelog',
+        )
+        expect(excludedLabels, `${name} missing exclude-labels`).toContain(
+          'skip-release',
+        )
       }
     })
 
-    it('autolabels .github changes as ci (or :construction_worker:) across presets', () => {
-      // Gitmoji autolabels .github as :construction_worker:
+    it('does not include file-based autolabeling rules by default (authors use commit message / branch for intent)', () => {
+      // Gitmoji autolabeler does not label solely based on files
       const gitmojiResult = matchLabels({
         config: parsedGitmojiAutolabeler,
         pullRequest: {
-          files: ['.github/workflows/release.yml'],
+          files: ['.github/workflows/release.yml', 'README.md'],
           title: 'update workflow',
           branch: 'main',
           body: '',
         },
       })
-      expect(Array.from(gitmojiResult.labels)).toContain(
-        ':construction_worker:',
-      )
+      expect(Array.from(gitmojiResult.labels)).toEqual([])
 
-      // Conventional autolabels .github as ci
+      // Conventional autolabeler does not label solely based on files
       const convResult = matchLabels({
         config: parsedConvAutolabeler,
         pullRequest: {
-          files: ['.github/workflows/release.yml'],
+          files: ['.github/workflows/release.yml', 'README.md'],
           title: 'update workflow',
           branch: 'main',
           body: '',
         },
       })
-      expect(Array.from(convResult.labels)).toContain('ci')
+      expect(Array.from(convResult.labels)).toEqual([])
 
-      // Hybrid autolabels .github as ci (and :construction_worker:)
+      // Hybrid autolabeler does not label solely based on files
       const hybridResult = matchLabels({
         config: parsedHybridAutolabeler,
         pullRequest: {
-          files: ['.github/workflows/release.yml'],
+          files: ['.github/workflows/release.yml', 'README.md'],
           title: 'update workflow',
           branch: 'main',
           body: '',
         },
       })
-      expect(Array.from(hybridResult.labels)).toContain('ci')
-      expect(Array.from(hybridResult.labels)).toContain(':construction_worker:')
-    })
-
-    it('autolabels markdown and docs files as docs (or :memo:) across presets', () => {
-      // Gitmoji autolabels markdown as :memo:
-      const gitmojiResult = matchLabels({
-        config: parsedGitmojiAutolabeler,
-        pullRequest: {
-          files: ['README.md'],
-          title: 'update guide',
-          branch: 'main',
-          body: '',
-        },
-      })
-      expect(Array.from(gitmojiResult.labels)).toContain(':memo:')
-
-      // Conventional autolabels markdown as docs
-      const convResult = matchLabels({
-        config: parsedConvAutolabeler,
-        pullRequest: {
-          files: ['README.md'],
-          title: 'update guide',
-          branch: 'main',
-          body: '',
-        },
-      })
-      expect(Array.from(convResult.labels)).toContain('docs')
-
-      // Hybrid autolabels markdown as docs (and :memo:)
-      const hybridResult = matchLabels({
-        config: parsedHybridAutolabeler,
-        pullRequest: {
-          files: ['README.md'],
-          title: 'update guide',
-          branch: 'main',
-          body: '',
-        },
-      })
-      expect(Array.from(hybridResult.labels)).toContain('docs')
-      expect(Array.from(hybridResult.labels)).toContain(':memo:')
+      expect(Array.from(hybridResult.labels)).toEqual([])
     })
 
     it('docs and CI/CD use their emoji representation when gitmoji is used', () => {

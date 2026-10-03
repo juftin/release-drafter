@@ -1,4 +1,4 @@
-import { D as setFailed, E as info, S as union, a as defineActionInputNames, b as string, c as actionLogger, h as array, i as tokenInputSchema, m as _enum, o as readActionInputs, s as writeActionOutputs, v as number, w as context, y as object } from "../../chunks/config.js";
+import { D as setFailed, E as info, S as union, a as readActionInputs, b as string, h as array, i as defineActionInputNames, m as _enum, o as writeActionOutputs, r as tokenInputSchema, s as actionLogger, v as number, w as context, y as object } from "../../chunks/config.js";
 import { g as evaluateCategories, n as mergeInputAndConfig, t as getReleaseDrafterConfig } from "../../chunks/get-release-drafter-config.js";
 //#region packages/core/src/pull-request-validation.ts
 /** Remove path predicates and conditions that contain only path predicates. */

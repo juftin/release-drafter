@@ -988,6 +988,39 @@ describe('config loading', () => {
     expect(readLocalFile).not.toHaveBeenCalled()
     expect(result.draft).not.toHaveBeenCalled()
   })
+
+  it('loads preset directly via --config presets:<name>', async () => {
+    const state = createAdapter()
+    const result = await invoke(
+      ['acme/widgets', '--to', 'main', '--config', 'presets:gitmoji', '--json'],
+      { adapter: state.adapter },
+    )
+
+    expect(result.code).toBe(0)
+    expect(state.getRepositoryConfig).not.toHaveBeenCalled()
+    expect(result.draft).toHaveBeenCalledOnce()
+    const draftConfig = result.draft.mock.calls[0][0].config
+    expect(draftConfig.categories?.length).toBeGreaterThan(0)
+    expect(draftConfig['tag-template']).toBe('v$RESOLVED_VERSION')
+  })
+
+  it('inherits from a preset via _extends: presets:<name>', async () => {
+    const state = createAdapter({
+      getConfig: async () =>
+        'tag-template: "custom-v$RESOLVED_VERSION"\n_extends: presets:conventional-commits\n',
+    })
+    const result = await invoke(
+      ['acme/widgets', '--to', 'main', '--config', 'custom.yml', '--json'],
+      { adapter: state.adapter },
+    )
+
+    expect(result.code).toBe(0)
+    expect(state.getRepositoryConfig).toHaveBeenCalledOnce()
+    expect(result.draft).toHaveBeenCalledOnce()
+    const draftConfig = result.draft.mock.calls[0][0].config
+    expect(draftConfig['tag-template']).toBe('custom-v$RESOLVED_VERSION')
+    expect(draftConfig.categories?.length).toBeGreaterThan(0)
+  })
 })
 
 describe('output and release result mapping', () => {
