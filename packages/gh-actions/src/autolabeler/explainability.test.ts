@@ -106,8 +106,8 @@ describe('explainability', () => {
 
       // Release Impact section
       expect(summary).toContain('- **Calculated Version Increment:** `minor`')
-      expect(summary).toContain('- ✨ Features & Improvements')
-      expect(summary).toContain('- 👷 CI/CD')
+      expect(summary).toContain('  - ✨ Features & Improvements')
+      expect(summary).toContain('  - 👷 CI/CD')
     })
 
     it('handles empty matches gracefully', () => {
