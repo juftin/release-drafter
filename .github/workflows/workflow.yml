@@ -1,0 +1,214 @@
+name: Release Drafter
+
+on:
+  workflow_call:
+    inputs:
+      config-name:
+        description: 'Release Drafter configuration target'
+        required: false
+        type: string
+        default: 'release-drafter.yml'
+      name:
+        description: 'Release name override'
+        required: false
+        type: string
+      tag:
+        description: 'Release tag override'
+        required: false
+        type: string
+      version:
+        description: 'Release version override'
+        required: false
+        type: string
+      from:
+        description: 'Ref, tag, branch, or commit SHA baseline'
+        required: false
+        type: string
+      publish:
+        description: 'Publishes the created or updated release immediately'
+        required: false
+        type: string
+        default: ''
+      latest:
+        description: 'Marks the created or updated release as latest'
+        required: false
+        type: string
+        default: ''
+      prerelease:
+        description: 'Creates a prerelease'
+        required: false
+        type: string
+        default: ''
+      prerelease-identifier:
+        description: 'Prerelease identifier'
+        required: false
+        type: string
+        default: ''
+      include-pre-releases:
+        description: 'Considers pre-releases for version calculation'
+        required: false
+        type: string
+        default: ''
+      commitish:
+        description: 'Branch, commit, or tag value for release'
+        required: false
+        type: string
+        default: ''
+      header:
+        description: 'Text prepended to release body'
+        required: false
+        type: string
+        default: ''
+      footer:
+        description: 'Text appended to release body'
+        required: false
+        type: string
+        default: ''
+      dry-run:
+        description: 'Prevents write operations'
+        required: false
+        type: string
+        default: ''
+      filter-by-range:
+        description: 'Filter releases whose tag names satisfy this SemVer range'
+        required: false
+        type: string
+        default: ''
+      disable-releaser:
+        description: 'Disable release drafting on push/dispatch'
+        required: false
+        type: boolean
+        default: false
+      disable-autolabeler:
+        description: 'Disable autolabeling on pull requests'
+        required: false
+        type: boolean
+        default: false
+      check:
+        description: 'Run check-pr validation on pull requests'
+        required: false
+        type: boolean
+        default: false
+      check-pr:
+        description: 'Alias for check: run check-pr validation on pull requests'
+        required: false
+        type: boolean
+        default: false
+      runs-on:
+        description: 'Runner environment'
+        required: false
+        type: string
+        default: 'ubuntu-latest'
+    secrets:
+      token:
+        description: 'Access token for GitHub API requests. Defaults to GITHUB_TOKEN.'
+        required: false
+    outputs:
+      id:
+        description: 'The ID of the release that was created or updated'
+        value: ${{ jobs.update_release_draft.outputs.id }}
+      name:
+        description: 'The name of the release'
+        value: ${{ jobs.update_release_draft.outputs.name }}
+      tag_name:
+        description: 'The name of the tag associated with the release'
+        value: ${{ jobs.update_release_draft.outputs.tag_name }}
+      body:
+        description: 'The body of the drafted release'
+        value: ${{ jobs.update_release_draft.outputs.body }}
+      labels:
+        description: 'A JSON array of matched labels'
+        value: ${{ jobs.update_release_draft.outputs.labels || jobs.pull_request.outputs.labels }}
+      html_url:
+        description: 'The URL for viewing the release'
+        value: ${{ jobs.update_release_draft.outputs.html_url }}
+      upload_url:
+        description: 'The URL for uploading release assets'
+        value: ${{ jobs.update_release_draft.outputs.upload_url }}
+      major_version:
+        description: 'The major component of the resolved version'
+        value: ${{ jobs.update_release_draft.outputs.major_version }}
+      minor_version:
+        description: 'The minor component of the resolved version'
+        value: ${{ jobs.update_release_draft.outputs.minor_version }}
+      patch_version:
+        description: 'The release patch component of the resolved version'
+        value: ${{ jobs.update_release_draft.outputs.patch_version }}
+      resolved_version:
+        description: 'The resolved version number'
+        value: ${{ jobs.update_release_draft.outputs.resolved_version }}
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  pull_request:
+    if: (github.event_name == 'pull_request' || github.event_name == 'pull_request_target') && (!inputs.disable-autolabeler || inputs.check || inputs.check-pr)
+    runs-on: ${{ inputs.runs-on }}
+    permissions:
+      contents: read
+      pull-requests: write
+    outputs:
+      labels: ${{ steps.autolabeler.outputs.labels }}
+    steps:
+      - name: Run Autolabeler
+        id: autolabeler
+        if: ${{ !inputs.disable-autolabeler }}
+        uses: juftin/release-drafter/autolabeler@main
+        with:
+          config-name: ${{ inputs.config-name }}
+          token: ${{ secrets.token || github.token }}
+          dry-run: ${{ inputs.dry-run }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.token || github.token }}
+      - name: Check PR
+        id: check_pr
+        if: ${{ inputs.check || inputs.check-pr }}
+        uses: juftin/release-drafter/check-pr@main
+        with:
+          config-name: ${{ inputs.config-name }}
+          token: ${{ secrets.token || github.token }}
+
+  update_release_draft:
+    if: (!inputs.disable-releaser) && github.event_name != 'pull_request' && github.event_name != 'pull_request_target'
+    concurrency:
+      group: release-drafter-writes-${{ github.repository }}
+      cancel-in-progress: false
+    runs-on: ${{ inputs.runs-on }}
+    permissions:
+      contents: write
+      pull-requests: read
+    outputs:
+      id: ${{ steps.release_drafter.outputs.id }}
+      name: ${{ steps.release_drafter.outputs.name }}
+      tag_name: ${{ steps.release_drafter.outputs.tag_name }}
+      body: ${{ steps.release_drafter.outputs.body }}
+      labels: ${{ steps.release_drafter.outputs.labels }}
+      html_url: ${{ steps.release_drafter.outputs.html_url }}
+      upload_url: ${{ steps.release_drafter.outputs.upload_url }}
+      major_version: ${{ steps.release_drafter.outputs.major_version }}
+      minor_version: ${{ steps.release_drafter.outputs.minor_version }}
+      patch_version: ${{ steps.release_drafter.outputs.patch_version }}
+      resolved_version: ${{ steps.release_drafter.outputs.resolved_version }}
+    steps:
+      - name: Run Release Drafter
+        id: release_drafter
+        uses: juftin/release-drafter@main
+        with:
+          config-name: ${{ inputs.config-name }}
+          token: ${{ secrets.token || github.token }}
+          name: ${{ inputs.name }}
+          tag: ${{ inputs.tag }}
+          version: ${{ inputs.version }}
+          from: ${{ inputs.from }}
+          publish: ${{ inputs.publish }}
+          latest: ${{ inputs.latest }}
+          prerelease: ${{ inputs.prerelease }}
+          prerelease-identifier: ${{ inputs.prerelease-identifier }}
+          include-pre-releases: ${{ inputs.include-pre-releases }}
+          commitish: ${{ inputs.commitish }}
+          header: ${{ inputs.header }}
+          footer: ${{ inputs.footer }}
+          dry-run: ${{ inputs.dry-run }}
+          filter-by-range: ${{ inputs.filter-by-range }}

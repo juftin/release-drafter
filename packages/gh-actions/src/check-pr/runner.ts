@@ -2,7 +2,7 @@ import * as core from '@actions/core'
 import { context } from '@actions/github'
 import { evaluatePullRequest, mergeInputAndConfig } from '@release-drafter/core'
 import { writeActionOutputs } from '../common/action-contract.ts'
-import { actionLogger } from '../common/github.ts'
+import { actionLogger, getGitHubAdapter } from '../common/github.ts'
 import { actionOutputNames } from './action-metadata.ts'
 import { parsePullRequestEvent } from './event.ts'
 import { getActionInput } from './get-action-inputs.ts'
@@ -13,6 +13,7 @@ export type RunnerDependencies = {
   payload: unknown
   getInput: typeof getActionInput
   getConfig: typeof getConfig
+  getLabels?: (token: string, number: number) => Promise<string[]>
 }
 
 const defaultDependencies = (): RunnerDependencies => ({
@@ -20,6 +21,19 @@ const defaultDependencies = (): RunnerDependencies => ({
   payload: context.payload,
   getInput: getActionInput,
   getConfig,
+  getLabels: async (token: string, number: number) => {
+    try {
+      const adapter = getGitHubAdapter(token)
+      const res = await adapter.octokit.rest.issues.listLabelsOnIssue({
+        owner: context.repo.owner,
+        repo: context.repo.repo,
+        issue_number: number,
+      })
+      return res.data.map((l) => l.name)
+    } catch {
+      return []
+    }
+  },
 })
 
 /** Check the current pull request without performing any write operation. */
@@ -49,10 +63,26 @@ export async function checkPullRequest(
     defaultCommitish: pullRequest.baseRef,
     logger: actionLogger,
   })
+
+  let labels = pullRequest.labels
+  if (dependencies.getLabels && input.token) {
+    try {
+      const liveLabels = await dependencies.getLabels(
+        input.token,
+        pullRequest.number,
+      )
+      if (liveLabels.length > 0) {
+        labels = liveLabels
+      }
+    } catch {
+      // Fallback to webhook payload labels
+    }
+  }
+
   const evaluation = evaluatePullRequest(
     {
       title: pullRequest.title,
-      labels: pullRequest.labels,
+      labels,
     },
     config.categories,
   )

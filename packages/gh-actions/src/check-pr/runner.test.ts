@@ -120,4 +120,17 @@ describe('check PR runner', () => {
     )
     await expect(checkPullRequest(value)).resolves.toBeUndefined()
   })
+
+  it('evaluates live labels when payload labels are empty', async () => {
+    const value = dependencies(
+      ':bug: fix bug',
+      [{ title: 'Bug Fixes', when: { labels: [':bug:'] } }],
+      {
+        payload: payload(':bug: fix bug', []),
+        getLabels: vi.fn().mockResolvedValue([':bug:']),
+      },
+    )
+    await expect(checkPullRequest(value)).resolves.toBeUndefined()
+    expect(core.setOutput).toHaveBeenCalledWith('labels', '[":bug:"]')
+  })
 })

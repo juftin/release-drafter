@@ -1,4 +1,4 @@
-import { D as setFailed, E as info, S as union, a as readActionInputs, b as string, h as array, i as defineActionInputNames, m as _enum, o as writeActionOutputs, r as tokenInputSchema, s as actionLogger, v as number, w as context, y as object } from "../../chunks/config.js";
+import { D as setFailed, E as info, S as union, a as readActionInputs, b as string, c as getGitHubAdapter, h as array, i as defineActionInputNames, m as _enum, o as writeActionOutputs, r as tokenInputSchema, s as actionLogger, v as number, w as context, y as object } from "../../chunks/config.js";
 import { g as evaluateCategories, n as mergeInputAndConfig, t as getReleaseDrafterConfig } from "../../chunks/get-release-drafter-config.js";
 //#region packages/core/src/pull-request-validation.ts
 /** Remove path predicates and conditions that contain only path predicates. */
@@ -91,7 +91,18 @@ var defaultDependencies = () => ({
 	eventName: context.eventName,
 	payload: context.payload,
 	getInput: getActionInput,
-	getConfig
+	getConfig,
+	getLabels: async (token, number) => {
+		try {
+			return (await getGitHubAdapter(token).octokit.rest.issues.listLabelsOnIssue({
+				owner: context.repo.owner,
+				repo: context.repo.repo,
+				issue_number: number
+			})).data.map((l) => l.name);
+		} catch {
+			return [];
+		}
+	}
 });
 /** Check the current pull request without performing any write operation. */
 async function checkPullRequest(dependencies = defaultDependencies()) {
@@ -104,9 +115,14 @@ async function checkPullRequest(dependencies = defaultDependencies()) {
 		defaultCommitish: pullRequest.baseRef,
 		logger: actionLogger
 	});
+	let labels = pullRequest.labels;
+	if (dependencies.getLabels && input.token) try {
+		const liveLabels = await dependencies.getLabels(input.token, pullRequest.number);
+		if (liveLabels.length > 0) labels = liveLabels;
+	} catch {}
 	const evaluation = evaluatePullRequest({
 		title: pullRequest.title,
-		labels: pullRequest.labels
+		labels
 	}, config.categories);
 	writeActionOutputs(actionOutputNames, { labels: JSON.stringify(evaluation.labels) });
 	if (evaluation.skipped) {
