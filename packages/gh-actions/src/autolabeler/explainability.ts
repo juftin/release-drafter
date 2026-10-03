@@ -155,7 +155,7 @@ export const buildExplainabilitySummary = (
   if (categories && categories.length > 0) {
     for (const cat of categories) {
       if (cat.labels.some((l) => matchedLabels.has(l))) {
-        sections.push(`- ${cat.title}`)
+        sections.push(`  - ${cat.title}`)
       }
     }
   }

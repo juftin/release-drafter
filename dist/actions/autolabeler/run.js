@@ -266,7 +266,7 @@ var buildExplainabilitySummary = (params) => {
 	}
 	const sections = [];
 	if (categories && categories.length > 0) {
-		for (const cat of categories) if (cat.labels.some((l) => matchedLabels.has(l))) sections.push(`- ${cat.title}`);
+		for (const cat of categories) if (cat.labels.some((l) => matchedLabels.has(l))) sections.push(`  - ${cat.title}`);
 	}
 	const lines = [
 		"## 🏷️ Autolabeler & Semver Summary",
