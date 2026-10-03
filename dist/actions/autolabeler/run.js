@@ -225,7 +225,7 @@ var PRIORITY = {
 var buildExplainabilitySummary = (params) => {
 	const { pullRequest, matches, appliedLabels, supersededLabels, categories } = params;
 	if (matches.length === 0) return [
-		"## 🏷️ Autolabeler & Semver Summary",
+		"## 🏷️ Release Drafter Summary",
 		"",
 		`No autolabeler rules matched Pull Request **#${pullRequest.number}** (\`${pullRequest.branch}\`).`,
 		""
@@ -250,7 +250,17 @@ var buildExplainabilitySummary = (params) => {
 	const matchCallouts = [];
 	if (titleMatches.size > 0) for (const val of titleMatches) matchCallouts.push(`- **Matched Title:** \`${val}\``);
 	if (branchMatches.size > 0) for (const val of branchMatches) matchCallouts.push(`- **Matched Branch:** \`${val}\``);
-	if (fileMatches.size > 0) matchCallouts.push(`- **Matched File(s):** ${[...fileMatches].map((f) => `\`${f}\``).join(", ")}`);
+	if (fileMatches.size > 0) {
+		const files = [...fileMatches];
+		const maxFiles = 3;
+		if (files.length === 1) matchCallouts.push(`- **Matched File:** \`${files[0]}\``);
+		else if (files.length <= maxFiles) matchCallouts.push(`- **Matched Files (${files.length}):** ${files.map((f) => `\`${f}\``).join(", ")}`);
+		else {
+			const shown = files.slice(0, maxFiles).map((f) => `\`${f}\``).join(", ");
+			const remaining = files.length - maxFiles;
+			matchCallouts.push(`- **Matched Files (${files.length}):** ${shown} *(and ${remaining} more)*`);
+		}
+	}
 	if (bodyMatches.size > 0) for (const val of bodyMatches) matchCallouts.push(`- **Matched Body:** \`${val}\``);
 	const rows = [];
 	for (const match of matches) {
@@ -263,20 +273,20 @@ var buildExplainabilitySummary = (params) => {
 		const details = match.matcher === "files" ? `Files matched pattern ${patternEscaped}` : `${trigger} matched ${patternEscaped}`;
 		rows.push(`| \`${match.label}\` | ${intention} | \`${semver}\` | ${trigger} | ${details} |`);
 	}
-	const sections = [];
+	const releaseSectionList = [];
 	if (categories && categories.length > 0) {
-		for (const cat of categories) if (cat.labels.some((l) => matchedLabels.has(l))) sections.push(`  - ${cat.title}`);
+		const matchedSections = [];
+		for (const cat of categories) if (cat.labels.some((l) => matchedLabels.has(l))) matchedSections.push(`  - ${cat.title}`);
+		if (matchedSections.length > 0) releaseSectionList.push("- **Release Sections:**", ...matchedSections);
 	}
 	const lines = [
-		"## 🏷️ Autolabeler & Semver Summary",
+		"## 🏷️ Release Drafter Summary",
 		"",
-		`Applied **${appliedLabels ? appliedLabels.length : rows.length}** label(s) to Pull Request **#${pullRequest.number}** (\`${pullRequest.branch}\`):`,
+		`Applied **${appliedLabels ? appliedLabels.length : rows.length}** label(s) to PR **#${pullRequest.number}** (\`${pullRequest.branch}\`) with **\`${highestBump}\`** version increment.`,
+		"",
 		...matchCallouts,
-		"",
-		"### 🚀 Release Impact",
-		`- **Calculated Version Increment:** \`${highestBump}\``
+		...releaseSectionList
 	];
-	if (sections.length > 0) lines.push("- **Target Changelog Section(s):**", ...sections);
 	lines.push("", "<details>", "<summary>🏷️ Label Decision Details</summary>", "", "| Label | Gitmoji Intention | Semver Impact | Trigger | Matched Rule |", "| :--- | :--- | :--- | :--- | :--- |", ...rows, "", "</details>", "");
 	return lines.join("\n");
 };

@@ -76,7 +76,13 @@ describe('explainability', () => {
       // Matches callouts
       expect(summary).toContain('- **Matched Title:** `✨ Add OAuth login`')
       expect(summary).toContain(
-        '- **Matched File(s):** `.github/workflows/ci.yml`',
+        '- **Matched File:** `.github/workflows/ci.yml`',
+      )
+
+      // Header & PR info
+      expect(summary).toContain('## 🏷️ Release Drafter Summary')
+      expect(summary).toContain(
+        'Applied **4** label(s) to PR **#42** (`feat/auth`) with **`minor`** version increment.',
       )
 
       // Collapsed details section
@@ -104,10 +110,30 @@ describe('explainability', () => {
         '| `patch` | - | `patch` | Files | Files matched pattern `.github/**` |',
       )
 
-      // Release Impact section
-      expect(summary).toContain('- **Calculated Version Increment:** `minor`')
+      // Release Sections list
+      expect(summary).toContain('- **Release Sections:**')
       expect(summary).toContain('  - ✨ Features & Improvements')
       expect(summary).toContain('  - 👷 CI/CD')
+    })
+
+    it('caps matched files to first 3 with overflow count when more than 3 files match', () => {
+      const summary = buildExplainabilitySummary({
+        pullRequest: {
+          number: 5,
+          title: 'docs: update all',
+          branch: 'docs/all',
+        },
+        matches: [
+          { label: 'docs', matcher: 'files', matchedValue: 'docs/a.md' },
+          { label: 'docs', matcher: 'files', matchedValue: 'docs/b.md' },
+          { label: 'docs', matcher: 'files', matchedValue: 'docs/c.md' },
+          { label: 'docs', matcher: 'files', matchedValue: 'docs/d.md' },
+          { label: 'docs', matcher: 'files', matchedValue: 'docs/e.md' },
+        ],
+      })
+      expect(summary).toContain(
+        '- **Matched Files (5):** `docs/a.md`, `docs/b.md`, `docs/c.md` *(and 2 more)*',
+      )
     })
 
     it('handles empty matches gracefully', () => {
@@ -119,6 +145,7 @@ describe('explainability', () => {
         },
         matches: [],
       })
+      expect(summary).toContain('## 🏷️ Release Drafter Summary')
       expect(summary).toContain('No autolabeler rules matched Pull Request')
     })
 
@@ -159,7 +186,9 @@ describe('explainability', () => {
         supersededLabels: ['patch'],
       })
 
-      expect(summary).toContain('Applied **3** label(s) to Pull Request')
+      expect(summary).toContain(
+        'Applied **3** label(s) to PR **#1** (`test/pr`) with **`minor`** version increment.',
+      )
       expect(summary).not.toMatch(/^\| `patch` \|/m)
       expect(summary).not.toContain('Superseded Bump Label(s)')
     })
