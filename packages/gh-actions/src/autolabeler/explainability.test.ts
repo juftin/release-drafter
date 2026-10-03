@@ -73,22 +73,36 @@ describe('explainability', () => {
         ],
       })
 
+      // Matches callouts
+      expect(summary).toContain('- **Matched Title:** `✨ Add OAuth login`')
+      expect(summary).toContain(
+        '- **Matched File(s):** `.github/workflows/ci.yml`',
+      )
+
+      // Collapsed details section
+      expect(summary).toContain('<details>')
+      expect(summary).toContain('<summary>🏷️ Label Decision Details</summary>')
+
       // Table headers
       expect(summary).toContain(
-        '| Label | Gitmoji Intention | Semver Impact | Trigger | Matched Details |',
+        '| Label | Gitmoji Intention | Semver Impact | Trigger | Matched Rule |',
       )
 
       // Preset gitmoji has linked intention
       expect(summary).toContain(
-        '| `✨` | [Introduce new features.](https://gitmoji.dev/specification) | `minor` | Title |',
+        '| `✨` | [Introduce new features.](https://gitmoji.dev/specification) | `minor` | Title | Title matched `/^(:sparkles:\\|✨)/` |',
       )
       expect(summary).toContain(
-        '| `👷` | [Add or update CI build system.](https://gitmoji.dev/specification) | `patch` | Files |',
+        '| `👷` | [Add or update CI build system.](https://gitmoji.dev/specification) | `patch` | Files | Files matched pattern `.github/**` |',
       )
 
       // Non-preset labels have no linked intention (marked with '-')
-      expect(summary).toContain('| `minor` | - | `minor` | Title |')
-      expect(summary).toContain('| `patch` | - | `patch` | Files |')
+      expect(summary).toContain(
+        '| `minor` | - | `minor` | Title | Title matched `/^(:sparkles:\\|✨)/` |',
+      )
+      expect(summary).toContain(
+        '| `patch` | - | `patch` | Files | Files matched pattern `.github/**` |',
+      )
 
       // Release Impact section
       expect(summary).toContain('- **Calculated Version Increment:** `minor`')

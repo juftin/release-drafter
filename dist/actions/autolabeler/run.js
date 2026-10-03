@@ -232,11 +232,26 @@ var buildExplainabilitySummary = (params) => {
 	].join("\n");
 	let highestBump = "patch";
 	const matchedLabels = new Set(matches.map((m) => m.label));
+	const titleMatches = /* @__PURE__ */ new Set();
+	const branchMatches = /* @__PURE__ */ new Set();
+	const fileMatches = /* @__PURE__ */ new Set();
+	const bodyMatches = /* @__PURE__ */ new Set();
 	for (const match of matches) {
 		const spec = getGitmojiSpec(match.label);
 		const semver = resolveSemverBump(match.label, spec);
 		if (PRIORITY[semver] > PRIORITY[highestBump]) highestBump = semver;
+		if (match.matchedValue) {
+			if (match.matcher === "title") titleMatches.add(match.matchedValue);
+			if (match.matcher === "branch") branchMatches.add(match.matchedValue);
+			if (match.matcher === "files") fileMatches.add(match.matchedValue);
+			if (match.matcher === "body") bodyMatches.add(match.matchedValue);
+		}
 	}
+	const matchCallouts = [];
+	if (titleMatches.size > 0) for (const val of titleMatches) matchCallouts.push(`- **Matched Title:** \`${val}\``);
+	if (branchMatches.size > 0) for (const val of branchMatches) matchCallouts.push(`- **Matched Branch:** \`${val}\``);
+	if (fileMatches.size > 0) matchCallouts.push(`- **Matched File(s):** ${[...fileMatches].map((f) => `\`${f}\``).join(", ")}`);
+	if (bodyMatches.size > 0) for (const val of bodyMatches) matchCallouts.push(`- **Matched Body:** \`${val}\``);
 	const rows = [];
 	for (const match of matches) {
 		const spec = getGitmojiSpec(match.label);
@@ -245,8 +260,7 @@ var buildExplainabilitySummary = (params) => {
 		const intention = spec ? `[${spec.description}](https://gitmoji.dev/specification)` : "-";
 		const trigger = match.matcher === "files" ? "Files" : match.matcher === "branch" ? "Branch" : match.matcher === "title" ? "Title" : "Body";
 		const patternEscaped = match.pattern ? `\`${match.pattern.replace(/\|/g, "\\|")}\`` : "-";
-		const valueEscaped = match.matchedValue ? `\`${match.matchedValue.replace(/\|/g, "\\|")}\`` : "-";
-		const details = match.matcher === "files" ? `Pattern ${patternEscaped} matched file ${valueEscaped}` : `${trigger} ${valueEscaped} matched ${patternEscaped}`;
+		const details = match.matcher === "files" ? `Files matched pattern ${patternEscaped}` : `${trigger} matched ${patternEscaped}`;
 		const semverDisplay = isSuperseded ? `\`${semver}\` *(superseded by \`${highestBump}\`)*` : `\`${semver}\``;
 		rows.push(`| \`${match.label}\` | ${intention} | ${semverDisplay} | ${trigger} | ${details} |`);
 	}
@@ -258,17 +272,14 @@ var buildExplainabilitySummary = (params) => {
 		"## 🏷️ Autolabeler & Semver Summary",
 		"",
 		`Applied **${appliedLabels ? appliedLabels.length : matches.length}** label(s) to Pull Request **#${pullRequest.number}** (\`${pullRequest.branch}\`):`,
-		"",
-		"| Label | Gitmoji Intention | Semver Impact | Trigger | Matched Details |",
-		"| :--- | :--- | :--- | :--- | :--- |",
-		...rows,
+		...matchCallouts,
 		"",
 		"### 🚀 Release Impact",
 		`- **Calculated Version Increment:** \`${highestBump}\``
 	];
 	if (supersededLabels && supersededLabels.length > 0) lines.push(`- **Superseded Bump Label(s):** ${supersededLabels.map((l) => `\`${l}\``).join(", ")} (superseded by \`${highestBump}\`)`);
 	if (sections.length > 0) lines.push("- **Target Changelog Section(s):**", ...sections);
-	lines.push("");
+	lines.push("", "<details>", "<summary>🏷️ Label Decision Details</summary>", "", "| Label | Gitmoji Intention | Semver Impact | Trigger | Matched Rule |", "| :--- | :--- | :--- | :--- | :--- |", ...rows, "", "</details>", "");
 	return lines.join("\n");
 };
 /** Writes the explainability summary table to the GitHub Actions Job Step Summary. */
