@@ -38,8 +38,8 @@ export const normalizeFilepath = (
     if (
       parentConfig &&
       // repo & refs are identical
-      parentConfig.repo.owner === config.repo.owner &&
-      parentConfig.repo.repo === config.repo.repo &&
+      parentConfig.repo?.owner === config.repo?.owner &&
+      parentConfig.repo?.repo === config.repo?.repo &&
       config.ref === parentConfig.ref
     ) {
       // Resolve relative to the parent config file's directory

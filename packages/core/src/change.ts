@@ -58,7 +58,6 @@ export const inferChangeLabels = (
       }
       if (body && rule.body.some((regex) => testRegex(regex, body))) {
         inferred.add(rule.label)
-        continue
       }
     }
   } else {

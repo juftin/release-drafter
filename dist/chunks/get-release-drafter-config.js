@@ -482,10 +482,7 @@ var inferChangeLabels = (change, autolabeler = []) => {
 				inferred.add(rule.label);
 				continue;
 			}
-			if (body && rule.body.some((regex) => testRegex(regex, body))) {
-				inferred.add(rule.label);
-				continue;
-			}
+			if (body && rule.body.some((regex) => testRegex(regex, body))) inferred.add(rule.label);
 		}
 	} else {
 		const { title, body } = splitCommitMessage(change.commit.message ?? "");

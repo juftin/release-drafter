@@ -64,7 +64,7 @@ export const getConfigFile = async (
   if (parentTarget?.scheme) {
     if (parentTarget?.scheme === 'github' && _configTarget.scheme === 'file') {
       throw new Error(
-        `The '_extends' import-chain cannot contain github: to file: scheme transitions. Please change '_extends: ${configTarget.scheme}:${configTarget.filepath}' to use the github: scheme. ex: '_extends: ${parentTarget.repo.owner}/${parentTarget.repo.repo}:${configTarget.filepath}'`,
+        `The '_extends' import-chain cannot contain github: to file: scheme transitions. Please change '_extends: ${configTarget.scheme}:${configTarget.filepath}' to use the github: scheme. ex: '_extends: ${parentTarget.repo?.owner}/${parentTarget.repo?.repo}:${configTarget.filepath}'`,
       )
     }
   }

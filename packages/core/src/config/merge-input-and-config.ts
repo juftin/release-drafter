@@ -84,7 +84,9 @@ export const mergeInputAndConfig = (params: {
         return false
       }
     })
-    .filter((rule): rule is ParsedConfig['autolabeler'][number] => Boolean(rule))
+    .filter((rule): rule is ParsedConfig['autolabeler'][number] =>
+      Boolean(rule),
+    )
   const parsedConfig = {
     ...config,
     commitish,

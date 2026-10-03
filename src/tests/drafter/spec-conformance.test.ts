@@ -1,13 +1,16 @@
-import { describe, expect, it } from 'vitest'
-import { PRESET_CONFIGS } from '#gh-actions/common/config/presets.generated.ts'
+import { matchLabels, parseConfig } from '@release-drafter/autolabeler'
 import { configSchema } from '@release-drafter/core'
-import { parseConfig } from '@release-drafter/autolabeler'
-import { matchLabels } from '@release-drafter/autolabeler'
+import { describe, expect, it } from 'vitest'
 import YAML from 'yaml'
+import { PRESET_CONFIGS } from '#gh-actions/common/config/presets.generated.ts'
 
 describe('GitMoji & Conventional Commits Spec Conformance', () => {
-  const gitmojiConfig = configSchema.parse(YAML.parse(PRESET_CONFIGS['gitmoji']))
-  const convConfig = configSchema.parse(YAML.parse(PRESET_CONFIGS['conventional-commits']))
+  const gitmojiConfig = configSchema.parse(
+    YAML.parse(PRESET_CONFIGS['gitmoji']),
+  )
+  const convConfig = configSchema.parse(
+    YAML.parse(PRESET_CONFIGS['conventional-commits']),
+  )
   const hybridConfig = configSchema.parse(YAML.parse(PRESET_CONFIGS['hybrid']))
 
   const parsedGitmojiAutolabeler = parseConfig({
@@ -29,7 +32,10 @@ describe('GitMoji & Conventional Commits Spec Conformance', () => {
       { title: '⚡️ Lazyload home screen images.', expectedEmoji: '⚡️' },
       { title: '🐛 Fix onClick event handler', expectedEmoji: '🐛' },
       { title: '🔖 Bump version 1.2.0', expectedEmoji: '🔖' },
-      { title: '♻️ (components): Transform classes to hooks', expectedEmoji: '♻️' },
+      {
+        title: '♻️ (components): Transform classes to hooks',
+        expectedEmoji: '♻️',
+      },
       { title: '✨ (ui) Add button', expectedEmoji: '✨' },
       { title: ':sparkles: Add feature', expectedEmoji: '✨' },
       { title: ':sparkles: (ui): Add button', expectedEmoji: '✨' },
@@ -67,9 +73,18 @@ describe('GitMoji & Conventional Commits Spec Conformance', () => {
       { title: 'test: add unit tests', expectedLabel: 'test' },
       { title: 'chore: bump dependencies', expectedLabel: 'chore' },
       { title: 'feat!: breaking change with bang', expectedLabel: 'breaking' },
-      { title: 'feat(api)!: breaking change with scope and bang', expectedLabel: 'breaking' },
-      { title: '✨ feat: add new feature with gitmoji prefix', expectedLabel: 'feat' },
-      { title: ':sparkles: feat(ui): add button with shortcode prefix', expectedLabel: 'feat' },
+      {
+        title: 'feat(api)!: breaking change with scope and bang',
+        expectedLabel: 'breaking',
+      },
+      {
+        title: '✨ feat: add new feature with gitmoji prefix',
+        expectedLabel: 'feat',
+      },
+      {
+        title: ':sparkles: feat(ui): add button with shortcode prefix',
+        expectedLabel: 'feat',
+      },
     ]
 
     for (const { title, expectedLabel } of examples) {
@@ -178,7 +193,9 @@ describe('GitMoji & Conventional Commits Spec Conformance', () => {
 
     it('hybrid preset accepts both word and emoji labels', () => {
       expect(hybridConfig['version-resolver'].major.labels).toContain('major')
-      expect(hybridConfig['version-resolver'].major.labels).toContain('breaking')
+      expect(hybridConfig['version-resolver'].major.labels).toContain(
+        'breaking',
+      )
       expect(hybridConfig['version-resolver'].major.labels).toContain('💥')
       expect(hybridConfig['version-resolver'].minor.labels).toContain('minor')
       expect(hybridConfig['version-resolver'].minor.labels).toContain('feat')
@@ -224,8 +241,14 @@ describe('GitMoji & Conventional Commits Spec Conformance', () => {
         ['conventional-commits', convConfig],
         ['hybrid', hybridConfig],
       ] as const) {
-        expect(cfg['exclude-labels'], `${name} missing exclude-labels`).toContain('skip-changelog')
-        expect(cfg['exclude-labels'], `${name} missing exclude-labels`).toContain('skip-release')
+        expect(
+          cfg['exclude-labels'],
+          `${name} missing exclude-labels`,
+        ).toContain('skip-changelog')
+        expect(
+          cfg['exclude-labels'],
+          `${name} missing exclude-labels`,
+        ).toContain('skip-release')
       }
     })
 
@@ -311,14 +334,24 @@ describe('GitMoji & Conventional Commits Spec Conformance', () => {
       // In Gitmoji preset, conventional titles docs: and ci: resolve to their emojis (📝 and 👷) plus patch
       const gitmojiDocs = matchLabels({
         config: parsedGitmojiAutolabeler,
-        pullRequest: { files: [], title: 'docs: update guide', branch: 'main', body: '' },
+        pullRequest: {
+          files: [],
+          title: 'docs: update guide',
+          branch: 'main',
+          body: '',
+        },
       })
       expect(Array.from(gitmojiDocs.labels)).toContain('📝')
       expect(Array.from(gitmojiDocs.labels)).toContain('patch')
 
       const gitmojiCI = matchLabels({
         config: parsedGitmojiAutolabeler,
-        pullRequest: { files: [], title: 'ci: update github action', branch: 'main', body: '' },
+        pullRequest: {
+          files: [],
+          title: 'ci: update github action',
+          branch: 'main',
+          body: '',
+        },
       })
       expect(Array.from(gitmojiCI.labels)).toContain('👷')
       expect(Array.from(gitmojiCI.labels)).toContain('patch')
@@ -326,7 +359,12 @@ describe('GitMoji & Conventional Commits Spec Conformance', () => {
       // In Hybrid preset, when gitmoji prefix is used, Docs and CI/CD resolve to emojis plus patch
       const hybridDocs = matchLabels({
         config: parsedHybridAutolabeler,
-        pullRequest: { files: [], title: '📝 docs: update guide', branch: 'main', body: '' },
+        pullRequest: {
+          files: [],
+          title: '📝 docs: update guide',
+          branch: 'main',
+          body: '',
+        },
       })
       expect(Array.from(hybridDocs.labels)).toContain('📝')
       expect(Array.from(hybridDocs.labels)).toContain('patch')
@@ -334,7 +372,12 @@ describe('GitMoji & Conventional Commits Spec Conformance', () => {
 
       const hybridCI = matchLabels({
         config: parsedHybridAutolabeler,
-        pullRequest: { files: [], title: '👷 ci: update workflow', branch: 'main', body: '' },
+        pullRequest: {
+          files: [],
+          title: '👷 ci: update workflow',
+          branch: 'main',
+          body: '',
+        },
       })
       expect(Array.from(hybridCI.labels)).toContain('👷')
       expect(Array.from(hybridCI.labels)).toContain('patch')
@@ -343,14 +386,24 @@ describe('GitMoji & Conventional Commits Spec Conformance', () => {
       // Without gitmoji, conventional preset and hybrid use word labels plus patch
       const convDocs = matchLabels({
         config: parsedConvAutolabeler,
-        pullRequest: { files: [], title: 'docs: update guide', branch: 'main', body: '' },
+        pullRequest: {
+          files: [],
+          title: 'docs: update guide',
+          branch: 'main',
+          body: '',
+        },
       })
       expect(Array.from(convDocs.labels)).toContain('docs')
       expect(Array.from(convDocs.labels)).toContain('patch')
 
       const convCI = matchLabels({
         config: parsedConvAutolabeler,
-        pullRequest: { files: [], title: 'ci: update workflow', branch: 'main', body: '' },
+        pullRequest: {
+          files: [],
+          title: 'ci: update workflow',
+          branch: 'main',
+          body: '',
+        },
       })
       expect(Array.from(convCI.labels)).toContain('ci')
       expect(Array.from(convCI.labels)).toContain('patch')
@@ -376,14 +429,20 @@ describe('GitMoji & Conventional Commits Spec Conformance', () => {
           config: parsedGitmojiAutolabeler,
           pullRequest: { files: [], title: tc.title, branch: 'main', body: '' },
         })
-        expect(Array.from(gRes.labels), `gitmoji failed on ${tc.title}`).toContain(tc.expectedSemver)
+        expect(
+          Array.from(gRes.labels),
+          `gitmoji failed on ${tc.title}`,
+        ).toContain(tc.expectedSemver)
 
         // Hybrid
         const hRes = matchLabels({
           config: parsedHybridAutolabeler,
           pullRequest: { files: [], title: tc.title, branch: 'main', body: '' },
         })
-        expect(Array.from(hRes.labels), `hybrid failed on ${tc.title}`).toContain(tc.expectedSemver)
+        expect(
+          Array.from(hRes.labels),
+          `hybrid failed on ${tc.title}`,
+        ).toContain(tc.expectedSemver)
       }
     })
   })

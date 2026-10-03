@@ -118,17 +118,19 @@ export function parseConfigTarget(
     } else {
       // ex: release-drafter:.github/release-drafter.yml@main
       targetRepoName = repoParts[0]
-      targetRepoOwner = context.repo.owner
+      targetRepoOwner = context.repo?.owner ?? ''
     }
     targetRepo = { owner: targetRepoOwner, repo: targetRepoName }
   } else {
     // ex: .github/release-drafter.yml@main
-    targetRepo = context.repo
+    targetRepo = context.repo ?? { owner: '', repo: '' }
   }
 
-  const isCurrentRepo =
-    context.repo.owner === targetRepo.owner &&
-    context.repo.repo === targetRepo.repo
+  const isCurrentRepo = Boolean(
+    context.repo &&
+      context.repo.owner === targetRepo.owner &&
+      context.repo.repo === targetRepo.repo,
+  )
 
   if (hasRefSpecifier) {
     if (parts.length < 2) throw getErr('Too short to contain ref specifier.')

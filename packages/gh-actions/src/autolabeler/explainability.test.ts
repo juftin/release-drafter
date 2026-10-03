@@ -2,8 +2,8 @@ import * as core from '@actions/core'
 import type { GitHubAdapter } from '@release-drafter/github-adapter'
 import { describe, expect, it, vi } from 'vitest'
 import {
-  COMMENT_MARKER,
   buildExplainabilitySummary,
+  COMMENT_MARKER,
   getGitmojiSpec,
   postOrUpdatePRComment,
   writeStepSummary,
@@ -91,9 +91,7 @@ describe('explainability', () => {
       expect(summary).toContain('| `patch` | - | `patch` | Files |')
 
       // Release Impact section
-      expect(summary).toContain(
-        '- **Calculated Version Increment:** `minor`',
-      )
+      expect(summary).toContain('- **Calculated Version Increment:** `minor`')
       expect(summary).toContain('- ✨ Features & Improvements')
       expect(summary).toContain('- 👷 CI/CD')
     })
@@ -126,9 +124,7 @@ describe('explainability', () => {
 
   describe('postOrUpdatePRComment', () => {
     it('creates a new comment if none exists', async () => {
-      const createCommentMock = vi
-        .fn()
-        .mockResolvedValue({ data: { id: 101 } })
+      const createCommentMock = vi.fn().mockResolvedValue({ data: { id: 101 } })
       const updateCommentMock = vi.fn().mockResolvedValue({})
       const listCommentsMock = vi.fn().mockResolvedValue({
         data: [{ id: 1, body: 'User comment' }],
