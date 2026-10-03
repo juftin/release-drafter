@@ -115,9 +115,12 @@ export const buildExplainabilitySummary = (
 
   const rows: string[] = []
   for (const match of matches) {
+    if (supersededLabels?.includes(match.label)) {
+      continue
+    }
+
     const spec = getGitmojiSpec(match.label)
     const semver = resolveSemverBump(match.label, spec)
-    const isSuperseded = supersededLabels?.includes(match.label)
 
     // Only Preset gitmoji labels have a linked intention
     const intention = spec
@@ -142,12 +145,8 @@ export const buildExplainabilitySummary = (
         ? `Files matched pattern ${patternEscaped}`
         : `${trigger} matched ${patternEscaped}`
 
-    const semverDisplay = isSuperseded
-      ? `\`${semver}\` *(superseded by \`${highestBump}\`)*`
-      : `\`${semver}\``
-
     rows.push(
-      `| \`${match.label}\` | ${intention} | ${semverDisplay} | ${trigger} | ${details} |`,
+      `| \`${match.label}\` | ${intention} | \`${semver}\` | ${trigger} | ${details} |`,
     )
   }
 
@@ -160,7 +159,7 @@ export const buildExplainabilitySummary = (
     }
   }
 
-  const appliedCount = appliedLabels ? appliedLabels.length : matches.length
+  const appliedCount = appliedLabels ? appliedLabels.length : rows.length
   const lines = [
     '## 🏷️ Autolabeler & Semver Summary',
     '',
@@ -170,12 +169,6 @@ export const buildExplainabilitySummary = (
     '### 🚀 Release Impact',
     `- **Calculated Version Increment:** \`${highestBump}\``,
   ]
-
-  if (supersededLabels && supersededLabels.length > 0) {
-    lines.push(
-      `- **Superseded Bump Label(s):** ${supersededLabels.map((l) => `\`${l}\``).join(', ')} (superseded by \`${highestBump}\`)`,
-    )
-  }
 
   if (sections.length > 0) {
     lines.push('- **Target Changelog Section(s):**', ...sections)
