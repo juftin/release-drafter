@@ -40,8 +40,18 @@
         }
       ]
     },
+    "include-commits": {
+      "default": false,
+      "type": "boolean"
+    },
     "change-template": {
-      "default": "* $TITLE (#$NUMBER) $AUTHORS",
+      "default": "* $CHANGE_TITLE ($CHANGE_REFERENCE) $CHANGE_AUTHORS",
+      "type": "string"
+    },
+    "pr-template": {
+      "type": "string"
+    },
+    "commit-template": {
       "type": "string"
     },
     "change-author-template": {
@@ -111,7 +121,7 @@
       }
     },
     "new-contributor-template": {
-      "default": "* $AUTHOR_MENTION made their first contribution in #$NUMBER",
+      "default": "* $AUTHOR_MENTION made their first contribution in $CHANGE_REFERENCE",
       "type": "string"
     },
     "no-new-contributor-template": {
@@ -125,7 +135,7 @@
     "sort-by": {
       "default": "merged_at",
       "type": "string",
-      "enum": ["merged_at", "title"]
+      "enum": ["merged_at", "date", "title"]
     },
     "sort-direction": {
       "default": "descending",
@@ -477,6 +487,58 @@
     "template": {
       "default": "",
       "type": "string"
+    },
+    "autolabeler": {
+      "default": [],
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "label": {
+            "type": "string",
+            "minLength": 1
+          },
+          "labels": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "files": {
+            "default": [],
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "branch": {
+            "default": [],
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "title": {
+            "default": [],
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "body": {
+            "default": [],
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        }
+      }
     },
     "latest": {
       "type": ["string", "boolean"]
