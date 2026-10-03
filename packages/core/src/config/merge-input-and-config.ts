@@ -73,6 +73,25 @@ export const mergeInputAndConfig = (params: {
     groupChanges: config['group-changes'],
     logger,
   })
+  const autolabeler = (config.autolabeler ?? [])
+    .map((rule) => {
+      try {
+        return {
+          ...rule,
+          branch: rule.branch.map(stringToRegex),
+          title: rule.title.map(stringToRegex),
+          body: rule.body.map(stringToRegex),
+        }
+      } catch {
+        logger.warning(
+          `Bad autolabeler regex: '${rule.branch}', '${rule.title}' or '${rule.body}'`,
+        )
+        return false
+      }
+    })
+    .filter((rule): rule is NonNullable<ParsedConfig['autolabeler']>[number] =>
+      Boolean(rule),
+    )
   const parsedConfig = {
     ...config,
     commitish,
@@ -81,6 +100,7 @@ export const mergeInputAndConfig = (params: {
     replacers,
     categories,
     'group-changes': groupChanges,
+    autolabeler,
   }
 
   validateParsedConfig(parsedConfig)

@@ -305,6 +305,15 @@ export interface ParsedGroupChange {
   captureNames: string[]
 }
 
+export interface ParsedAutolabelerRule {
+  label?: string
+  labels?: string[]
+  files: string[]
+  branch: RegExp[]
+  title: RegExp[]
+  body: RegExp[]
+}
+
 /**
  * Fully parsed Release Drafter configuration for the orchestration core. The
  * caller or runtime must load and normalize the configuration.
@@ -335,6 +344,7 @@ export interface DraftReleaseConfig {
   replacers: ParsedReplacer[]
   'group-changes'?: ParsedGroupChange[]
   categories: ParsedCategory[]
+  autolabeler?: ParsedAutolabelerRule[]
   'category-template': string
   template: string
   latest: boolean

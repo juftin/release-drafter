@@ -38,7 +38,10 @@ export const generateContributorsSentence = (params: {
   serverUrl: string
   config: Pick<
     ParsedConfig,
-    'categories' | 'exclude-contributors' | 'no-contributors-template'
+    | 'categories'
+    | 'exclude-contributors'
+    | 'no-contributors-template'
+    | 'autolabeler'
   >
 }) => {
   const { commits, config, serverUrl } = params
@@ -51,6 +54,7 @@ export const generateContributorsSentence = (params: {
   const includedChanges = filterChangesByPreCategories(
     changes,
     config.categories,
+    config.autolabeler,
   )
   return generateAuthorsSentence({
     commits,

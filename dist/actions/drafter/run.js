@@ -159,7 +159,7 @@ var categorizeChanges = (params) => {
 	}));
 	const uncategorizedChanges = [];
 	for (const change of changes) {
-		const evaluation = evaluateCategories(changeForCategory(change), config.categories);
+		const evaluation = evaluateCategories(changeForCategory(change, config.autolabeler), config.categories);
 		if (!evaluation.included) continue;
 		if (evaluation.changelogCategories.length === 0) {
 			uncategorizedChanges.push(change);
@@ -536,7 +536,7 @@ var generateContributorsSentence = (params) => {
 		type: "pull-request",
 		pullRequest
 	}));
-	const includedChanges = filterChangesByPreCategories(changes, config.categories);
+	const includedChanges = filterChangesByPreCategories(changes, config.categories, config.autolabeler);
 	return generateAuthorsSentence({
 		commits,
 		pullRequests: includedChanges.flatMap((change) => change.type === "pull-request" ? [change.pullRequest] : []),
@@ -1209,7 +1209,7 @@ var resolveVersionKeyIncrement = (params) => {
 	const changelogIncrements = [];
 	const explicitResolverIncrements = [];
 	for (const change of changes) {
-		const evaluation = evaluateCategories(changeForCategory(change), config.categories);
+		const evaluation = evaluateCategories(changeForCategory(change, config.autolabeler), config.categories);
 		if (!evaluation.included) continue;
 		for (const category of evaluation.changelogCategories) if (category["semver-increment"] in priority) changelogIncrements.push(category["semver-increment"]);
 		if (!evaluation.usedVersionFallback) {

@@ -25,7 +25,9 @@ export const generateChangeLog = (params: {
     | 'change-authors-final-separator'
     | 'category-template'
     | 'group-changes'
-  >
+  > & {
+    autolabeler?: ParsedConfig['autolabeler']
+  }
 }) => {
   const {
     commits = [],
