@@ -1,3 +1,5 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/release-drafter/release-drafter/master/schema.json
+
 name-template: 'v$RESOLVED_VERSION'
 tag-template: 'v$RESOLVED_VERSION'
 include-commits: true
@@ -9,6 +11,10 @@ template: |
   $CHANGES
 
   **Full Changelog**: $PREVIOUS_TAG...$NEXT_TAG
+
+exclude-labels:
+  - 'skip-changelog'
+  - 'skip-release'
 
 categories:
   - title: '💥 Breaking Changes'
@@ -572,6 +578,9 @@ autolabeler:
       - '/^perf(\//|-)/i'
 
   - label: 'docs'
+    files:
+      - '**/*.md'
+      - 'docs/**'
     title:
       - '/^((:memo:|📝|:books:|📚|:bulb:|💡)\s*)?docs?(\([^\)]+\))?:/i'
     branch:
@@ -593,6 +602,8 @@ autolabeler:
       - '/^deps?(\//|-)/i'
 
   - label: 'ci'
+    files:
+      - '.github/**'
     title:
       - '/^((:construction_worker:|👷|:green_heart:|💚)\s*)?(ci|build)(\([^\)]+\))?:/i'
     branch:

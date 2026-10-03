@@ -188,8 +188,25 @@ def get_category_labels(cat, gitmojis):
     return labels
 
 
+CONV_RULES = [
+    ("feat", ["/^((:sparkles:|✨|:tada:|🎉|:rocket:|🚀)\\s*)?feat(ure)?(\\([^\\)]+\\))?:/i"], ["/^feat(\\//|-)/i", "/^feature(\\//|-)/i"], []),
+    ("fix", ["/^((:bug:|🐛|:ambulance:|🚑️|🚑|:adhesive_bandage:|🩹)\\s*)?(fix|bugfix|hotfix)(\\([^\\)]+\\))?:/i"], ["/^fix(\\//|-)/i", "/^bugfix(\\//|-)/i", "/^hotfix(\\//|-)/i"], []),
+    ("security", ["/^((:lock:|🔒)\\s*)?sec(urity)?(\\([^\\)]+\\))?:/i"], ["/^sec(urity)?(\\//|-)/i"], []),
+    ("perf", ["/^((:zap:|⚡️|⚡)\\s*)?perf(ormance)?(\\([^\\)]+\\))?:/i"], ["/^perf(\\//|-)/i"], []),
+    ("docs", ["/^((:memo:|📝|:books:|📚|:bulb:|💡)\\s*)?docs?(\\([^\\)]+\\))?:/i"], ["/^docs?(\\//|-)/i"], ["**/*.md", "docs/**"]),
+    ("refactor", ["/^((:recycle:|♻️|♻|:art:|🎨|:fire:|🔥)\\s*)?refactor(\\([^\\)]+\\))?:/i"], ["/^refactor(\\//|-)/i"], []),
+    ("dependencies", ["/^((:arrow_up:|⬆️|⬆|:arrow_down:|⬇️|⬇|:package:|📦️|📦|:pushpin:|📌)\\s*)?(deps?|dependencies)(\\([^\\)]+\\))?:/i", "/^chore\\(deps(-[a-z0-9]+)?\\):/i"], ["/^dependabot\\//i", "/^renovate\\//i", "/^deps?(\\//|-)/i"], []),
+    ("ci", ["/^((:construction_worker:|👷|:green_heart:|💚)\\s*)?(ci|build)(\\([^\\)]+\\))?:/i"], ["/^ci(\\//|-)/i", "/^build(\\//|-)/i"], [".github/**"]),
+    ("chore", ["/^((:wrench:|🔧|:hammer:|🔨|:truck:|🚚|:wastebasket:|🗑️|🗑)\\s*)?chore(\\([^\\)]+\\))?:/i"], ["/^chore(\\//|-)/i"], []),
+    ("test", ["/^((:white_check_mark:|✅|:test_tube:|🧪)\\s*)?tests?(\\([^\\)]+\\))?:/i"], ["/^tests?(\\//|-)/i"], []),
+    ("revert", ["/^((:rewind:|⏪️|⏪)\\s*)?revert(\\([^\\)]+\\))?:/i"], ["/^revert(\\//|-)/i"], []),
+]
+
+
 def generate_gitmoji_yaml(gitmojis):
     lines = [
+        "# yaml-language-server: $schema=https://raw.githubusercontent.com/release-drafter/release-drafter/master/schema.json",
+        "",
         "name-template: 'v$RESOLVED_VERSION'",
         "tag-template: 'v$RESOLVED_VERSION'",
         "include-commits: true",
@@ -201,6 +218,10 @@ def generate_gitmoji_yaml(gitmojis):
         "  $CHANGES",
         "",
         "  **Full Changelog**: $PREVIOUS_TAG...$NEXT_TAG",
+        "",
+        "exclude-labels:",
+        "  - 'skip-changelog'",
+        "  - 'skip-release'",
         "",
         "categories:",
     ]
@@ -260,23 +281,17 @@ def generate_gitmoji_yaml(gitmojis):
     lines.append("      - '/BREAKING[ -]CHANGE:/i'")
     lines.append("")
 
-    # Conventional commit types mappings
-    conv_rules = [
-        ("feat", ["/^((:sparkles:|✨|:tada:|🎉|:rocket:|🚀)\\s*)?feat(ure)?(\\([^\\)]+\\))?:/i"], ["/^feat(\\//|-)/i", "/^feature(\\//|-)/i"]),
-        ("fix", ["/^((:bug:|🐛|:ambulance:|🚑️|🚑|:adhesive_bandage:|🩹)\\s*)?(fix|bugfix|hotfix)(\\([^\\)]+\\))?:/i"], ["/^fix(\\//|-)/i", "/^bugfix(\\//|-)/i", "/^hotfix(\\//|-)/i"]),
-        ("security", ["/^((:lock:|🔒)\\s*)?sec(urity)?(\\([^\\)]+\\))?:/i"], ["/^sec(urity)?(\\//|-)/i"]),
-        ("perf", ["/^((:zap:|⚡️|⚡)\\s*)?perf(ormance)?(\\([^\\)]+\\))?:/i"], ["/^perf(\\//|-)/i"]),
-        ("docs", ["/^((:memo:|📝|:books:|📚|:bulb:|💡)\\s*)?docs?(\\([^\\)]+\\))?:/i"], ["/^docs?(\\//|-)/i"]),
-        ("refactor", ["/^((:recycle:|♻️|♻|:art:|🎨|:fire:|🔥)\\s*)?refactor(\\([^\\)]+\\))?:/i"], ["/^refactor(\\//|-)/i"]),
-        ("dependencies", ["/^((:arrow_up:|⬆️|⬆|:arrow_down:|⬇️|⬇|:package:|📦️|📦|:pushpin:|📌)\\s*)?(deps?|dependencies)(\\([^\\)]+\\))?:/i", "/^chore\\(deps(-[a-z0-9]+)?\\):/i"], ["/^dependabot\\//i", "/^renovate\\//i", "/^deps?(\\//|-)/i"]),
-        ("ci", ["/^((:construction_worker:|👷|:green_heart:|💚)\\s*)?(ci|build)(\\([^\\)]+\\))?:/i"], ["/^ci(\\//|-)/i", "/^build(\\//|-)/i"]),
-        ("chore", ["/^((:wrench:|🔧|:hammer:|🔨|:truck:|🚚|:wastebasket:|🗑️|🗑)\\s*)?chore(\\([^\\)]+\\))?:/i"], ["/^chore(\\//|-)/i"]),
-        ("test", ["/^((:white_check_mark:|✅|:test_tube:|🧪)\\s*)?tests?(\\([^\\)]+\\))?:/i"], ["/^tests?(\\//|-)/i"]),
-        ("revert", ["/^((:rewind:|⏪️|⏪)\\s*)?revert(\\([^\\)]+\\))?:/i"], ["/^revert(\\//|-)/i"]),
-    ]
+    for item in CONV_RULES:
+        label = item[0]
+        title_patterns = item[1]
+        branch_patterns = item[2]
+        files_patterns = item[3] if len(item) > 3 else []
 
-    for label, title_patterns, branch_patterns in conv_rules:
         lines.append(f"  - label: '{label}'")
+        if files_patterns:
+            lines.append("    files:")
+            for fp in files_patterns:
+                lines.append(f"      - '{fp}'")
         lines.append("    title:")
         for tp in title_patterns:
             lines.append(f"      - '{tp}'")
@@ -304,6 +319,8 @@ def generate_gitmoji_yaml(gitmojis):
 
 def generate_hybrid_yaml(gitmojis):
     lines = [
+        "# yaml-language-server: $schema=https://raw.githubusercontent.com/release-drafter/release-drafter/master/schema.json",
+        "",
         "name-template: 'v$RESOLVED_VERSION'",
         "tag-template: 'v$RESOLVED_VERSION'",
         "include-commits: true",
@@ -315,6 +332,10 @@ def generate_hybrid_yaml(gitmojis):
         "  $CHANGES",
         "",
         "  **Full Changelog**: $PREVIOUS_TAG...$NEXT_TAG",
+        "",
+        "exclude-labels:",
+        "  - 'skip-changelog'",
+        "  - 'skip-release'",
         "",
         "categories:",
     ]
@@ -373,23 +394,17 @@ def generate_hybrid_yaml(gitmojis):
     lines.append("      - '/BREAKING[ -]CHANGE:/i'")
     lines.append("")
 
-    # Conventional commit types mappings
-    conv_rules = [
-        ("feat", ["/^((:sparkles:|✨|:tada:|🎉|:rocket:|🚀)\\s*)?feat(ure)?(\\([^\\)]+\\))?:/i"], ["/^feat(\\//|-)/i", "/^feature(\\//|-)/i"]),
-        ("fix", ["/^((:bug:|🐛|:ambulance:|🚑️|🚑|:adhesive_bandage:|🩹)\\s*)?(fix|bugfix|hotfix)(\\([^\\)]+\\))?:/i"], ["/^fix(\\//|-)/i", "/^bugfix(\\//|-)/i", "/^hotfix(\\//|-)/i"]),
-        ("security", ["/^((:lock:|🔒)\\s*)?sec(urity)?(\\([^\\)]+\\))?:/i"], ["/^sec(urity)?(\\//|-)/i"]),
-        ("perf", ["/^((:zap:|⚡️|⚡)\\s*)?perf(ormance)?(\\([^\\)]+\\))?:/i"], ["/^perf(\\//|-)/i"]),
-        ("docs", ["/^((:memo:|📝|:books:|📚|:bulb:|💡)\\s*)?docs?(\\([^\\)]+\\))?:/i"], ["/^docs?(\\//|-)/i"]),
-        ("refactor", ["/^((:recycle:|♻️|♻|:art:|🎨|:fire:|🔥)\\s*)?refactor(\\([^\\)]+\\))?:/i"], ["/^refactor(\\//|-)/i"]),
-        ("dependencies", ["/^((:arrow_up:|⬆️|⬆|:arrow_down:|⬇️|⬇|:package:|📦️|📦|:pushpin:|📌)\\s*)?(deps?|dependencies)(\\([^\\)]+\\))?:/i", "/^chore\\(deps(-[a-z0-9]+)?\\):/i"], ["/^dependabot\\//i", "/^renovate\\//i", "/^deps?(\\//|-)/i"]),
-        ("ci", ["/^((:construction_worker:|👷|:green_heart:|💚)\\s*)?(ci|build)(\\([^\\)]+\\))?:/i"], ["/^ci(\\//|-)/i", "/^build(\\//|-)/i"]),
-        ("chore", ["/^((:wrench:|🔧|:hammer:|🔨|:truck:|🚚|:wastebasket:|🗑️|🗑)\\s*)?chore(\\([^\\)]+\\))?:/i"], ["/^chore(\\//|-)/i"]),
-        ("test", ["/^((:white_check_mark:|✅|:test_tube:|🧪)\\s*)?tests?(\\([^\\)]+\\))?:/i"], ["/^tests?(\\//|-)/i"]),
-        ("revert", ["/^((:rewind:|⏪️|⏪)\\s*)?revert(\\([^\\)]+\\))?:/i"], ["/^revert(\\//|-)/i"]),
-    ]
+    for item in CONV_RULES:
+        label = item[0]
+        title_patterns = item[1]
+        branch_patterns = item[2]
+        files_patterns = item[3] if len(item) > 3 else []
 
-    for label, title_patterns, branch_patterns in conv_rules:
         lines.append(f"  - label: '{label}'")
+        if files_patterns:
+            lines.append("    files:")
+            for fp in files_patterns:
+                lines.append(f"      - '{fp}'")
         lines.append("    title:")
         for tp in title_patterns:
             lines.append(f"      - '{tp}'")

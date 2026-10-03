@@ -160,4 +160,66 @@ describe('GitMoji & Conventional Commits Spec Conformance', () => {
       }
     })
   })
+
+  describe('File-Based Autolabeling & Exclusions', () => {
+    it('contains exclude-labels across all presets', () => {
+      for (const [name, cfg] of [
+        ['gitmoji', gitmojiConfig],
+        ['conventional-commits', convConfig],
+        ['hybrid', hybridConfig],
+      ] as const) {
+        expect(cfg['exclude-labels'], `${name} missing exclude-labels`).toContain('skip-changelog')
+        expect(cfg['exclude-labels'], `${name} missing exclude-labels`).toContain('skip-release')
+      }
+    })
+
+    it('autolabels .github changes as ci across all presets', () => {
+      for (const [name, parsed] of [
+        ['gitmoji', parsedGitmojiAutolabeler],
+        ['conventional-commits', parsedConvAutolabeler],
+        ['hybrid', parsedHybridAutolabeler],
+      ] as const) {
+        const result = matchLabels({
+          config: parsed,
+          pullRequest: {
+            files: ['.github/workflows/release.yml'],
+            title: 'update workflow',
+            branch: 'main',
+            body: '',
+          },
+        })
+        expect(Array.from(result.labels), `${name} failed to label .github as ci`).toContain('ci')
+      }
+    })
+
+    it('autolabels markdown and docs files as docs across all presets', () => {
+      for (const [name, parsed] of [
+        ['gitmoji', parsedGitmojiAutolabeler],
+        ['conventional-commits', parsedConvAutolabeler],
+        ['hybrid', parsedHybridAutolabeler],
+      ] as const) {
+        const mdResult = matchLabels({
+          config: parsed,
+          pullRequest: {
+            files: ['README.md'],
+            title: 'update guide',
+            branch: 'main',
+            body: '',
+          },
+        })
+        expect(Array.from(mdResult.labels), `${name} failed to label README.md as docs`).toContain('docs')
+
+        const docDirResult = matchLabels({
+          config: parsed,
+          pullRequest: {
+            files: ['docs/architecture.png'],
+            title: 'update diagrams',
+            branch: 'main',
+            body: '',
+          },
+        })
+        expect(Array.from(docDirResult.labels), `${name} failed to label docs/ as docs`).toContain('docs')
+      }
+    })
+  })
 })
