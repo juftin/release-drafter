@@ -632,23 +632,25 @@ export const GITMOJI_SPEC_DATA: GitmojiSpecEntry[] = {json.dumps(gitmojis_spec, 
     presets_file.write_text(presets_ts, encoding="utf-8")
     print(" - packages/gh-actions/src/common/config/presets.generated.ts")
 
-    # Symlinks only for gitmoji
+    # Single config file for release-drafter
     github_dir = ROOT_DIR / ".github"
     target = Path("../configs/gitmoji.yaml")
-    for link_name in ("release-drafter.yaml", "release-drafter.yml"):
-        link_path = github_dir / link_name
-        if link_path.is_symlink():
-            if link_path.readlink() != target:
-                link_path.unlink()
-                link_path.symlink_to(target)
-        elif link_path.exists():
+    yaml_dup = github_dir / "release-drafter.yaml"
+    if yaml_dup.exists() or yaml_dup.is_symlink():
+        yaml_dup.unlink()
+
+    link_path = github_dir / "release-drafter.yml"
+    if link_path.is_symlink():
+        if link_path.readlink() != target:
             link_path.unlink()
             link_path.symlink_to(target)
-        else:
-            link_path.symlink_to(target)
+    elif link_path.exists():
+        link_path.unlink()
+        link_path.symlink_to(target)
+    else:
+        link_path.symlink_to(target)
 
-    print("Symlinked gitmoji configs:")
-    print(" - .github/release-drafter.yaml -> ../configs/gitmoji.yaml")
+    print("Configured single release-drafter config:")
     print(" - .github/release-drafter.yml -> ../configs/gitmoji.yaml")
 
 
