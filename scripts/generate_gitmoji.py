@@ -5,10 +5,14 @@ from the official gitmojis.json database.
 """
 
 import json
+import urllib.request
 from pathlib import Path
 
 ROOT_DIR = Path(__file__).parent.parent
 DATA_FILE = ROOT_DIR / "data" / "gitmojis.json"
+UPSTREAM_GITMOJIS_URL = (
+    "https://raw.githubusercontent.com/carloscuesta/gitmoji/master/packages/gitmojis/src/gitmojis.json"
+)
 
 CATEGORIES = [
     {
@@ -152,9 +156,29 @@ CATEGORIES = [
 ]
 
 
-def load_gitmojis():
-    with open(DATA_FILE, "r", encoding="utf-8") as f:
-        data = json.load(f)
+def load_gitmojis(fetch_upstream: bool = True):
+    data = None
+    if fetch_upstream:
+        try:
+            req = urllib.request.Request(
+                UPSTREAM_GITMOJIS_URL,
+                headers={"User-Agent": "release-drafter-gitmoji-generator"},
+            )
+            with urllib.request.urlopen(req, timeout=10) as resp:
+                raw = resp.read().decode("utf-8")
+                data = json.loads(raw)
+                DATA_FILE.parent.mkdir(parents=True, exist_ok=True)
+                with open(DATA_FILE, "w", encoding="utf-8") as f:
+                    f.write(raw if raw.endswith("\n") else raw + "\n")
+                print(f"Synced {len(data['gitmojis'])} gitmojis from upstream source of truth: {UPSTREAM_GITMOJIS_URL}")
+        except Exception as e:
+            print(f"Notice: could not fetch from upstream ({e}), falling back to {DATA_FILE}")
+
+    if data is None:
+        with open(DATA_FILE, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        print(f"Loaded {len(data['gitmojis'])} gitmojis from local cache: {DATA_FILE}")
+
     return {g["name"]: g for g in data["gitmojis"]}
 
 
@@ -551,7 +575,6 @@ def generate_hybrid_yaml(gitmojis):
 
 def main():
     gitmojis = load_gitmojis()
-    print(f"Loaded {len(gitmojis)} gitmojis from {DATA_FILE}")
 
     gitmoji_yaml = generate_gitmoji_yaml(gitmojis)
     hybrid_yaml = generate_hybrid_yaml(gitmojis)
