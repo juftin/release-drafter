@@ -57384,8 +57384,8 @@ var getConfigFileFromFs = (normalizedFilepath) => {
 //#region packages/gh-actions/src/common/config/get-config-file-from-repo.ts
 var getConfigFileFromRepo = async (configTarget, token = process$1.env.GITHUB_TOKEN ?? "") => getGitHubAdapter(token).getRepositoryConfig({
 	repository: {
-		owner: configTarget.repo.owner,
-		name: configTarget.repo.repo,
+		owner: configTarget.repo?.owner ?? "",
+		name: configTarget.repo?.repo ?? "",
 		serverUrl: process$1.env.GITHUB_SERVER_URL ?? "https://github.com"
 	},
 	path: configTarget.filepath,
@@ -57418,7 +57418,7 @@ var normalizeFilepath = (config, parentConfig) => {
 	if (isAbsolute(_filepath)) {
 		if (_filepath.startsWith("/")) return _filepath.slice(1);
 		else throw new Error(`Encountered malformed absolute path ${_filepath}`);
-	} else if (parentConfig && parentConfig.repo.owner === config.repo.owner && parentConfig.repo.repo === config.repo.repo && config.ref === parentConfig.ref) return normalize(join(dirname(parentConfig.filepath), _filepath));
+	} else if (parentConfig && parentConfig.repo?.owner === config.repo?.owner && parentConfig.repo?.repo === config.repo?.repo && config.ref === parentConfig.ref) return normalize(join(dirname(parentConfig.filepath), _filepath));
 	else {
 		if (_filepath.startsWith(".github/")) return _filepath;
 		return join(".github", _filepath);
@@ -57481,14 +57481,17 @@ function parseConfigTarget(target, context) {
 			targetRepoName = repoParts[1];
 		} else {
 			targetRepoName = repoParts[0];
-			targetRepoOwner = context.repo.owner;
+			targetRepoOwner = context.repo?.owner ?? "";
 		}
 		targetRepo = {
 			owner: targetRepoOwner,
 			repo: targetRepoName
 		};
-	} else targetRepo = context.repo;
-	const isCurrentRepo = context.repo.owner === targetRepo.owner && context.repo.repo === targetRepo.repo;
+	} else targetRepo = context.repo ?? {
+		owner: "",
+		repo: ""
+	};
+	const isCurrentRepo = Boolean(context.repo && context.repo.owner === targetRepo.owner && context.repo.repo === targetRepo.repo);
 	if (hasRefSpecifier) {
 		if (parts.length < 2) throw getErr("Too short to contain ref specifier.");
 		const refSpecifier = parts.at(-1);
@@ -58079,7 +58082,7 @@ var getConfigFile = async (configTarget, parentTarget, token) => {
 	const fileExtension = _configTarget.filepath.split(".").pop().toLowerCase();
 	if (!SUPPORTED_FILE_EXTENSIONS.includes(fileExtension)) throw new Error(`Unsupported file extension: .${fileExtension}. Supported extensions are: ${SUPPORTED_FILE_EXTENSIONS.join(", ")}`);
 	if (parentTarget?.scheme) {
-		if (parentTarget?.scheme === "github" && _configTarget.scheme === "file") throw new Error(`The '_extends' import-chain cannot contain github: to file: scheme transitions. Please change '_extends: ${configTarget.scheme}:${configTarget.filepath}' to use the github: scheme. ex: '_extends: ${parentTarget.repo.owner}/${parentTarget.repo.repo}:${configTarget.filepath}'`);
+		if (parentTarget?.scheme === "github" && _configTarget.scheme === "file") throw new Error(`The '_extends' import-chain cannot contain github: to file: scheme transitions. Please change '_extends: ${configTarget.scheme}:${configTarget.filepath}' to use the github: scheme. ex: '_extends: ${parentTarget.repo?.owner}/${parentTarget.repo?.repo}:${configTarget.filepath}'`);
 	}
 	_configTarget.filepath = normalizeFilepath(_configTarget, parentTarget);
 	const loadFromFs = _configTarget.scheme === "file";
@@ -58113,7 +58116,7 @@ var getConfigFiles = async (configFilename, currentContext, token) => {
 	debug(`getConfigFiles: Starting with filename: ${configFilename}`);
 	let configTarget = parseConfigTarget(configFilename, currentContext);
 	debug(`getConfigFiles: Parsed config target - scheme: ${configTarget.scheme}, filepath: ${configTarget.filepath}`);
-	const isCurrentRepoGithubScheme = configTarget.scheme === "github" && configTarget.repo.owner === currentContext.repo.owner && configTarget.repo.repo === currentContext.repo.repo;
+	const isCurrentRepoGithubScheme = configTarget.scheme === "github" && configTarget.repo?.owner === currentContext.repo.owner && configTarget.repo?.repo === currentContext.repo.repo;
 	const canFallBackToOrgRepo = isCurrentRepoGithubScheme && currentContext.repo.repo !== ".github";
 	const isDefaultConfig = configTarget.scheme === "github" && ["release-drafter.yml", "release-drafter.yaml"].includes(basename(configTarget.filepath).toLowerCase()) && isCurrentRepoGithubScheme;
 	let requestedRepoConfig;
@@ -58180,7 +58183,7 @@ var getConfigFiles = async (configFilename, currentContext, token) => {
 		};
 		if (files.find(({ fetchedFrom: loadedFrom }) => {
 			const sameFilepath = loadedFrom.filepath === preCheckTarget.filepath;
-			const sameRepo = loadedFrom.repo.owner === preCheckTarget.repo.owner && loadedFrom.repo.repo === preCheckTarget.repo.repo;
+			const sameRepo = loadedFrom.repo?.owner === preCheckTarget.repo?.owner && loadedFrom.repo?.repo === preCheckTarget.repo?.repo;
 			const crossScheme = loadedFrom.scheme === "file" && preCheckTarget.scheme === "github";
 			return sameFilepath && sameRepo && (crossScheme || loadedFrom.ref === preCheckTarget.ref);
 		})) {

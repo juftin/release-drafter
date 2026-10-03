@@ -8,8 +8,8 @@ export const getConfigFileFromRepo = async (
 ): Promise<string> =>
   getGitHubAdapter(token).getRepositoryConfig({
     repository: {
-      owner: configTarget.repo.owner,
-      name: configTarget.repo.repo,
+      owner: configTarget.repo?.owner ?? '',
+      name: configTarget.repo?.repo ?? '',
       serverUrl: process.env.GITHUB_SERVER_URL ?? 'https://github.com',
     },
     path: configTarget.filepath,

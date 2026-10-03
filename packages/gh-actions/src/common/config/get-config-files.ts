@@ -20,8 +20,8 @@ export const getConfigFiles = async (
 
   const isCurrentRepoGithubScheme =
     configTarget.scheme === 'github' &&
-    configTarget.repo.owner === currentContext.repo.owner &&
-    configTarget.repo.repo === currentContext.repo.repo
+    configTarget.repo?.owner === currentContext.repo.owner &&
+    configTarget.repo?.repo === currentContext.repo.repo
 
   // No point falling back to .github if we're already running in it
   const canFallBackToOrgRepo =
@@ -41,7 +41,11 @@ export const getConfigFiles = async (
     const isNotFound =
       error instanceof Error && error.message.includes('Config file not found')
 
-    if (canFallBackToOrgRepo && isNotFound && configTarget.scheme === 'github') {
+    if (
+      canFallBackToOrgRepo &&
+      isNotFound &&
+      configTarget.scheme === 'github'
+    ) {
       core.info(
         `Config not found in ${currentContext.repo.owner}/${currentContext.repo.repo}, falling back to ${currentContext.repo.owner}/.github`,
       )
@@ -141,8 +145,8 @@ export const getConfigFiles = async (
     const alreadyLoaded = files.find(({ fetchedFrom: loadedFrom }) => {
       const sameFilepath = loadedFrom.filepath === preCheckTarget.filepath
       const sameRepo =
-        loadedFrom.repo.owner === preCheckTarget.repo.owner &&
-        loadedFrom.repo.repo === preCheckTarget.repo.repo
+        loadedFrom.repo?.owner === preCheckTarget.repo?.owner &&
+        loadedFrom.repo?.repo === preCheckTarget.repo?.repo
       const crossScheme =
         loadedFrom.scheme === 'file' && preCheckTarget.scheme === 'github'
       return (
