@@ -101,7 +101,7 @@ categories:
       - '➖'
       - '📦️'
       - '📦'
-  - title: '👷 CI, Build & Tooling'
+  - title: '👷 CI/CD'
     labels:
       - '👷'
       - '💚'
@@ -378,6 +378,7 @@ autolabeler:
       - 'docs/**'
     title:
       - '/^(:memo:|📝)/'
+      - '/^docs?(\([^\)]+\))?:/i'
     branch:
       - '/^docs?(\//|-)/i'
 
@@ -477,6 +478,7 @@ autolabeler:
       - '.github/**'
     title:
       - '/^(:construction_worker:|👷)/'
+      - '/^(ci|build)(\([^\)]+\))?:/i'
     branch:
       - '/^ci(\//|-)/i'
       - '/^build(\//|-)/i'

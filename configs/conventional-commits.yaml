@@ -47,13 +47,15 @@ categories:
     labels:
       - 'dependencies'
       - 'deps'
+  - title: '👷 CI/CD'
+    labels:
+      - 'ci'
+      - 'build'
   - title: '🧰 Maintenance & Code Quality'
     labels:
       - 'refactor'
       - 'chore'
       - 'style'
-      - 'build'
-      - 'ci'
       - 'test'
       - 'tests'
   - title: '🔄 Reverts'

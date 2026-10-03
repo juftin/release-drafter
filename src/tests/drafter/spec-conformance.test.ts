@@ -84,7 +84,12 @@ describe('GitMoji & Conventional Commits Spec Conformance', () => {
           config: parsedHybridAutolabeler,
           pullRequest: { files: [], branch: 'main', title, body: null },
         })
-        expect(hybridResult.labels).toContain(expectedLabel)
+
+        if (title.startsWith('✨') || title.startsWith(':sparkles:')) {
+          expect(hybridResult.labels).toContain('✨')
+        } else {
+          expect(hybridResult.labels).toContain(expectedLabel)
+        }
       })
     }
 
@@ -283,6 +288,47 @@ describe('GitMoji & Conventional Commits Spec Conformance', () => {
       })
       expect(Array.from(hybridResult.labels)).toContain('docs')
       expect(Array.from(hybridResult.labels)).toContain('📝')
+    })
+
+    it('docs and CI/CD use their emoji representation when gitmoji is used', () => {
+      // In Gitmoji preset, conventional titles docs: and ci: resolve to their emojis (📝 and 👷)
+      const gitmojiDocs = matchLabels({
+        config: parsedGitmojiAutolabeler,
+        pullRequest: { files: [], title: 'docs: update guide', branch: 'main', body: '' },
+      })
+      expect(Array.from(gitmojiDocs.labels)).toEqual(['📝'])
+
+      const gitmojiCI = matchLabels({
+        config: parsedGitmojiAutolabeler,
+        pullRequest: { files: [], title: 'ci: update github action', branch: 'main', body: '' },
+      })
+      expect(Array.from(gitmojiCI.labels)).toEqual(['👷'])
+
+      // In Hybrid preset, when gitmoji prefix is used, Docs and CI/CD resolve to emojis
+      const hybridDocs = matchLabels({
+        config: parsedHybridAutolabeler,
+        pullRequest: { files: [], title: '📝 docs: update guide', branch: 'main', body: '' },
+      })
+      expect(Array.from(hybridDocs.labels)).toEqual(['📝'])
+
+      const hybridCI = matchLabels({
+        config: parsedHybridAutolabeler,
+        pullRequest: { files: [], title: '👷 ci: update workflow', branch: 'main', body: '' },
+      })
+      expect(Array.from(hybridCI.labels)).toEqual(['👷'])
+
+      // Without gitmoji, conventional preset and hybrid use word labels
+      const convDocs = matchLabels({
+        config: parsedConvAutolabeler,
+        pullRequest: { files: [], title: 'docs: update guide', branch: 'main', body: '' },
+      })
+      expect(Array.from(convDocs.labels)).toEqual(['docs'])
+
+      const convCI = matchLabels({
+        config: parsedConvAutolabeler,
+        pullRequest: { files: [], title: 'ci: update workflow', branch: 'main', body: '' },
+      })
+      expect(Array.from(convCI.labels)).toEqual(['ci'])
     })
   })
 })

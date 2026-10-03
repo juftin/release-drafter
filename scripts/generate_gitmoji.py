@@ -107,7 +107,7 @@ CATEGORIES = [
         "branch_patterns": ["/^dependabot\\//i", "/^renovate\\//i", "/^deps?(\\//|-)/i"],
     },
     {
-        "title": "👷 CI, Build & Tooling",
+        "title": "👷 CI/CD",
         "semver": "patch",
         "names": [
             "construction-worker",
@@ -159,14 +159,12 @@ def load_gitmojis():
 
 
 def make_emoji_regex(emoji: str, code: str) -> str:
-    # Escape variation selector optionality
     raw_emoji = emoji.replace("\ufe0f", "")
-    escaped_code = code.replace(":", r"\:")
+    clean_code = code.strip(":")
     if raw_emoji != emoji:
-        # has variation selector in canonical form
-        pattern = f"^({code}|{raw_emoji}\ufe0f?)"
+        pattern = f"^(:{clean_code}:|{raw_emoji}\ufe0f?)"
     else:
-        pattern = f"^({code}|{raw_emoji})"
+        pattern = f"^(:{clean_code}:|{raw_emoji})"
     return f"/{pattern}/"
 
 
@@ -195,17 +193,17 @@ def get_category_labels(cat, gitmojis, mode="gitmoji"):
 
 
 CONV_RULES = [
-    ("feat", ["/^((:sparkles:|✨|:tada:|🎉|:rocket:|🚀)\\s*)?feat(ure)?(\\([^\\)]+\\))?:/i"], ["/^feat(\\//|-)/i", "/^feature(\\//|-)/i"], []),
-    ("fix", ["/^((:bug:|🐛|:ambulance:|🚑️|🚑|:adhesive_bandage:|🩹)\\s*)?(fix|bugfix|hotfix)(\\([^\\)]+\\))?:/i"], ["/^fix(\\//|-)/i", "/^bugfix(\\//|-)/i", "/^hotfix(\\//|-)/i"], []),
-    ("security", ["/^((:lock:|🔒)\\s*)?sec(urity)?(\\([^\\)]+\\))?:/i"], ["/^sec(urity)?(\\//|-)/i"], []),
-    ("perf", ["/^((:zap:|⚡️|⚡)\\s*)?perf(ormance)?(\\([^\\)]+\\))?:/i"], ["/^perf(\\//|-)/i"], []),
-    ("docs", ["/^((:memo:|📝|:books:|📚|:bulb:|💡)\\s*)?docs?(\\([^\\)]+\\))?:/i"], ["/^docs?(\\//|-)/i"], ["**/*.md", "docs/**"]),
-    ("refactor", ["/^((:recycle:|♻️|♻|:art:|🎨|:fire:|🔥)\\s*)?refactor(\\([^\\)]+\\))?:/i"], ["/^refactor(\\//|-)/i"], []),
-    ("dependencies", ["/^((:arrow_up:|⬆️|⬆|:arrow_down:|⬇️|⬇|:package:|📦️|📦|:pushpin:|📌)\\s*)?(deps?|dependencies)(\\([^\\)]+\\))?:/i", "/^chore\\(deps(-[a-z0-9]+)?\\):/i"], ["/^dependabot\\//i", "/^renovate\\//i", "/^deps?(\\//|-)/i"], []),
-    ("ci", ["/^((:construction_worker:|👷|:green_heart:|💚)\\s*)?(ci|build)(\\([^\\)]+\\))?:/i"], ["/^ci(\\//|-)/i", "/^build(\\//|-)/i"], [".github/**"]),
-    ("chore", ["/^((:wrench:|🔧|:hammer:|🔨|:truck:|🚚|:wastebasket:|🗑️|🗑)\\s*)?chore(\\([^\\)]+\\))?:/i"], ["/^chore(\\//|-)/i"], []),
-    ("test", ["/^((:white_check_mark:|✅|:test_tube:|🧪)\\s*)?tests?(\\([^\\)]+\\))?:/i"], ["/^tests?(\\//|-)/i"], []),
-    ("revert", ["/^((:rewind:|⏪️|⏪)\\s*)?revert(\\([^\\)]+\\))?:/i"], ["/^revert(\\//|-)/i"], []),
+    ("feat", ["/^feat(ure)?(\\([^\\)]+\\))?:/i"], ["/^feat(\\//|-)/i", "/^feature(\\//|-)/i"], []),
+    ("fix", ["/^(fix|bugfix|hotfix)(\\([^\\)]+\\))?:/i"], ["/^fix(\\//|-)/i", "/^bugfix(\\//|-)/i", "/^hotfix(\\//|-)/i"], []),
+    ("security", ["/^sec(urity)?(\\([^\\)]+\\))?:/i"], ["/^sec(urity)?(\\//|-)/i"], []),
+    ("perf", ["/^perf(ormance)?(\\([^\\)]+\\))?:/i"], ["/^perf(\\//|-)/i"], []),
+    ("docs", ["/^docs?(\\([^\\)]+\\))?:/i"], ["/^docs?(\\//|-)/i"], ["**/*.md", "docs/**"]),
+    ("refactor", ["/^refactor(\\([^\\)]+\\))?:/i"], ["/^refactor(\\//|-)/i"], []),
+    ("dependencies", ["/^(deps?|dependencies)(\\([^\\)]+\\))?:/i", "/^chore\\(deps(-[a-z0-9]+)?\\):/i"], ["/^dependabot\\//i", "/^renovate\\//i", "/^deps?(\\//|-)/i"], []),
+    ("ci", ["/^(ci|build)(\\([^\\)]+\\))?:/i"], ["/^ci(\\//|-)/i", "/^build(\\//|-)/i"], [".github/**"]),
+    ("chore", ["/^chore(\\([^\\)]+\\))?:/i"], ["/^chore(\\//|-)/i"], []),
+    ("test", ["/^tests?(\\([^\\)]+\\))?:/i"], ["/^tests?(\\//|-)/i"], []),
+    ("revert", ["/^revert(\\([^\\)]+\\))?:/i"], ["/^revert(\\//|-)/i"], []),
 ]
 
 
@@ -297,12 +295,19 @@ def generate_gitmoji_yaml(gitmojis):
             if name == "construction-worker":
                 lines.append("    files:")
                 lines.append("      - '.github/**'")
+                lines.append("    title:")
+                lines.append(f"      - '{make_emoji_regex(g['emoji'], g['code'])}'")
+                lines.append("      - '/^(ci|build)(\\([^\\)]+\\))?:/i'")
             elif name == "memo":
                 lines.append("    files:")
                 lines.append("      - '**/*.md'")
                 lines.append("      - 'docs/**'")
-            lines.append("    title:")
-            lines.append(f"      - '{make_emoji_regex(g['emoji'], g['code'])}'")
+                lines.append("    title:")
+                lines.append(f"      - '{make_emoji_regex(g['emoji'], g['code'])}'")
+                lines.append("      - '/^docs?(\\([^\\)]+\\))?:/i'")
+            else:
+                lines.append("    title:")
+                lines.append(f"      - '{make_emoji_regex(g['emoji'], g['code'])}'")
             if "branch_patterns" in cat and name == cat["names"][0]:
                 lines.append("    branch:")
                 for bp in cat["branch_patterns"]:

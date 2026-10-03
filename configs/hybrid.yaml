@@ -169,7 +169,7 @@ categories:
       - 'package'
       - 'dependencies'
       - 'deps'
-  - title: '👷 CI, Build & Tooling'
+  - title: '👷 CI/CD'
     labels:
       - '👷'
       - '💚'
@@ -449,14 +449,14 @@ autolabeler:
 
   - label: 'feat'
     title:
-      - '/^((:sparkles:|✨|:tada:|🎉|:rocket:|🚀)\s*)?feat(ure)?(\([^\)]+\))?:/i'
+      - '/^feat(ure)?(\([^\)]+\))?:/i'
     branch:
       - '/^feat(\//|-)/i'
       - '/^feature(\//|-)/i'
 
   - label: 'fix'
     title:
-      - '/^((:bug:|🐛|:ambulance:|🚑️|🚑|:adhesive_bandage:|🩹)\s*)?(fix|bugfix|hotfix)(\([^\)]+\))?:/i'
+      - '/^(fix|bugfix|hotfix)(\([^\)]+\))?:/i'
     branch:
       - '/^fix(\//|-)/i'
       - '/^bugfix(\//|-)/i'
@@ -464,13 +464,13 @@ autolabeler:
 
   - label: 'security'
     title:
-      - '/^((:lock:|🔒)\s*)?sec(urity)?(\([^\)]+\))?:/i'
+      - '/^sec(urity)?(\([^\)]+\))?:/i'
     branch:
       - '/^sec(urity)?(\//|-)/i'
 
   - label: 'perf'
     title:
-      - '/^((:zap:|⚡️|⚡)\s*)?perf(ormance)?(\([^\)]+\))?:/i'
+      - '/^perf(ormance)?(\([^\)]+\))?:/i'
     branch:
       - '/^perf(\//|-)/i'
 
@@ -479,19 +479,19 @@ autolabeler:
       - '**/*.md'
       - 'docs/**'
     title:
-      - '/^((:memo:|📝|:books:|📚|:bulb:|💡)\s*)?docs?(\([^\)]+\))?:/i'
+      - '/^docs?(\([^\)]+\))?:/i'
     branch:
       - '/^docs?(\//|-)/i'
 
   - label: 'refactor'
     title:
-      - '/^((:recycle:|♻️|♻|:art:|🎨|:fire:|🔥)\s*)?refactor(\([^\)]+\))?:/i'
+      - '/^refactor(\([^\)]+\))?:/i'
     branch:
       - '/^refactor(\//|-)/i'
 
   - label: 'dependencies'
     title:
-      - '/^((:arrow_up:|⬆️|⬆|:arrow_down:|⬇️|⬇|:package:|📦️|📦|:pushpin:|📌)\s*)?(deps?|dependencies)(\([^\)]+\))?:/i'
+      - '/^(deps?|dependencies)(\([^\)]+\))?:/i'
       - '/^chore\(deps(-[a-z0-9]+)?\):/i'
     branch:
       - '/^dependabot\//i'
@@ -502,26 +502,26 @@ autolabeler:
     files:
       - '.github/**'
     title:
-      - '/^((:construction_worker:|👷|:green_heart:|💚)\s*)?(ci|build)(\([^\)]+\))?:/i'
+      - '/^(ci|build)(\([^\)]+\))?:/i'
     branch:
       - '/^ci(\//|-)/i'
       - '/^build(\//|-)/i'
 
   - label: 'chore'
     title:
-      - '/^((:wrench:|🔧|:hammer:|🔨|:truck:|🚚|:wastebasket:|🗑️|🗑)\s*)?chore(\([^\)]+\))?:/i'
+      - '/^chore(\([^\)]+\))?:/i'
     branch:
       - '/^chore(\//|-)/i'
 
   - label: 'test'
     title:
-      - '/^((:white_check_mark:|✅|:test_tube:|🧪)\s*)?tests?(\([^\)]+\))?:/i'
+      - '/^tests?(\([^\)]+\))?:/i'
     branch:
       - '/^tests?(\//|-)/i'
 
   - label: 'revert'
     title:
-      - '/^((:rewind:|⏪️|⏪)\s*)?revert(\([^\)]+\))?:/i'
+      - '/^revert(\([^\)]+\))?:/i'
     branch:
       - '/^revert(\//|-)/i'
 
