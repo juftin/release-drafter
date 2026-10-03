@@ -269,10 +269,6 @@ def generate_semver_autolabelers(gitmojis):
     # Patch
     lines.append("  # Semver: Patch")
     lines.append("  - label: 'patch'")
-    lines.append("    files:")
-    lines.append("      - '.github/**'")
-    lines.append("      - '**/*.md'")
-    lines.append("      - 'docs/**'")
     lines.append("    title:")
     for cat in CATEGORIES:
         if cat["semver"] == "patch":
