@@ -1,4 +1,4 @@
-import { C as Minimatch, D as setFailed, E as info, O as warning, T as core_exports, a as readActionInputs, b as string, c as getGitHubAdapter, d as escapeStringRegexp, f as GITMOJI_SPEC_DATA, g as boolean, h as array, i as defineActionInputNames, k as summary, n as sharedInputSchema, o as writeActionOutputs, t as composeConfigGet, w as context, x as stringbool, y as object } from "../../chunks/config.js";
+import { D as info, E as core_exports, O as setFailed, S as stringbool, T as context, _ as boolean, a as readActionInputs, b as object, f as escapeStringRegexp, g as array, i as defineActionInputNames, l as getGitHubAdapter, n as sharedInputSchema, o as writeActionOutputs, p as GITMOJI_SPEC_DATA, s as writeStepSummary, t as composeConfigGet, w as Minimatch, x as string } from "../../chunks/config.js";
 import process from "node:process";
 //#region packages/autolabeler/src/config/config.schema.ts
 var labelSchema = string().min(1).describe("Backward-compatible single label. Prefer labels for new rules.");
@@ -241,9 +241,6 @@ var actionInputNames = defineActionInputNames()([
 var actionOutputNames = ["number", "labels"];
 //#endregion
 //#region packages/gh-actions/src/autolabeler/explainability.ts
-var isGitHubEnvironment = () => {
-	return Boolean(process.env.GITHUB_ACTIONS === "true" || process.env.GITHUB_STEP_SUMMARY || process.env.GITHUB_REPOSITORY);
-};
 var GITMOJI_SPEC_MAP = /* @__PURE__ */ new Map();
 for (const entry of GITMOJI_SPEC_DATA) {
 	GITMOJI_SPEC_MAP.set(entry.name, entry);
@@ -307,16 +304,19 @@ var buildExplainabilitySummary = (params) => {
 		if (files.length > maxFiles) matchCallouts.push(`  - *(and ${files.length - maxFiles} more)*`);
 	}
 	if (bodyMatches.size > 0) for (const val of bodyMatches) matchCallouts.push(`- **Matched Body:** \`${val}\``);
+	const isGitmoji = params.isGitmojiPreset ?? (params.configName ? /gitmoji/i.test(params.configName) : matches.some((m) => getGitmojiSpec(m.label) !== void 0));
 	const rows = [];
 	for (const match of matches) {
 		if (supersededLabels?.includes(match.label)) continue;
 		const spec = getGitmojiSpec(match.label);
 		const semver = resolveSemverBump(match.label, spec);
-		const intention = spec ? `[${spec.description}](https://gitmoji.dev/specification)` : "-";
 		const trigger = match.matcher === "files" ? "Files" : match.matcher === "branch" ? "Branch" : match.matcher === "title" ? "Title" : match.matcher === "body" ? "Body" : "Fallback";
 		const patternEscaped = match.pattern ? `\`${match.pattern.replace(/\|/g, "\\|")}\`` : "-";
 		const details = match.matcher === "files" ? `Files matched pattern ${patternEscaped}` : `${trigger} matched ${patternEscaped}`;
-		rows.push(`| \`${match.label}\` | ${intention} | \`${semver}\` | ${trigger} | ${details} |`);
+		if (isGitmoji) {
+			const intention = spec ? `[${spec.description}](https://gitmoji.dev/specification)` : "-";
+			rows.push(`| \`${match.label}\` | ${intention} | \`${semver}\` | ${trigger} | ${details} |`);
+		} else rows.push(`| \`${match.label}\` | \`${semver}\` | ${trigger} | ${details} |`);
 	}
 	const releaseSectionList = [];
 	if (categories && categories.length > 0) {
@@ -332,17 +332,9 @@ var buildExplainabilitySummary = (params) => {
 		...matchCallouts,
 		...releaseSectionList
 	];
-	lines.push("", "<details>", "<summary>\u{1F3F7}\uFE0F Label Decision Details</summary>", "", "| Label | Gitmoji Intention | Semver Impact | Trigger | Matched Rule |", "| :--- | :--- | :--- | :--- | :--- |", ...rows, "", "</details>", "");
+	const tableHeader = isGitmoji ? ["| Label | Gitmoji Intention | Semver Impact | Trigger | Matched Rule |", "| :--- | :--- | :--- | :--- | :--- |"] : ["| Label | Semver Impact | Trigger | Matched Rule |", "| :--- | :--- | :--- | :--- |"];
+	lines.push("", "<details>", "<summary>\u{1F3F7}\uFE0F Label Decision Details</summary>", "", ...tableHeader, ...rows, "", "</details>", "");
 	return lines.join("\n");
-};
-/** Writes the explainability summary table to the GitHub Actions Job Step Summary when GitHub is detected. */
-var writeStepSummary = async (markdown) => {
-	if (!isGitHubEnvironment()) return;
-	try {
-		await summary.addRaw(markdown).write();
-	} catch (error) {
-		warning(`Failed to write GitHub Actions Step Summary: ${error instanceof Error ? error.message : String(error)}`);
-	}
 };
 //#endregion
 //#region packages/gh-actions/src/autolabeler/action-input.schema.ts
@@ -437,7 +429,8 @@ async function run() {
 			},
 			matches: result.matches,
 			appliedLabels: result.labels,
-			supersededLabels: result.supersededLabels
+			supersededLabels: result.supersededLabels,
+			configName: input["config-name"]
 		});
 		if (input.summary) await writeStepSummary(summaryMarkdown);
 		writeActionOutputs(actionOutputNames, {

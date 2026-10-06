@@ -91,6 +91,11 @@ inputs:
       Filter releases whose tag names satisfy this SemVer range.
     required: false
     default: ''
+  summary:
+    description: |
+      Writes an explainability summary table to the GitHub Actions Step Summary. Default: true.
+    required: false
+    default: 'true'
 
 outputs:
   id:

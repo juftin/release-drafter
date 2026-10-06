@@ -108,6 +108,12 @@ const drafterInputs = defineActionInputs<DrafterActionInput>()({
     required: false,
     default: '',
   },
+  summary: {
+    description:
+      'Writes an explainability summary table to the GitHub Actions Step Summary. Default: true.\n',
+    required: false,
+    default: 'true',
+  },
 })
 
 const drafterOutputs = {
@@ -186,6 +192,12 @@ const checkPrInputs = defineActionInputs<CheckPrActionInput>()({
     description:
       'Access token for configuration reads. Default: github.token.\n',
     default: `\${{ github.token }}`,
+  },
+  summary: {
+    description:
+      'Writes an explainability summary table to the GitHub Actions Step Summary. Default: true.\n',
+    required: false,
+    default: 'true',
   },
 })
 

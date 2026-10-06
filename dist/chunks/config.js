@@ -39178,6 +39178,23 @@ var getGitHubAdapter = (token, octokit, factory = createGitHubAdapter) => {
 	return defaultAdapter.adapter;
 };
 //#endregion
+//#region packages/gh-actions/src/common/summary.ts
+var isGitHubEnvironment = () => {
+	return Boolean(process$1.env.GITHUB_ACTIONS === "true" || process$1.env.GITHUB_STEP_SUMMARY || process$1.env.GITHUB_REPOSITORY);
+};
+var isMocked = (fn) => typeof fn === "function" && "mock" in fn;
+/** Writes markdown to the GitHub Actions Job Step Summary when GitHub is detected. */
+var writeStepSummary = async (markdown) => {
+	if (!isGitHubEnvironment()) return;
+	if ((process$1.env.VITEST === "true" || process$1.env.NODE_ENV === "test") && !isMocked(summary.write)) return;
+	try {
+		await summary.addRaw(markdown).write();
+	} catch (error) {
+		if (error instanceof Error && error.message.includes("GITHUB_STEP_SUMMARY")) return;
+		warning(`Failed to write GitHub Actions Step Summary: ${error instanceof Error ? error.message : String(error)}`);
+	}
+};
+//#endregion
 //#region packages/gh-actions/src/common/action-contract.ts
 /** Define every action input name exactly once and require complete coverage. */
 var defineActionInputNames = () => (names, ..._missing) => names;
@@ -39604,4 +39621,4 @@ async function composeConfigGet(configFilename, currentContext, token) {
 	return result;
 }
 //#endregion
-export { Minimatch as C, setFailed as D, info as E, warning as O, union as S, core_exports as T, literal as _, readActionInputs as a, string$1 as b, getGitHubAdapter as c, escapeStringRegexp as d, GITMOJI_SPEC_DATA as f, boolean as g, array as h, defineActionInputNames as i, summary as k, getRepository as l, _enum as m, sharedInputSchema as n, writeActionOutputs as o, ZodDefault as p, tokenInputSchema as r, actionLogger as s, composeConfigGet as t, noopLogger as u, number as v, context as w, stringbool as x, object as y };
+export { union as C, info as D, core_exports as E, setFailed as O, stringbool as S, context as T, boolean as _, readActionInputs as a, object as b, actionLogger as c, noopLogger as d, escapeStringRegexp as f, array as g, _enum as h, defineActionInputNames as i, getGitHubAdapter as l, ZodDefault as m, sharedInputSchema as n, writeActionOutputs as o, GITMOJI_SPEC_DATA as p, tokenInputSchema as r, writeStepSummary as s, composeConfigGet as t, getRepository as u, literal as v, Minimatch as w, string$1 as x, number as y };

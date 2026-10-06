@@ -1,6 +1,6 @@
 import { commonConfigSchema } from '@release-drafter/core'
 import type * as z from 'zod'
-import { object, string, stringbool } from 'zod'
+import { boolean, object, string, stringbool } from 'zod'
 import { sharedInputSchema } from '../common/shared-input.schema.ts'
 
 const exclusiveInputSchema = object({
@@ -11,6 +11,7 @@ const exclusiveInputSchema = object({
   tag: string().optional(),
   version: string().optional(),
   publish: stringbool().optional().default(false),
+  summary: stringbool().or(boolean()).optional().default(true),
 }).and(sharedInputSchema)
 
 export const actionInputSchema = exclusiveInputSchema.and(commonConfigSchema)

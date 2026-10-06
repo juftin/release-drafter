@@ -1,4 +1,4 @@
-import { D as setFailed, E as info, a as readActionInputs, b as string, c as getGitHubAdapter, d as escapeStringRegexp, i as defineActionInputNames, l as getRepository, n as sharedInputSchema, o as writeActionOutputs, s as actionLogger, u as noopLogger, w as context, x as stringbool, y as object } from "../../chunks/config.js";
+import { D as info, O as setFailed, S as stringbool, T as context, _ as boolean, a as readActionInputs, b as object, c as actionLogger, d as noopLogger, f as escapeStringRegexp, i as defineActionInputNames, l as getGitHubAdapter, n as sharedInputSchema, o as writeActionOutputs, s as writeStepSummary, u as getRepository, x as string } from "../../chunks/config.js";
 import { C as changeTitle, E as splitCommitMessage, S as changeForCategory, T as commitAuthors, _ as filterChangesByPreCategories, a as COERCE, b as needsPullRequestChangedFiles, c as PRERELEASE_LOOSE, d as formatFullVersion, f as parse, g as evaluateCategories, h as commonConfigSchema, i as satisfies, l as compareIdentifiers, m as tryParse$1, n as mergeInputAndConfig, o as COERCE_FULL, p as safeRegex, r as normalizeRange, s as PRERELEASE, t as getReleaseDrafterConfig, u as formatComparableVersion, v as getChangelogCategories, w as commitAuthorKey, x as changeDate, y as getVersionResolverCategories } from "../../chunks/get-release-drafter-config.js";
 //#region node_modules/verkit/dist/version-Co1j9Tpq.js
 var COERCE_EXACT = safeRegex(COERCE);
@@ -1657,6 +1657,25 @@ var draftRelease = async (params) => {
 	};
 };
 //#endregion
+//#region packages/gh-actions/src/drafter/explainability.ts
+var buildDrafterSummary = (params) => {
+	const { result } = params;
+	const { plan, releasePayload, release, labels } = result;
+	const actionDisplay = plan.action === "dry-run" ? "\u{1F9EA} Dry Run" : plan.action === "create" ? "\u2728 Created Draft" : "\u{1F4DD} Updated Draft";
+	const releaseDisplayName = release?.url ? `[${releasePayload.name || releasePayload.tag}](${release.url})` : `\`${releasePayload.name || releasePayload.tag}\``;
+	const versionDisplay = releasePayload.resolvedVersion ? `\`${releasePayload.resolvedVersion}\`` : `\`${releasePayload.tag}\``;
+	const lines = [
+		"### \u{1F680} Release Drafter Summary",
+		"",
+		"| Release | Tag | Action | Resolved Version | Target |",
+		"| :--- | :--- | :--- | :--- | :--- |",
+		`| ${releaseDisplayName} | \`${releasePayload.tag}\` | ${actionDisplay} | ${versionDisplay} | \`${releasePayload.targetCommitish}\` |`
+	];
+	if (labels.length > 0) lines.push("", `**Matched Labels:** ${labels.map((l) => `\`${l}\``).join(", ")}`);
+	if (releasePayload.body) lines.push("", "<details>", "<summary>\u{1F4C4} Preview Generated Release Notes</summary>", "", releasePayload.body, "", "</details>", "");
+	return lines.join("\n");
+};
+//#endregion
 //#region packages/gh-actions/src/drafter/action-input.schema.ts
 var exclusiveInputSchema = object({
 	"config-name": string().optional().default("release-drafter.yml"),
@@ -1665,7 +1684,8 @@ var exclusiveInputSchema = object({
 	name: string().optional(),
 	tag: string().optional(),
 	version: string().optional(),
-	publish: stringbool().optional().default(false)
+	publish: stringbool().optional().default(false),
+	summary: stringbool().or(boolean()).optional().default(true)
 }).and(sharedInputSchema);
 var actionInputSchema = exclusiveInputSchema.and(commonConfigSchema);
 //#endregion
@@ -1686,7 +1706,8 @@ var actionInputNames = defineActionInputNames()([
 	"header",
 	"footer",
 	"dry-run",
-	"filter-by-range"
+	"filter-by-range",
+	"summary"
 ]);
 var actionOutputNames = [
 	"id",
@@ -1760,6 +1781,8 @@ async function run() {
 			repository: getRepository()
 		});
 		setActionOutput(result);
+		const summaryMarkdown = buildDrafterSummary({ result });
+		if (input.summary) await writeStepSummary(summaryMarkdown);
 	} catch (error) {
 		if (error instanceof Error) setFailed(error.message);
 	}

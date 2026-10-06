@@ -113,6 +113,39 @@ describe('explainability', () => {
       expect(summary).toContain('  - 👷 CI/CD')
     })
 
+    it('formats a concise markdown table without Gitmoji Intention when Gitmoji preset is not used', () => {
+      const summary = buildExplainabilitySummary({
+        pullRequest: {
+          number: 55,
+          title: 'feat: add metrics endpoint',
+          branch: 'feat/metrics',
+        },
+        configName: 'preset:conventional-commits',
+        matches: [
+          {
+            label: 'feat',
+            matcher: 'title',
+            pattern: '/^feat:/',
+            matchedValue: 'feat: add metrics endpoint',
+          },
+          {
+            label: 'minor',
+            matcher: 'title',
+            pattern: '/^feat:/',
+            matchedValue: 'feat: add metrics endpoint',
+          },
+        ],
+      })
+
+      expect(summary).toContain(
+        '| Label | Semver Impact | Trigger | Matched Rule |',
+      )
+      expect(summary).not.toContain('Gitmoji Intention')
+      expect(summary).toContain(
+        '| `feat` | `minor` | Title | Title matched `/^feat:/` |',
+      )
+    })
+
     it('always outputs Matched Files: as a bulleted list even for a single file', () => {
       const summary = buildExplainabilitySummary({
         pullRequest: {

@@ -5,6 +5,7 @@ import { writeActionOutputs } from '../common/action-contract.ts'
 import { actionLogger, getGitHubAdapter } from '../common/github.ts'
 import { actionOutputNames } from './action-metadata.ts'
 import { parsePullRequestEvent } from './event.ts'
+import { buildCheckPrSummary, writeStepSummary } from './explainability.ts'
 import { getActionInput } from './get-action-inputs.ts'
 import { getConfig } from './get-config.ts'
 
@@ -90,6 +91,20 @@ export async function checkPullRequest(
   writeActionOutputs(actionOutputNames, {
     labels: JSON.stringify(evaluation.labels),
   })
+
+  const summaryMarkdown = buildCheckPrSummary({
+    pullRequest: {
+      number: pullRequest.number,
+      title: pullRequest.title,
+      baseRef: pullRequest.baseRef,
+      labels,
+    },
+    evaluation,
+  })
+
+  if (input.summary) {
+    await writeStepSummary(summaryMarkdown)
+  }
 
   if (evaluation.skipped) {
     core.info(`Skipping excluded pull request #${pullRequest.number}.`)

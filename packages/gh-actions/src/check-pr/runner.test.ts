@@ -24,6 +24,7 @@ const dependencies = (
   getInput: () => ({
     'config-name': 'release-drafter.yml',
     token: 'token',
+    summary: true,
   }),
   getConfig: vi
     .fn()

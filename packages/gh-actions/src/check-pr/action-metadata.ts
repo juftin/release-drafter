@@ -4,6 +4,7 @@ import type { ActionInput } from './action-input.schema.ts'
 export const actionInputNames = defineActionInputNames<ActionInput>()([
   'config-name',
   'token',
+  'summary',
 ])
 
 export const actionOutputNames = ['labels'] as const

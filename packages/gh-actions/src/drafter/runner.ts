@@ -11,6 +11,7 @@ import {
   getRepository,
 } from '../common/github.ts'
 import type { ActionInput } from './action-input.schema.ts'
+import { buildDrafterSummary, writeStepSummary } from './explainability.ts'
 import { getActionInput } from './get-action-inputs.ts'
 import { getConfig } from './get-config.ts'
 import { setActionOutput } from './set-action-output.ts'
@@ -43,6 +44,11 @@ export async function run(): Promise<void> {
       repository: getRepository(),
     })
     setActionOutput(result)
+
+    const summaryMarkdown = buildDrafterSummary({ result })
+    if (input.summary) {
+      await writeStepSummary(summaryMarkdown)
+    }
   } catch (error) {
     if (error instanceof Error) core.setFailed(error.message)
   }

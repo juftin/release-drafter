@@ -127,6 +127,7 @@ export async function run(): Promise<void> {
       matches: result.matches,
       appliedLabels: result.labels,
       supersededLabels: result.supersededLabels,
+      configName: input['config-name'],
     })
 
     if (input.summary) {

@@ -94,6 +94,11 @@ on:
         required: false
         type: boolean
         default: false
+      summary:
+        description: 'Writes an explainability summary table to the GitHub Actions Step Summary'
+        required: false
+        type: boolean
+        default: true
       runs-on:
         description: 'Runner environment'
         required: false
@@ -160,6 +165,7 @@ jobs:
           config-name: ${{ inputs.config-name }}
           token: ${{ secrets.token || github.token }}
           dry-run: ${{ inputs.dry-run }}
+          summary: ${{ inputs.summary }}
         env:
           GITHUB_TOKEN: ${{ secrets.token || github.token }}
       - name: Check PR
@@ -169,6 +175,7 @@ jobs:
         with:
           config-name: ${{ inputs.config-name }}
           token: ${{ secrets.token || github.token }}
+          summary: ${{ inputs.summary }}
 
   update_release_draft:
     if: (!inputs.disable-releaser) && github.event_name != 'pull_request' && github.event_name != 'pull_request_target'
@@ -212,3 +219,4 @@ jobs:
           footer: ${{ inputs.footer }}
           dry-run: ${{ inputs.dry-run }}
           filter-by-range: ${{ inputs.filter-by-range }}
+          summary: ${{ inputs.summary }}

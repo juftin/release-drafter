@@ -18,6 +18,7 @@ export const actionInputNames = defineActionInputNames<ActionInput>()([
   'footer',
   'dry-run',
   'filter-by-range',
+  'summary',
 ])
 
 export const actionOutputNames = [

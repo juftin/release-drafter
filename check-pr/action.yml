@@ -18,6 +18,11 @@ inputs:
     description: |
       Access token for configuration reads. Default: github.token.
     default: ${{ github.token }}
+  summary:
+    description: |
+      Writes an explainability summary table to the GitHub Actions Step Summary. Default: true.
+    required: false
+    default: 'true'
 
 outputs:
   labels:

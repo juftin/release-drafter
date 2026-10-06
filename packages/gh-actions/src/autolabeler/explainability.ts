@@ -1,18 +1,11 @@
-import process from 'node:process'
-import * as core from '@actions/core'
 import type { AutolabelMatch } from '@release-drafter/autolabeler'
 import {
   GITMOJI_SPEC_DATA,
   type GitmojiSpecEntry,
 } from '../common/config/presets.generated.ts'
+import { isGitHubEnvironment, writeStepSummary } from '../common/summary.ts'
 
-export const isGitHubEnvironment = (): boolean => {
-  return Boolean(
-    process.env.GITHUB_ACTIONS === 'true' ||
-      process.env.GITHUB_STEP_SUMMARY ||
-      process.env.GITHUB_REPOSITORY,
-  )
-}
+export { isGitHubEnvironment, writeStepSummary }
 
 const GITMOJI_SPEC_MAP = new Map<string, GitmojiSpecEntry>()
 
@@ -54,6 +47,8 @@ export type ExplainabilityParams = {
   appliedLabels?: readonly string[]
   supersededLabels?: readonly string[]
   categories?: Array<{ title: string; labels: string[] }>
+  configName?: string
+  isGitmojiPreset?: boolean
 }
 
 /**
@@ -126,6 +121,12 @@ export const buildExplainabilitySummary = (
     }
   }
 
+  const isGitmoji =
+    params.isGitmojiPreset ??
+    (params.configName
+      ? /gitmoji/i.test(params.configName)
+      : matches.some((m) => getGitmojiSpec(m.label) !== undefined))
+
   const rows: string[] = []
   for (const match of matches) {
     if (supersededLabels?.includes(match.label)) {
@@ -134,11 +135,6 @@ export const buildExplainabilitySummary = (
 
     const spec = getGitmojiSpec(match.label)
     const semver = resolveSemverBump(match.label, spec)
-
-    // Only Preset gitmoji labels have a linked intention
-    const intention = spec
-      ? `[${spec.description}](https://gitmoji.dev/specification)`
-      : '-'
 
     const trigger =
       match.matcher === 'files'
@@ -160,9 +156,19 @@ export const buildExplainabilitySummary = (
         ? `Files matched pattern ${patternEscaped}`
         : `${trigger} matched ${patternEscaped}`
 
-    rows.push(
-      `| \`${match.label}\` | ${intention} | \`${semver}\` | ${trigger} | ${details} |`,
-    )
+    if (isGitmoji) {
+      // Only Preset gitmoji labels have a linked intention
+      const intention = spec
+        ? `[${spec.description}](https://gitmoji.dev/specification)`
+        : '-'
+      rows.push(
+        `| \`${match.label}\` | ${intention} | \`${semver}\` | ${trigger} | ${details} |`,
+      )
+    } else {
+      rows.push(
+        `| \`${match.label}\` | \`${semver}\` | ${trigger} | ${details} |`,
+      )
+    }
   }
 
   const releaseSectionList: string[] = []
@@ -188,13 +194,22 @@ export const buildExplainabilitySummary = (
     ...releaseSectionList,
   ]
 
+  const tableHeader = isGitmoji
+    ? [
+        '| Label | Gitmoji Intention | Semver Impact | Trigger | Matched Rule |',
+        '| :--- | :--- | :--- | :--- | :--- |',
+      ]
+    : [
+        '| Label | Semver Impact | Trigger | Matched Rule |',
+        '| :--- | :--- | :--- | :--- |',
+      ]
+
   lines.push(
     '',
     '<details>',
     '<summary>🏷️ Label Decision Details</summary>',
     '',
-    '| Label | Gitmoji Intention | Semver Impact | Trigger | Matched Rule |',
-    '| :--- | :--- | :--- | :--- | :--- |',
+    ...tableHeader,
     ...rows,
     '',
     '</details>',
@@ -202,18 +217,4 @@ export const buildExplainabilitySummary = (
   )
 
   return lines.join('\n')
-}
-
-/** Writes the explainability summary table to the GitHub Actions Job Step Summary when GitHub is detected. */
-export const writeStepSummary = async (markdown: string): Promise<void> => {
-  if (!isGitHubEnvironment()) {
-    return
-  }
-  try {
-    await core.summary.addRaw(markdown).write()
-  } catch (error) {
-    core.warning(
-      `Failed to write GitHub Actions Step Summary: ${error instanceof Error ? error.message : String(error)}`,
-    )
-  }
 }
