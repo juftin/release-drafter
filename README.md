@@ -6,7 +6,22 @@
 
 <p align="center">Draft the next release notes as pull requests merge into a branch.</p>
 
-![CI](https://github.com/release-drafter/release-drafter/actions/workflows/ci.yml/badge.svg)
+![CI](https://github.com/juftin/release-drafter/actions/workflows/ci.yml/badge.svg)
+
+> [!NOTE]
+> **Fork Disclaimer**: This repository is a fork of upstream [release-drafter/release-drafter](https://github.com/release-drafter/release-drafter), maintained by [@juftin](https://github.com/juftin). It introduces enhancements, configuration presets, and tooling designed for modular upstream adoption.
+>
+> <details>
+> <summary><strong>Differences &amp; Features in this Fork</strong></summary>
+>
+> - **Direct Commit Drafting (`include-commits: true`)**: Drafts releases from direct branch commits alongside pull requests, inferring changelog categories and SemVer bumps.
+> - **Built-in Configuration Presets**: Turnkey presets for [Conventional Commits](https://www.conventionalcommits.org) (`presets:conventional-commits`), [Gitmoji](https://gitmoji.dev) (`presets:gitmoji`), and a unified hybrid (`presets:hybrid`), along with zero-configuration fallback.
+> - **Explainability Step Summaries**: Rich GitHub Actions Step Summaries (`$GITHUB_STEP_SUMMARY`) across all composite actions (`autolabeler`, `check-pr`, and `drafter`), providing visibility into matched rules, PR validation results, and draft release previews.
+> - **First-Class Reusable Workflow**: Downstream repositories can invoke Release Drafter directly via [`workflow.yml`](workflow.yml) using `workflow_call` with intelligent event routing.
+> - **Deterministic SemVer Label Precedence**: Autolabeler resolves conflicting version bump labels to the highest semantic priority (`major` &gt; `minor` &gt; `patch`), suppressing lower bumps.
+>
+> For full commit breakdowns and upstream adoption instructions, see [docs/upstream-contributions.md](./docs/upstream-contributions.md).
+> </details>
 
 ## Usage
 
@@ -35,7 +50,7 @@ jobs:
   update_release_draft:
     runs-on: ubuntu-slim
     steps:
-      - uses: release-drafter/release-drafter@v7
+      - uses: juftin/release-drafter@v1
         with:
           # This default loads .github/release-drafter.yml.
           config-name: release-drafter.yml
@@ -60,7 +75,7 @@ jobs:
     permissions:
       contents: write
       pull-requests: write
-    uses: release-drafter/release-drafter/.github/workflows/workflow.yml@v7
+    uses: juftin/release-drafter/workflow.yml@v1
     with:
       config-name: release-drafter.yml # optional, defaults to release-drafter.yml
       check: false # optional: set to true to run check-pr validation on pull requests
@@ -107,7 +122,7 @@ categories, semantic version bumping, and autolabeler rules out of the box:
 To use a preset directly:
 
 ```yaml
-- uses: release-drafter/release-drafter@v7
+- uses: juftin/release-drafter@v1
   with:
     config-name: presets:gitmoji
 ```
@@ -735,7 +750,7 @@ jobs:
     runs-on: ubuntu-slim
     steps:
       # Runs Autolabeler.
-      - uses: release-drafter/release-drafter/autolabeler@v7
+      - uses: juftin/release-drafter/autolabeler@v1
 ```
 
 The available matchers are `files` for glob patterns and `branch`, `title`, and
@@ -844,14 +859,14 @@ jobs:
   update_full_release_draft:
     runs-on: ubuntu-slim
     steps:
-      - uses: release-drafter/release-drafter@v7
+      - uses: juftin/release-drafter@v1
         with:
           prerelease: false # the default
           # Add the remaining configuration here.
   update_prerelease_draft:
     runs-on: ubuntu-slim
     steps:
-      - uses: release-drafter/release-drafter@v7
+      - uses: juftin/release-drafter@v1
         with:
           prerelease: true
           # Use a Semantic Versioning identifier such as alpha, beta, or rc.
@@ -951,7 +966,7 @@ Use it to select later workflow steps, for example deploying a service when one
 of the included pull requests matches a configured `api/user` label condition:
 
 ```yaml
-- uses: release-drafter/release-drafter@v7
+- uses: juftin/release-drafter@v1
   id: release
 - name: Deploy user service
   if: contains(fromJSON(steps.release.outputs.labels), 'api/user')
@@ -990,4 +1005,4 @@ flow and its protected GitHub and npm environments.
 > changes remain after these steps.
 
 For help, open
-[a GitHub issue](https://github.com/release-drafter/release-drafter/issues/new).
+[a GitHub issue](https://github.com/juftin/release-drafter/issues/new).

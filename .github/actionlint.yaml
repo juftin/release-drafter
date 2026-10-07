@@ -1,5 +1,5 @@
 paths:
-  .github/workflows/workflow.yml:
+  workflow.yml:
     ignore:
       - 'property "labels" is not defined in object type'
       - 'input "from" is not defined in action "release-drafter/release-drafter@v7"'
