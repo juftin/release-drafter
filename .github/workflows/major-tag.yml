@@ -1,0 +1,43 @@
+name: Update Major Tag
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: major-tag-${{ github.repository }}
+  cancel-in-progress: false
+
+jobs:
+  update-major-tag:
+    name: Update major tag
+    if: '!github.event.release.draft && !github.event.release.prerelease'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Update v{majorVersion} tag
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.event.release.tag_name }}
+        run: |
+          if [[ ! "$TAG" =~ ^v?[0-9]+ ]]; then
+            echo "Tag '$TAG' does not start with a major version number. Skipping."
+            exit 0
+          fi
+
+          MAJOR="v$(echo "$TAG" | sed -E 's/^v?([0-9]+).*/\1/')"
+          SHA=$(gh api "repos/${{ github.repository }}/commits/$TAG" --jq .sha)
+
+          gh api -X PATCH "repos/${{ github.repository }}/git/refs/tags/$MAJOR" -f sha="$SHA" -F force=true 2>/dev/null || \
+          gh api -X POST "repos/${{ github.repository }}/git/refs" -f ref="refs/tags/$MAJOR" -f sha="$SHA"
+
+          {
+            echo "### 🏷️ Major Tag Update"
+            echo ""
+            echo "| Major Tag | Release Tag | Commit |"
+            echo "| :--- | :--- | :--- |"
+            echo "| \`$MAJOR\` | \`$TAG\` | \`${SHA:0:7}\` |"
+          } >> "$GITHUB_STEP_SUMMARY"
